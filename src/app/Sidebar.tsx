@@ -2,14 +2,28 @@ import {
   BarChart3,
   BookOpen,
   Briefcase,
+  ChevronsUpDown,
   FileText,
   HandshakeIcon,
   Home,
   LogOut,
+  Monitor,
+  Moon,
+  Sun,
   Users,
 } from 'lucide-react';
+import { useTheme } from 'next-themes';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import {
   SidebarContent,
   SidebarFooter,
@@ -27,7 +41,6 @@ import {
   useSidebar,
 } from '@/components/ui/sidebar';
 import { useAuth } from '@/modules/auth/context/AuthContext.js';
-import { ModeToggle } from '@/shared/ui/ModeToggle';
 
 const navigation = [
   { name: 'Overview', href: '/overview', icon: Home },
@@ -45,6 +58,30 @@ const employabilityChildren = [
 function getInitials(profile: { firstName: string; lastName: string } | null): string {
   if (!profile) return '??';
   return `${profile.firstName[0]}${profile.lastName[0]}`.toUpperCase();
+}
+
+function ThemeMenuItems() {
+  const { theme, setTheme } = useTheme();
+
+  return (
+    <DropdownMenuGroup>
+      <DropdownMenuItem onClick={() => setTheme('light')}>
+        <Sun />
+        Claro
+        {theme === 'light' && <span className="ml-auto text-xs text-muted-foreground">✓</span>}
+      </DropdownMenuItem>
+      <DropdownMenuItem onClick={() => setTheme('dark')}>
+        <Moon />
+        Oscuro
+        {theme === 'dark' && <span className="ml-auto text-xs text-muted-foreground">✓</span>}
+      </DropdownMenuItem>
+      <DropdownMenuItem onClick={() => setTheme('system')}>
+        <Monitor />
+        Sistema
+        {theme === 'system' && <span className="ml-auto text-xs text-muted-foreground">✓</span>}
+      </DropdownMenuItem>
+    </DropdownMenuGroup>
+  );
 }
 
 export function AppSidebar() {
@@ -133,35 +170,49 @@ export function AppSidebar() {
       <SidebarFooter>
         <SidebarMenu>
           <SidebarMenuItem>
-            <div className="flex items-center gap-2 px-2">
-              {user && (
-                <>
-                  <Avatar className="size-7">
-                    <AvatarFallback className="text-xs">{getInitials(user.profile)}</AvatarFallback>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <SidebarMenuButton size="lg" tooltip={user?.email ?? 'Usuario'}>
+                  <Avatar className="size-7 shrink-0">
+                    <AvatarFallback className="text-xs">
+                      {user ? getInitials(user.profile) : '??'}
+                    </AvatarFallback>
                   </Avatar>
-                  {!isCollapsed && (
-                    <div className="flex flex-1 flex-col truncate">
-                      <span className="truncate text-sm font-medium">
-                        {user.profile
-                          ? `${user.profile.firstName} ${user.profile.lastName}`
-                          : user.username}
-                      </span>
-                      <span className="truncate text-xs text-muted-foreground">{user.email}</span>
-                    </div>
-                  )}
-                </>
-              )}
-              <div className="ml-auto flex items-center gap-1">
-                <ModeToggle />
-                <SidebarMenuButton
-                  tooltip="Cerrar sesión"
-                  onClick={handleLogout}
-                  className="size-8"
-                >
-                  <LogOut className="size-4" />
+                  <div className="flex flex-1 flex-col truncate">
+                    <span className="truncate text-sm font-medium">
+                      {user?.profile
+                        ? `${user.profile.firstName} ${user.profile.lastName}`
+                        : user?.username}
+                    </span>
+                    <span className="truncate text-xs text-muted-foreground">{user?.email}</span>
+                  </div>
+                  <ChevronsUpDown className="ml-auto size-4 shrink-0 opacity-50" />
                 </SidebarMenuButton>
-              </div>
-            </div>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                side={isCollapsed ? 'right' : 'top'}
+                align="start"
+                className="w-56"
+              >
+                <DropdownMenuLabel className="font-normal">
+                  <div className="flex flex-col gap-1">
+                    <span className="text-sm font-medium">
+                      {user?.profile
+                        ? `${user.profile.firstName} ${user.profile.lastName}`
+                        : user?.username}
+                    </span>
+                    <span className="text-xs text-muted-foreground">{user?.email}</span>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <ThemeMenuItems />
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleLogout}>
+                  <LogOut />
+                  Cerrar sesión
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>
