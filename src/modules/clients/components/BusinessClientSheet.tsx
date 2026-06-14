@@ -1,14 +1,31 @@
 import type { BusinessClientResponse, UpdateBusinessClientRequest } from '@bopacorp/shared/crm';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Loader2, Pencil, XIcon } from 'lucide-react';
+import { formatDistanceToNow } from 'date-fns';
+import { es } from 'date-fns/locale';
+import {
+  ArrowLeft,
+  Building2,
+  DollarSign,
+  FileText,
+  Loader2,
+  Mail,
+  MapPin,
+  Pencil,
+  Phone,
+  Settings,
+  User,
+  UserCheck,
+  XIcon,
+} from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { queryKeys } from '@/lib/query-keys.js';
 import { Can } from '@/modules/auth/components/Can.js';
 import { getErrorMessage } from '@/shared/errors/index.js';
-import { ErrorState } from '@/shared/ui';
+import { ErrorState, StateBadge } from '@/shared/ui';
 import { updateBusinessClient } from '../clients.service.js';
 import { useBusinessClient } from '../hooks/useBusinessClient.js';
 import type { BusinessClientFormValues } from './BusinessClientForm.js';
@@ -24,18 +41,48 @@ function formatCurrency(value: number): string {
   return `$${value.toLocaleString('es-EC', { minimumFractionDigits: 2 })}`;
 }
 
+function getInitials(name: string): string {
+  return name
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((w) => w[0])
+    .join('')
+    .toUpperCase();
+}
+
+function timeAgo(date: string): string {
+  return formatDistanceToNow(new Date(date), { addSuffix: true, locale: es });
+}
+
 function advisorDisplayName(advisor: BusinessClientResponse['advisor']): string {
   if (!advisor) return '—';
   if (advisor.profile) return `${advisor.profile.firstName} ${advisor.profile.lastName}`;
   return advisor.username;
 }
 
-function DetailField({ label, value }: { label: string; value: string }) {
+function DetailField({
+  icon: Icon,
+  label,
+  children,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  children: React.ReactNode;
+}) {
   return (
-    <div className="flex flex-col gap-1">
-      <span className="text-sm font-medium text-muted-foreground">{label}</span>
-      <span className="text-sm text-foreground">{value || '—'}</span>
+    <div className="flex items-start gap-3 rounded-md px-2 py-1.5">
+      <Icon className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+      <span className="w-24 shrink-0 text-sm text-muted-foreground">{label}</span>
+      <span className="min-w-0 text-sm text-foreground">{children ?? '—'}</span>
     </div>
+  );
+}
+
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="px-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+      {children}
+    </span>
   );
 }
 
@@ -47,65 +94,62 @@ export function BusinessClientSheet({ open, onOpenChange, clientId }: BusinessCl
     if (!open) setEditing(false);
   }, [open]);
 
-  if (loading) {
-    return (
-      <Sheet open={open} onOpenChange={onOpenChange}>
-        <SheetContent showCloseButton={false}>
-          <SheetHeader className="flex flex-row items-center justify-between">
-            <SheetTitle>Cliente</SheetTitle>
-            <SheetClose asChild>
-              <Button variant="ghost" size="icon-sm">
-                <XIcon />
-              </Button>
-            </SheetClose>
-          </SheetHeader>
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="size-6 animate-spin text-muted-foreground" />
-          </div>
-        </SheetContent>
-      </Sheet>
-    );
-  }
-
-  if (error || !client) {
-    return (
-      <Sheet open={open} onOpenChange={onOpenChange}>
-        <SheetContent showCloseButton={false}>
-          <SheetHeader className="flex flex-row items-center justify-between">
-            <SheetTitle>Cliente</SheetTitle>
-            <SheetClose asChild>
-              <Button variant="ghost" size="icon-sm">
-                <XIcon />
-              </Button>
-            </SheetClose>
-          </SheetHeader>
-          <ErrorState error={error} onRetry={refetch} />
-        </SheetContent>
-      </Sheet>
-    );
-  }
+  const showViewHeader = !loading && !error && client && !editing;
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent showCloseButton={false}>
-        <SheetHeader className="flex flex-row items-center justify-between">
-          <SheetTitle className="truncate">{client.businessName}</SheetTitle>
-          <div className="flex items-center gap-1">
-            {!editing && (
-              <Can permission="business_clients.update">
-                <Button variant="ghost" size="icon-sm" onClick={() => setEditing(true)}>
-                  <Pencil />
+        <SheetHeader className="flex flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              {editing && (
+                <Button variant="ghost" size="icon-sm" onClick={() => setEditing(false)}>
+                  <ArrowLeft />
                 </Button>
-              </Can>
-            )}
-            <SheetClose asChild>
-              <Button variant="ghost" size="icon-sm">
-                <XIcon />
-              </Button>
-            </SheetClose>
+              )}
+              {!showViewHeader && <SheetTitle>{editing ? 'Editar cliente' : 'Cliente'}</SheetTitle>}
+            </div>
+            <div className="flex items-center gap-1">
+              {showViewHeader && (
+                <Can permission="business_clients.update">
+                  <Button variant="ghost" size="icon-sm" onClick={() => setEditing(true)}>
+                    <Pencil />
+                  </Button>
+                </Can>
+              )}
+              <SheetClose asChild>
+                <Button variant="ghost" size="icon-sm">
+                  <XIcon />
+                </Button>
+              </SheetClose>
+            </div>
           </div>
+          {showViewHeader && (
+            <div className="flex items-center gap-3">
+              <Avatar size="lg" className="after:content-none">
+                <AvatarFallback className="bg-primary text-primary-foreground font-semibold">
+                  {getInitials(client.businessName)}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex min-w-0 flex-col">
+                <SheetTitle className="text-lg">{client.businessName}</SheetTitle>
+                {client.createdAt && (
+                  <span className="text-xs text-muted-foreground">
+                    Creado {timeAgo(client.createdAt)}
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
         </SheetHeader>
-        {editing ? (
+
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="size-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : error || !client ? (
+          <ErrorState error={error} onRetry={refetch} />
+        ) : editing ? (
           <EditForm client={client} onSaved={() => setEditing(false)} />
         ) : (
           <ViewMode client={client} />
@@ -118,20 +162,60 @@ export function BusinessClientSheet({ open, onOpenChange, clientId }: BusinessCl
 function ViewMode({ client }: { client: BusinessClientResponse }) {
   return (
     <div className="flex-1 overflow-y-auto p-4">
-      <div className="flex flex-col gap-4">
-        <DetailField label="RUC" value={client.ruc} />
-        <DetailField label="Nombre comercial" value={client.businessName} />
-        <DetailField label="Contacto" value={client.contactName} />
-        <DetailField label="Teléfono" value={client.contactPhone ?? ''} />
-        <DetailField label="Email" value={client.contactEmail ?? ''} />
-        <DetailField label="Dirección" value={client.address ?? ''} />
-        <DetailField label="Servicios activos" value={String(client.activeServicesCount)} />
-        <DetailField
-          label="Facturación mensual"
-          value={formatCurrency(client.currentMonthlyBilling)}
-        />
-        <DetailField label="Asesor" value={advisorDisplayName(client.advisor)} />
-        <DetailField label="Estado" value={client.isActive ? 'Activo' : 'Inactivo'} />
+      <div className="flex flex-col gap-5">
+        <div className="flex flex-col gap-1">
+          <SectionLabel>Información</SectionLabel>
+          <DetailField icon={FileText} label="RUC">
+            {client.ruc}
+          </DetailField>
+          <DetailField icon={Building2} label="Empresa">
+            {client.businessName}
+          </DetailField>
+          <DetailField icon={Settings} label="Estado">
+            <StateBadge state={client.isActive ? 'active' : 'inactive'} />
+          </DetailField>
+        </div>
+
+        <div className="flex flex-col gap-1">
+          <SectionLabel>Contacto</SectionLabel>
+          <DetailField icon={User} label="Nombre">
+            {client.contactName}
+          </DetailField>
+          <DetailField icon={Phone} label="Teléfono">
+            {client.contactPhone ? (
+              <a href={`tel:${client.contactPhone}`} className="text-primary hover:underline">
+                {client.contactPhone}
+              </a>
+            ) : (
+              '—'
+            )}
+          </DetailField>
+          <DetailField icon={Mail} label="Email">
+            {client.contactEmail ? (
+              <a href={`mailto:${client.contactEmail}`} className="text-primary hover:underline">
+                {client.contactEmail}
+              </a>
+            ) : (
+              '—'
+            )}
+          </DetailField>
+          <DetailField icon={MapPin} label="Dirección">
+            {client.address || '—'}
+          </DetailField>
+        </div>
+
+        <div className="flex flex-col gap-1">
+          <SectionLabel>Métricas</SectionLabel>
+          <DetailField icon={Settings} label="Servicios">
+            {client.activeServicesCount}
+          </DetailField>
+          <DetailField icon={DollarSign} label="Facturación">
+            {formatCurrency(client.currentMonthlyBilling)}
+          </DetailField>
+          <DetailField icon={UserCheck} label="Asesor">
+            {advisorDisplayName(client.advisor)}
+          </DetailField>
+        </div>
       </div>
     </div>
   );

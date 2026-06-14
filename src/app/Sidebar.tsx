@@ -122,7 +122,7 @@ export function AppSidebar() {
                 BOPACORP
               </span>
               <span className="text-[10px] font-bold text-primary tracking-widest uppercase mt-1 leading-none">
-                Partner Movistar
+                Partner Tigo
               </span>
             </div>
           </div>

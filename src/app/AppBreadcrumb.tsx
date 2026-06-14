@@ -7,6 +7,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb';
+import { Separator } from '@/components/ui/separator';
 
 interface BreadcrumbSegment {
   label: string;
@@ -15,6 +16,7 @@ interface BreadcrumbSegment {
 
 const routeLabels: Record<string, string> = {
   overview: 'Overview',
+  clientes: 'Clientes',
   negociaciones: 'Negociaciones',
   documentacion: 'Documentación',
   catalogo: 'Catálogo',
@@ -60,36 +62,31 @@ export function AppBreadcrumb() {
   const location = useLocation();
   const segments = getSegments(location.pathname);
 
-  if (segments.length === 1 && !segments[0].href) {
-    return (
-      <Breadcrumb>
-        <BreadcrumbList>
-          <BreadcrumbItem>
-            <BreadcrumbPage>{segments[0].label}</BreadcrumbPage>
-          </BreadcrumbItem>
-        </BreadcrumbList>
-      </Breadcrumb>
-    );
+  if (segments.length <= 1) {
+    return null;
   }
 
   return (
-    <Breadcrumb>
-      <BreadcrumbList>
-        {segments.map((segment) => (
-          <BreadcrumbItem key={segment.label}>
-            {segment.href ? (
-              <>
-                <BreadcrumbLink asChild>
-                  <Link to={segment.href}>{segment.label}</Link>
-                </BreadcrumbLink>
-                {segment !== segments[segments.length - 1] && <BreadcrumbSeparator />}
-              </>
-            ) : (
-              <BreadcrumbPage>{segment.label}</BreadcrumbPage>
-            )}
-          </BreadcrumbItem>
-        ))}
-      </BreadcrumbList>
-    </Breadcrumb>
+    <>
+      <Separator orientation="vertical" className="mr-2 h-4" />
+      <Breadcrumb>
+        <BreadcrumbList>
+          {segments.map((segment) => (
+            <BreadcrumbItem key={segment.label}>
+              {segment.href ? (
+                <>
+                  <BreadcrumbLink asChild>
+                    <Link to={segment.href}>{segment.label}</Link>
+                  </BreadcrumbLink>
+                  {segment !== segments[segments.length - 1] && <BreadcrumbSeparator />}
+                </>
+              ) : (
+                <BreadcrumbPage>{segment.label}</BreadcrumbPage>
+              )}
+            </BreadcrumbItem>
+          ))}
+        </BreadcrumbList>
+      </Breadcrumb>
+    </>
   );
 }
