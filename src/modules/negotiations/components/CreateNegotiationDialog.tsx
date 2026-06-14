@@ -1,7 +1,7 @@
 import type { CreateNegotiationRequest } from '@bopacorp/shared/crm';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Loader2, Plus } from 'lucide-react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import {
@@ -27,7 +27,7 @@ import { useAuth } from '@/modules/auth/context/AuthContext.js';
 import { CreateBusinessClientDialog } from '@/modules/clients/components/CreateBusinessClientDialog.js';
 import { useBusinessClients } from '@/modules/clients/hooks/useBusinessClients.js';
 import { getErrorMessage } from '@/shared/errors/index.js';
-import { FormAlert } from '@/shared/ui';
+import { FormAlert, SearchSelect } from '@/shared/ui';
 import { useNegotiationStates } from '../hooks/useNegotiationStates.js';
 import { createNegotiation } from '../negotiations.service.js';
 
@@ -54,6 +54,11 @@ export function CreateNegotiationDialog({
   const [estimatedCloseDate, setEstimatedCloseDate] = useState('');
   const [observations, setObservations] = useState('');
   const [error, setError] = useState('');
+
+  const clientOptions = useMemo(
+    () => clients.map((c) => ({ value: c.id, label: c.businessName })),
+    [clients],
+  );
 
   const mutation = useMutation({
     mutationFn: (data: CreateNegotiationRequest) => createNegotiation(data),
@@ -108,18 +113,14 @@ export function CreateNegotiationDialog({
           <FieldGroup>
             <Field>
               <FieldLabel>Cliente</FieldLabel>
-              <Select value={clientId} onValueChange={setClientId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Seleccionar cliente" />
-                </SelectTrigger>
-                <SelectContent>
-                  {clients.map((client) => (
-                    <SelectItem key={client.id} value={client.id}>
-                      {client.businessName}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <SearchSelect
+                options={clientOptions}
+                value={clientId}
+                onValueChange={setClientId}
+                placeholder="Seleccionar cliente"
+                searchPlaceholder="Buscar cliente..."
+                emptyMessage="Sin clientes"
+              />
               <Can permission="business_clients.create">
                 <Button
                   type="button"

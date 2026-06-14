@@ -23,4 +23,8 @@ export const queryKeys = {
   visitTypes: {
     all: ['visit-types'] as const,
   },
+  employees: {
+    all: ['employees'] as const,
+    list: (filters: Record<string, unknown>) => ['employees', 'list', filters] as const,
+  },
 };

@@ -17,6 +17,7 @@ interface AuthState {
   login: (data: LoginRequest) => Promise<void>;
   logout: () => Promise<void>;
   hasPermission: (permission: string) => boolean;
+  hasRole: (role: string) => boolean;
 }
 
 const AuthContext = createContext<AuthState | null>(null);
@@ -84,8 +85,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [user],
   );
 
+  const hasRole = useCallback((role: string) => user?.roles.includes(role) ?? false, [user]);
+
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, logout, hasPermission }}>
+    <AuthContext.Provider value={{ user, isLoading, login, logout, hasPermission, hasRole }}>
       {children}
     </AuthContext.Provider>
   );

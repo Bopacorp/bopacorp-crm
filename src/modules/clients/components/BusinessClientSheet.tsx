@@ -1,7 +1,7 @@
 import type { BusinessClientResponse, UpdateBusinessClientRequest } from '@bopacorp/shared/crm';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Loader2, Pencil, X } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Field, FieldGroup, FieldLabel } from '@/components/ui/field';
@@ -11,8 +11,10 @@ import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { queryKeys } from '@/lib/query-keys.js';
 import { Can } from '@/modules/auth/components/Can.js';
+import { useAuth } from '@/modules/auth/context/AuthContext.js';
+import { useAdvisors } from '@/modules/org/hooks/useAdvisors.js';
 import { getErrorMessage } from '@/shared/errors/index.js';
-import { ErrorState, FormAlert } from '@/shared/ui';
+import { ErrorState, FormAlert, SearchSelect } from '@/shared/ui';
 import { updateBusinessClient } from '../clients.service.js';
 import { useBusinessClient } from '../hooks/useBusinessClient.js';
 
@@ -24,6 +26,20 @@ interface BusinessClientSheetProps {
 
 function formatCurrency(value: number): string {
   return `$${value.toLocaleString('es-EC', { minimumFractionDigits: 2 })}`;
+}
+
+function advisorDisplayName(advisor: BusinessClientResponse['advisor']): string {
+  if (!advisor) return '—';
+  if (advisor.profile) return `${advisor.profile.firstName} ${advisor.profile.lastName}`;
+  return advisor.username;
+}
+
+function employeeName(emp: {
+  user: { firstName: string | null; lastName: string | null; username: string };
+}) {
+  return emp.user.firstName && emp.user.lastName
+    ? `${emp.user.firstName} ${emp.user.lastName}`
+    : emp.user.username;
 }
 
 function DetailField({ label, value }: { label: string; value: string }) {
@@ -115,6 +131,7 @@ function ViewMode({ client }: { client: BusinessClientResponse }) {
           label="Facturación mensual"
           value={formatCurrency(client.currentMonthlyBilling)}
         />
+        <DetailField label="Asesor" value={advisorDisplayName(client.advisor)} />
         <DetailField label="Estado" value={client.isActive ? 'Activo' : 'Inactivo'} />
       </div>
     </div>
@@ -131,6 +148,10 @@ function EditForm({
   onSaved: () => void;
 }) {
   const queryClient = useQueryClient();
+  const { hasRole } = useAuth();
+  const canAssignAdvisor = !hasRole('advisor');
+  const { advisors } = useAdvisors();
+  const [advisorId, setAdvisorId] = useState(client.advisor?.id ?? '');
   const [businessName, setBusinessName] = useState(client.businessName);
   const [contactName, setContactName] = useState(client.contactName);
   const [contactPhone, setContactPhone] = useState(client.contactPhone ?? '');
@@ -140,6 +161,11 @@ function EditForm({
   const [currentMonthlyBilling, setCurrentMonthlyBilling] = useState(client.currentMonthlyBilling);
   const [isActive, setIsActive] = useState(client.isActive);
   const [formError, setFormError] = useState('');
+
+  const advisorOptions = useMemo(
+    () => advisors.map((emp) => ({ value: emp.userId, label: employeeName(emp) })),
+    [advisors],
+  );
 
   const mutation = useMutation({
     mutationFn: (data: UpdateBusinessClientRequest) => updateBusinessClient(client.id, data),
@@ -158,6 +184,7 @@ function EditForm({
     setFormError('');
 
     mutation.mutate({
+      advisorId: advisorId || undefined,
       businessName,
       contactName,
       contactPhone: contactPhone || undefined,
@@ -212,6 +239,20 @@ function EditForm({
             <FieldLabel>Dirección</FieldLabel>
             <Textarea value={address} onChange={(e) => setAddress(e.target.value)} />
           </Field>
+
+          {canAssignAdvisor && (
+            <Field>
+              <FieldLabel>Asesor</FieldLabel>
+              <SearchSelect
+                options={advisorOptions}
+                value={advisorId}
+                onValueChange={setAdvisorId}
+                placeholder="Seleccionar asesor"
+                searchPlaceholder="Buscar asesor..."
+                emptyMessage="Sin asesores"
+              />
+            </Field>
+          )}
 
           <Field>
             <FieldLabel>Servicios activos</FieldLabel>

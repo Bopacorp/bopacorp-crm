@@ -9,6 +9,8 @@ export { FormAlert } from './FormAlert';
 export { KpiCard } from './KpiCard';
 export { ModeToggle } from './ModeToggle';
 export { PageLoader } from './PageLoader';
+export type { SearchSelectOption } from './SearchSelect';
+export { SearchSelect } from './SearchSelect';
 export { SectionHeader } from './SectionHeader';
 export { StateBadge } from './StateBadge';
 export { TableSkeleton } from './TableSkeleton';
