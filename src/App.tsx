@@ -1,10 +1,12 @@
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router-dom';
 import MainLayout from '@/app/MainLayout.js';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import RequireAuth from '@/modules/auth/components/RequireAuth.js';
 import LoginPage from '@/modules/auth/pages/LoginPage';
 import CatalogPage from '@/modules/catalog/pages/CatalogPage';
 import MatrixDetailPage from '@/modules/catalog/pages/MatrixDetailPage';
+import { ClientSheetProvider } from '@/modules/clients/context/ClientSheetContext';
+import ClientsPage from '@/modules/clients/pages/ClientsPage';
 import DocumentationPage from '@/modules/documentation/pages/DocumentationPage';
 import ApplicantsPage from '@/modules/employability/pages/ApplicantsPage';
 import MessagesPage from '@/modules/employability/pages/MessagesPage';
@@ -39,23 +41,39 @@ export default function App() {
                 }
               />
 
-              {/* Negotiations */}
+              {/* Clients & Negotiations */}
               <Route
-                path="/negociaciones"
                 element={
-                  <RequireAuth>
-                    <NegotiationsPage />
-                  </RequireAuth>
+                  <ClientSheetProvider>
+                    <Outlet />
+                  </ClientSheetProvider>
                 }
-              />
-              <Route
-                path="/negociaciones/:id"
-                element={
-                  <RequireAuth>
-                    <NegotiationDetailPage />
-                  </RequireAuth>
-                }
-              />
+              >
+                <Route
+                  path="/clientes"
+                  element={
+                    <RequireAuth>
+                      <ClientsPage />
+                    </RequireAuth>
+                  }
+                />
+                <Route
+                  path="/negociaciones"
+                  element={
+                    <RequireAuth>
+                      <NegotiationsPage />
+                    </RequireAuth>
+                  }
+                />
+                <Route
+                  path="/negociaciones/:id"
+                  element={
+                    <RequireAuth>
+                      <NegotiationDetailPage />
+                    </RequireAuth>
+                  }
+                />
+              </Route>
 
               {/* Documentation */}
               <Route

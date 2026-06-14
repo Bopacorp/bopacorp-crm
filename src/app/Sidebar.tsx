@@ -2,6 +2,7 @@ import {
   BarChart3,
   BookOpen,
   Briefcase,
+  Building2,
   ChevronsUpDown,
   FileText,
   HandshakeIcon,
@@ -44,6 +45,7 @@ import { useAuth } from '@/modules/auth/context/AuthContext.js';
 
 const navigation = [
   { name: 'Overview', href: '/overview', icon: Home },
+  { name: 'Clientes', href: '/clientes', icon: Building2 },
   { name: 'Negociaciones', href: '/negociaciones', icon: HandshakeIcon },
   { name: 'Documentación', href: '/documentacion', icon: FileText },
   { name: 'Catálogo', href: '/catalogo', icon: BookOpen },

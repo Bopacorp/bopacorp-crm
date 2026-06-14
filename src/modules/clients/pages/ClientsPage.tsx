@@ -1,7 +1,6 @@
-import type { NegotiationListItemResponse } from '@bopacorp/shared/crm';
+import type { BusinessClientListItemResponse } from '@bopacorp/shared/crm';
 import { Plus } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import {
   Pagination,
@@ -13,28 +12,17 @@ import {
   PaginationPrevious,
 } from '@/components/ui/pagination';
 import { cn } from '@/lib/utils';
-import { useClientSheet } from '@/modules/clients/context/ClientSheetContext.js';
 import {
   EmptyState,
   EntityTable,
   ErrorState,
   FilterBar,
   SectionHeader,
-  StateBadge,
   TableSkeleton,
 } from '@/shared/ui';
-import { CreateNegotiationDialog } from '../components/CreateNegotiationDialog.js';
-import { useNegotiationStates } from '../hooks/useNegotiationStates.js';
-import { useNegotiations } from '../hooks/useNegotiations.js';
-
-function formatDate(value: string | null): string {
-  if (!value) return '—';
-  return new Date(value).toLocaleDateString('es-EC', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  });
-}
+import { CreateBusinessClientDialog } from '../components/CreateBusinessClientDialog.js';
+import { useClientSheet } from '../context/ClientSheetContext.js';
+import { useBusinessClients } from '../hooks/useBusinessClients.js';
 
 type PageEntry = { type: 'page'; page: number } | { type: 'ellipsis'; key: string };
 
@@ -52,73 +40,73 @@ function buildPageNumbers(current: number, total: number): PageEntry[] {
   return entries;
 }
 
-export default function NegotiationsPage() {
-  const navigate = useNavigate();
+export default function ClientsPage() {
   const { openClientSheet } = useClientSheet();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
-  const [stateId, setStateId] = useState<string | undefined>();
+  const [isActive, setIsActive] = useState<boolean | undefined>();
   const [createOpen, setCreateOpen] = useState(false);
 
-  const { negotiations, meta, loading, fetching, error, refetch } = useNegotiations(page, {
+  const { clients, meta, loading, fetching, error, refetch } = useBusinessClients(page, {
     search,
-    stateId,
+    isActive,
   });
-  const { states } = useNegotiationStates();
-
-  const columns = [
-    {
-      id: 'company',
-      header: 'Empresa',
-      accessor: (item: NegotiationListItemResponse) => (
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            openClientSheet(item.client.id);
-          }}
-        >
-          <span className="font-medium text-primary hover:underline">
-            {item.client.businessName}
-          </span>
-        </button>
-      ),
-    },
-    {
-      id: 'state',
-      header: 'Estado',
-      accessor: (item: NegotiationListItemResponse) => <StateBadge state={item.state.code} />,
-    },
-    {
-      id: 'advisor',
-      header: 'Asesor',
-      accessor: (item: NegotiationListItemResponse) => item.advisor.username,
-    },
-    {
-      id: 'startDate',
-      header: 'Fecha inicio',
-      accessor: (item: NegotiationListItemResponse) => formatDate(item.startDate),
-    },
-    {
-      id: 'closeDate',
-      header: 'Cierre estimado',
-      accessor: (item: NegotiationListItemResponse) => formatDate(item.estimatedCloseDate),
-    },
-  ];
 
   const searchRef = useRef(search);
-  const stateIdRef = useRef(stateId);
+  const isActiveRef = useRef(isActive);
   useEffect(() => {
-    if (searchRef.current !== search || stateIdRef.current !== stateId) {
+    if (searchRef.current !== search || isActiveRef.current !== isActive) {
       searchRef.current = search;
-      stateIdRef.current = stateId;
+      isActiveRef.current = isActive;
       setPage(1);
     }
   });
 
-  const stateOptions = [
+  const columns = [
+    {
+      id: 'businessName',
+      header: 'Empresa',
+      accessor: (item: BusinessClientListItemResponse) => (
+        <span className="font-medium">{item.businessName}</span>
+      ),
+    },
+    {
+      id: 'ruc',
+      header: 'RUC',
+      accessor: (item: BusinessClientListItemResponse) => item.ruc,
+    },
+    {
+      id: 'contactName',
+      header: 'Contacto',
+      accessor: (item: BusinessClientListItemResponse) => item.contactName,
+    },
+    {
+      id: 'advisor',
+      header: 'Asesor',
+      accessor: (item: BusinessClientListItemResponse) => item.advisor?.username ?? '—',
+    },
+    {
+      id: 'status',
+      header: 'Estado',
+      accessor: (item: BusinessClientListItemResponse) => (
+        <span
+          className={cn(
+            'inline-flex rounded-full px-2 py-0.5 text-xs font-medium',
+            item.isActive
+              ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
+              : 'bg-muted text-muted-foreground',
+          )}
+        >
+          {item.isActive ? 'Activo' : 'Inactivo'}
+        </span>
+      ),
+    },
+  ];
+
+  const activeOptions = [
     { value: 'all', label: 'Todos' },
-    ...states.map((s) => ({ value: s.id, label: s.name })),
+    { value: 'true', label: 'Activo' },
+    { value: 'false', label: 'Inactivo' },
   ];
 
   if (loading) return <TableSkeleton columns={5} />;
@@ -132,12 +120,12 @@ export default function NegotiationsPage() {
       )}
     >
       <SectionHeader
-        title="Negociaciones"
-        description="Gestión de cuentas, contratos y visitas comerciales"
+        title="Clientes"
+        description="Gestión de empresas y contactos comerciales"
         actions={
           <Button onClick={() => setCreateOpen(true)}>
             <Plus data-icon="inline-start" />
-            Nueva negociación
+            Nuevo cliente
           </Button>
         }
       />
@@ -145,31 +133,31 @@ export default function NegotiationsPage() {
       <FilterBar
         searchValue={search}
         onSearchChange={setSearch}
-        searchPlaceholder="Buscar por empresa..."
+        searchPlaceholder="Buscar por empresa o RUC..."
         filters={[
           {
-            id: 'state',
+            id: 'active',
             placeholder: 'Estado',
-            options: stateOptions,
-            value: stateId ?? 'all',
-            onChange: (value) => setStateId(value === 'all' ? undefined : value),
+            options: activeOptions,
+            value: isActive === undefined ? 'all' : String(isActive),
+            onChange: (value) => setIsActive(value === 'all' ? undefined : value === 'true'),
           },
         ]}
       />
 
-      {negotiations.length === 0 ? (
+      {clients.length === 0 ? (
         <EmptyState
-          title="No hay negociaciones"
-          description="Crea tu primera negociación para comenzar"
-          action={{ label: '+ Nueva negociación', onClick: () => setCreateOpen(true) }}
+          title="No hay clientes"
+          description="Crea tu primer cliente para comenzar"
+          action={{ label: '+ Nuevo cliente', onClick: () => setCreateOpen(true) }}
         />
       ) : (
         <>
           <EntityTable
-            data={negotiations}
+            data={clients}
             columns={columns}
             keyExtractor={(item) => item.id}
-            onRowClick={(item) => navigate(`/negociaciones/${item.id}`)}
+            onRowClick={(item) => openClientSheet(item.id)}
           />
 
           {meta && meta.totalPages > 1 && (
@@ -218,7 +206,11 @@ export default function NegotiationsPage() {
         </>
       )}
 
-      <CreateNegotiationDialog open={createOpen} onOpenChange={setCreateOpen} onSuccess={refetch} />
+      <CreateBusinessClientDialog
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        onSuccess={() => refetch()}
+      />
     </div>
   );
 }

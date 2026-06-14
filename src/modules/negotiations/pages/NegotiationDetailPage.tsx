@@ -4,6 +4,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useClientSheet } from '@/modules/clients/context/ClientSheetContext.js';
 import { DetailSkeleton, EmptyState, ErrorState, StateBadge } from '@/shared/ui';
 import { ChangeStateDialog } from '../components/ChangeStateDialog.js';
 import { HistoryTab } from '../components/HistoryTab.js';
@@ -31,6 +32,7 @@ export default function NegotiationDetailPage() {
   const { id = '' } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { negotiation, loading, error, refetch } = useNegotiation(id);
+  const { openClientSheet } = useClientSheet();
   const [changeStateOpen, setChangeStateOpen] = useState(false);
 
   if (loading) return <DetailSkeleton fields={4} tabs={4} />;
@@ -43,7 +45,11 @@ export default function NegotiationDetailPage() {
           <ArrowLeft data-icon="inline-start" />
           Volver
         </Button>
-        <h1 className="text-xl font-semibold">{negotiation.client.businessName}</h1>
+        <button type="button" onClick={() => openClientSheet(negotiation.client.id)}>
+          <h1 className="text-xl font-semibold text-primary hover:underline">
+            {negotiation.client.businessName}
+          </h1>
+        </button>
       </div>
 
       <Card>

@@ -1,4 +1,4 @@
-import { Loader2 } from 'lucide-react';
+import { Loader2, Plus } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -20,9 +20,10 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/modules/auth/context/AuthContext.js';
+import { CreateBusinessClientDialog } from '@/modules/clients/components/CreateBusinessClientDialog.js';
+import { useBusinessClients } from '@/modules/clients/hooks/useBusinessClients.js';
 import { getErrorMessage } from '@/shared/errors/index.js';
 import { FormAlert } from '@/shared/ui';
-import { useBusinessClients } from '../hooks/useBusinessClients.js';
 import { useNegotiationStates } from '../hooks/useNegotiationStates.js';
 import { createNegotiation } from '../negotiations.service.js';
 
@@ -39,9 +40,10 @@ export function CreateNegotiationDialog({
 }: CreateNegotiationDialogProps) {
   const { user } = useAuth();
   const { states } = useNegotiationStates();
-  const { clients } = useBusinessClients(1, {});
+  const { clients, refetch: refetchClients } = useBusinessClients(1, {});
 
   const [clientId, setClientId] = useState('');
+  const [createClientOpen, setCreateClientOpen] = useState(false);
   const [stateId, setStateId] = useState('');
   const [startDate, setStartDate] = useState('');
   const [estimatedCloseDate, setEstimatedCloseDate] = useState('');
@@ -113,6 +115,16 @@ export function CreateNegotiationDialog({
                   ))}
                 </SelectContent>
               </Select>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="mt-1"
+                onClick={() => setCreateClientOpen(true)}
+              >
+                <Plus data-icon="inline-start" />
+                Nuevo cliente
+              </Button>
             </Field>
 
             <Field>
@@ -166,6 +178,15 @@ export function CreateNegotiationDialog({
           </DialogFooter>
         </form>
       </DialogContent>
+
+      <CreateBusinessClientDialog
+        open={createClientOpen}
+        onOpenChange={setCreateClientOpen}
+        onSuccess={(client) => {
+          setClientId(client.id);
+          refetchClients();
+        }}
+      />
     </Dialog>
   );
 }
