@@ -131,7 +131,10 @@ export default function ClientsPage() {
       id: 'status',
       header: 'Estado',
       accessor: (item: BusinessClientListItemResponse) => (
-        <StateBadge state={item.isActive ? 'active' : 'inactive'} />
+        <StateBadge
+          state={item.isActive ? 'active' : 'inactive'}
+          label={item.isActive ? 'Activo' : 'Inactivo'}
+        />
       ),
     },
     {

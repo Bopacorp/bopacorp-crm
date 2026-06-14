@@ -17,15 +17,15 @@ import {
   UserCheck,
   XIcon,
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { queryKeys } from '@/lib/query-keys.js';
 import { Can } from '@/modules/auth/components/Can.js';
 import { getErrorMessage } from '@/shared/errors/index.js';
-import { ErrorState, StateBadge } from '@/shared/ui';
+import { DiscardChangesDialog, ErrorState, StateBadge } from '@/shared/ui';
 import { updateBusinessClient } from '../clients.service.js';
 import { useBusinessClient } from '../hooks/useBusinessClient.js';
 import type { BusinessClientFormValues } from './BusinessClientForm.js';
@@ -89,21 +89,61 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 export function BusinessClientSheet({ open, onOpenChange, clientId }: BusinessClientSheetProps) {
   const { client, loading, error, refetch } = useBusinessClient(clientId);
   const [editing, setEditing] = useState(false);
+  const [showDiscard, setShowDiscard] = useState(false);
+  const dirtyRef = useRef(false);
+  const pendingAction = useRef<'close' | 'back' | null>(null);
 
   useEffect(() => {
-    if (!open) setEditing(false);
+    if (!open) {
+      setEditing(false);
+      dirtyRef.current = false;
+    }
   }, [open]);
+
+  const handleDirtyChange = useCallback((dirty: boolean) => {
+    dirtyRef.current = dirty;
+  }, []);
+
+  const guardedAction = (action: 'close' | 'back') => {
+    if (editing && dirtyRef.current) {
+      pendingAction.current = action;
+      setShowDiscard(true);
+    } else if (action === 'close') {
+      onOpenChange(false);
+    } else {
+      setEditing(false);
+    }
+  };
+
+  const handleDiscard = () => {
+    setShowDiscard(false);
+    dirtyRef.current = false;
+    if (pendingAction.current === 'close') {
+      onOpenChange(false);
+    } else {
+      setEditing(false);
+    }
+    pendingAction.current = null;
+  };
+
+  const handleOpenChange = (value: boolean) => {
+    if (!value) {
+      guardedAction('close');
+    } else {
+      onOpenChange(true);
+    }
+  };
 
   const showViewHeader = !loading && !error && client && !editing;
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
+    <Sheet open={open} onOpenChange={handleOpenChange}>
       <SheetContent showCloseButton={false}>
         <SheetHeader className="flex flex-col gap-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               {editing && (
-                <Button variant="ghost" size="icon-sm" onClick={() => setEditing(false)}>
+                <Button variant="ghost" size="icon-sm" onClick={() => guardedAction('back')}>
                   <ArrowLeft />
                 </Button>
               )}
@@ -117,11 +157,9 @@ export function BusinessClientSheet({ open, onOpenChange, clientId }: BusinessCl
                   </Button>
                 </Can>
               )}
-              <SheetClose asChild>
-                <Button variant="ghost" size="icon-sm">
-                  <XIcon />
-                </Button>
-              </SheetClose>
+              <Button variant="ghost" size="icon-sm" onClick={() => guardedAction('close')}>
+                <XIcon />
+              </Button>
             </div>
           </div>
           {showViewHeader && (
@@ -150,11 +188,21 @@ export function BusinessClientSheet({ open, onOpenChange, clientId }: BusinessCl
         ) : error || !client ? (
           <ErrorState error={error} onRetry={refetch} />
         ) : editing ? (
-          <EditForm client={client} onSaved={() => setEditing(false)} />
+          <EditForm
+            client={client}
+            onSaved={() => setEditing(false)}
+            onDirtyChange={handleDirtyChange}
+          />
         ) : (
           <ViewMode client={client} />
         )}
       </SheetContent>
+
+      <DiscardChangesDialog
+        open={showDiscard}
+        onCancel={() => setShowDiscard(false)}
+        onDiscard={handleDiscard}
+      />
     </Sheet>
   );
 }
@@ -172,7 +220,10 @@ function ViewMode({ client }: { client: BusinessClientResponse }) {
             {client.businessName}
           </DetailField>
           <DetailField icon={Settings} label="Estado">
-            <StateBadge state={client.isActive ? 'active' : 'inactive'} />
+            <StateBadge
+              state={client.isActive ? 'active' : 'inactive'}
+              label={client.isActive ? 'Activo' : 'Inactivo'}
+            />
           </DetailField>
         </div>
 
@@ -221,7 +272,15 @@ function ViewMode({ client }: { client: BusinessClientResponse }) {
   );
 }
 
-function EditForm({ client, onSaved }: { client: BusinessClientResponse; onSaved: () => void }) {
+function EditForm({
+  client,
+  onSaved,
+  onDirtyChange,
+}: {
+  client: BusinessClientResponse;
+  onSaved: () => void;
+  onDirtyChange: (dirty: boolean) => void;
+}) {
   const queryClient = useQueryClient();
   const [formError, setFormError] = useState('');
 
@@ -267,6 +326,7 @@ function EditForm({ client, onSaved }: { client: BusinessClientResponse; onSaved
       error={formError}
       submitLabel="Guardar"
       showIsActive
+      onDirtyChange={onDirtyChange}
     />
   );
 }

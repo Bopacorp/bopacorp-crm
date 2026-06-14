@@ -1,10 +1,11 @@
 import type { BusinessClientResponse, CreateBusinessClientRequest } from '@bopacorp/shared/crm';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { queryKeys } from '@/lib/query-keys.js';
 import { getErrorMessage } from '@/shared/errors/index.js';
+import { DiscardChangesDialog } from '@/shared/ui';
 import { createBusinessClient } from '../clients.service.js';
 import type { BusinessClientFormValues } from './BusinessClientForm.js';
 import { BusinessClientForm } from './BusinessClientForm.js';
@@ -34,24 +35,47 @@ export function CreateBusinessClientDialog({
   const queryClient = useQueryClient();
   const [error, setError] = useState('');
   const [key, setKey] = useState(0);
+  const [showDiscard, setShowDiscard] = useState(false);
+  const dirtyRef = useRef(false);
+
+  const handleDirtyChange = useCallback((dirty: boolean) => {
+    dirtyRef.current = dirty;
+  }, []);
 
   const mutation = useMutation({
     mutationFn: (data: CreateBusinessClientRequest) => createBusinessClient(data),
     onSuccess: (client) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.businessClients.all });
       toast.success('Cliente creado');
-      handleOpenChange(false);
+      dirtyRef.current = false;
+      forceClose();
       onSuccess(client);
     },
     onError: (err) => setError(getErrorMessage(err)),
   });
 
+  const forceClose = () => {
+    setKey((k) => k + 1);
+    setError('');
+    onOpenChange(false);
+  };
+
   const handleOpenChange = (value: boolean) => {
     if (!value) {
+      if (dirtyRef.current) {
+        setShowDiscard(true);
+        return;
+      }
       setKey((k) => k + 1);
       setError('');
     }
     onOpenChange(value);
+  };
+
+  const handleDiscard = () => {
+    setShowDiscard(false);
+    dirtyRef.current = false;
+    forceClose();
   };
 
   const handleSubmit = (values: BusinessClientFormValues) => {
@@ -83,8 +107,15 @@ export function CreateBusinessClientDialog({
           isPending={mutation.isPending}
           error={error}
           submitLabel="Crear"
+          onDirtyChange={handleDirtyChange}
         />
       </SheetContent>
+
+      <DiscardChangesDialog
+        open={showDiscard}
+        onCancel={() => setShowDiscard(false)}
+        onDiscard={handleDiscard}
+      />
     </Sheet>
   );
 }

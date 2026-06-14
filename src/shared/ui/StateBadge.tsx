@@ -3,6 +3,7 @@ import { cn } from '@/lib/utils';
 
 interface StateBadgeProps {
   state: string;
+  label?: string;
   variant?: 'default' | 'secondary' | 'destructive' | 'outline';
   className?: string;
 }
@@ -43,9 +44,9 @@ const stateLabels: Record<string, string> = {
   cancelled: 'Cancelado',
 };
 
-export function StateBadge({ state, variant, className }: StateBadgeProps) {
+export function StateBadge({ state, label: customLabel, variant, className }: StateBadgeProps) {
   const badgeVariant = variant || stateVariants[state] || 'secondary';
-  const label = stateLabels[state] || state;
+  const label = customLabel || stateLabels[state] || state;
 
   return (
     <Badge variant={badgeVariant} className={cn(className)}>

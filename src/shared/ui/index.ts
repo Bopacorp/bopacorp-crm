@@ -1,5 +1,6 @@
 export { Can } from '@/modules/auth/components/Can';
 export { DetailSkeleton } from './DetailSkeleton';
+export { DiscardChangesDialog } from './DiscardChangesDialog';
 export { EmptyState } from './EmptyState';
 export { EntityTable } from './EntityTable';
 export { ErrorBoundary } from './ErrorBoundary';

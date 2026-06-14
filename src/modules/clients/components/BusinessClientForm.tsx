@@ -1,5 +1,5 @@
 import { Loader2 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Field, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
@@ -29,6 +29,7 @@ interface BusinessClientFormProps {
   submitLabel: string;
   rucReadOnly?: boolean;
   showIsActive?: boolean;
+  onDirtyChange?: (dirty: boolean) => void;
 }
 
 function employeeName(emp: {
@@ -47,6 +48,7 @@ export function BusinessClientForm({
   submitLabel,
   rucReadOnly,
   showIsActive,
+  onDirtyChange,
 }: BusinessClientFormProps) {
   const { hasRole } = useAuth();
   const canAssignAdvisor = !hasRole('advisor');
@@ -60,6 +62,20 @@ export function BusinessClientForm({
   const [address, setAddress] = useState(defaultValues.address);
   const [advisorId, setAdvisorId] = useState(defaultValues.advisorId);
   const [isActive, setIsActive] = useState(defaultValues.isActive);
+
+  const isDirty =
+    ruc !== defaultValues.ruc ||
+    businessName !== defaultValues.businessName ||
+    contactName !== defaultValues.contactName ||
+    contactPhone !== defaultValues.contactPhone ||
+    contactEmail !== defaultValues.contactEmail ||
+    address !== defaultValues.address ||
+    advisorId !== defaultValues.advisorId ||
+    isActive !== defaultValues.isActive;
+
+  useEffect(() => {
+    onDirtyChange?.(isDirty);
+  }, [isDirty, onDirtyChange]);
 
   const advisorOptions = useMemo(
     () => advisors.map((emp) => ({ value: emp.userId, label: employeeName(emp) })),
