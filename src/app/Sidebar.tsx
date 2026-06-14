@@ -42,11 +42,17 @@ import {
   useSidebar,
 } from '@/components/ui/sidebar';
 import { useAuth } from '@/modules/auth/context/AuthContext.js';
+import { usePermission } from '@/modules/auth/hooks/usePermission.js';
 
 const navigation = [
   { name: 'Overview', href: '/overview', icon: Home },
-  { name: 'Clientes', href: '/clientes', icon: Building2 },
-  { name: 'Negociaciones', href: '/negociaciones', icon: HandshakeIcon },
+  { name: 'Clientes', href: '/clientes', icon: Building2, permission: 'business_clients.read' },
+  {
+    name: 'Negociaciones',
+    href: '/negociaciones',
+    icon: HandshakeIcon,
+    permission: 'negotiations.read',
+  },
   { name: 'Documentación', href: '/documentacion', icon: FileText },
   { name: 'Catálogo', href: '/catalogo', icon: BookOpen },
   { name: 'Reportes', href: '/reportes', icon: BarChart3 },
@@ -91,6 +97,7 @@ export function AppSidebar() {
   const navigate = useNavigate();
   const { state } = useSidebar();
   const { user, logout } = useAuth();
+  const { hasPermission } = usePermission();
   const isCollapsed = state === 'collapsed';
 
   const isActive = (href: string) => {
@@ -135,16 +142,18 @@ export function AppSidebar() {
           <SidebarGroupLabel>Menú</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {navigation.map((item) => (
-                <SidebarMenuItem key={item.href}>
-                  <SidebarMenuButton asChild isActive={isActive(item.href)} tooltip={item.name}>
-                    <Link to={item.href}>
-                      <item.icon />
-                      <span>{item.name}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+              {navigation
+                .filter((item) => !item.permission || hasPermission(item.permission))
+                .map((item) => (
+                  <SidebarMenuItem key={item.href}>
+                    <SidebarMenuButton asChild isActive={isActive(item.href)} tooltip={item.name}>
+                      <Link to={item.href}>
+                        <item.icon />
+                        <span>{item.name}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
 
               <SidebarMenuItem>
                 <SidebarMenuButton isActive={isActive('/empleabilidad')} tooltip="Empleabilidad">

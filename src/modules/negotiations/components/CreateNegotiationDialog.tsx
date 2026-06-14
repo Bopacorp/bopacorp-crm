@@ -19,6 +19,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { Can } from '@/modules/auth/components/Can.js';
 import { useAuth } from '@/modules/auth/context/AuthContext.js';
 import { CreateBusinessClientDialog } from '@/modules/clients/components/CreateBusinessClientDialog.js';
 import { useBusinessClients } from '@/modules/clients/hooks/useBusinessClients.js';
@@ -115,16 +116,18 @@ export function CreateNegotiationDialog({
                   ))}
                 </SelectContent>
               </Select>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="mt-1"
-                onClick={() => setCreateClientOpen(true)}
-              >
-                <Plus data-icon="inline-start" />
-                Nuevo cliente
-              </Button>
+              <Can permission="business_clients.create">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="mt-1"
+                  onClick={() => setCreateClientOpen(true)}
+                >
+                  <Plus data-icon="inline-start" />
+                  Nuevo cliente
+                </Button>
+              </Can>
             </Field>
 
             <Field>

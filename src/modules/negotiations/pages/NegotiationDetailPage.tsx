@@ -4,6 +4,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Can } from '@/modules/auth/components/Can.js';
 import { useClientSheet } from '@/modules/clients/context/ClientSheetContext.js';
 import { DetailSkeleton, EmptyState, ErrorState, StateBadge } from '@/shared/ui';
 import { ChangeStateDialog } from '../components/ChangeStateDialog.js';
@@ -55,10 +56,12 @@ export default function NegotiationDetailPage() {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <StateBadge state={negotiation.state.code} />
-          <Button variant="outline" size="sm" onClick={() => setChangeStateOpen(true)}>
-            <RefreshCw data-icon="inline-start" />
-            Cambiar estado
-          </Button>
+          <Can permission="negotiations.change_state">
+            <Button variant="outline" size="sm" onClick={() => setChangeStateOpen(true)}>
+              <RefreshCw data-icon="inline-start" />
+              Cambiar estado
+            </Button>
+          </Can>
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 md:grid-cols-2">

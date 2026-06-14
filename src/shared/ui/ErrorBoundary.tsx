@@ -35,6 +35,7 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
+    // biome-ignore lint/suspicious/noConsole: error boundary logging is intentional
     console.error('ErrorBoundary caught:', error, info.componentStack);
   }
 

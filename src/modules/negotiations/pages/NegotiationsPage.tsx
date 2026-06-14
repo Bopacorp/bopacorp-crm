@@ -13,6 +13,8 @@ import {
   PaginationPrevious,
 } from '@/components/ui/pagination';
 import { cn } from '@/lib/utils';
+import { Can } from '@/modules/auth/components/Can.js';
+import { usePermission } from '@/modules/auth/hooks/usePermission.js';
 import { useClientSheet } from '@/modules/clients/context/ClientSheetContext.js';
 import {
   EmptyState,
@@ -59,6 +61,7 @@ export default function NegotiationsPage() {
   const [search, setSearch] = useState('');
   const [stateId, setStateId] = useState<string | undefined>();
   const [createOpen, setCreateOpen] = useState(false);
+  const { hasPermission } = usePermission();
 
   const { negotiations, meta, loading, fetching, error, refetch } = useNegotiations(page, {
     search,
@@ -135,10 +138,12 @@ export default function NegotiationsPage() {
         title="Negociaciones"
         description="Gestión de cuentas, contratos y visitas comerciales"
         actions={
-          <Button onClick={() => setCreateOpen(true)}>
-            <Plus data-icon="inline-start" />
-            Nueva negociación
-          </Button>
+          <Can permission="negotiations.create">
+            <Button onClick={() => setCreateOpen(true)}>
+              <Plus data-icon="inline-start" />
+              Nueva negociación
+            </Button>
+          </Can>
         }
       />
 
@@ -161,7 +166,11 @@ export default function NegotiationsPage() {
         <EmptyState
           title="No hay negociaciones"
           description="Crea tu primera negociación para comenzar"
-          action={{ label: '+ Nueva negociación', onClick: () => setCreateOpen(true) }}
+          action={
+            hasPermission('negotiations.create')
+              ? { label: '+ Nueva negociación', onClick: () => setCreateOpen(true) }
+              : undefined
+          }
         />
       ) : (
         <>

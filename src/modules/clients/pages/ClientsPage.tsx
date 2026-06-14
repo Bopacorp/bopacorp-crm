@@ -12,6 +12,8 @@ import {
   PaginationPrevious,
 } from '@/components/ui/pagination';
 import { cn } from '@/lib/utils';
+import { Can } from '@/modules/auth/components/Can.js';
+import { usePermission } from '@/modules/auth/hooks/usePermission.js';
 import {
   EmptyState,
   EntityTable,
@@ -46,6 +48,7 @@ export default function ClientsPage() {
   const [search, setSearch] = useState('');
   const [isActive, setIsActive] = useState<boolean | undefined>();
   const [createOpen, setCreateOpen] = useState(false);
+  const { hasPermission } = usePermission();
 
   const { clients, meta, loading, fetching, error, refetch } = useBusinessClients(page, {
     search,
@@ -123,10 +126,12 @@ export default function ClientsPage() {
         title="Clientes"
         description="Gestión de empresas y contactos comerciales"
         actions={
-          <Button onClick={() => setCreateOpen(true)}>
-            <Plus data-icon="inline-start" />
-            Nuevo cliente
-          </Button>
+          <Can permission="business_clients.create">
+            <Button onClick={() => setCreateOpen(true)}>
+              <Plus data-icon="inline-start" />
+              Nuevo cliente
+            </Button>
+          </Can>
         }
       />
 
@@ -149,7 +154,11 @@ export default function ClientsPage() {
         <EmptyState
           title="No hay clientes"
           description="Crea tu primer cliente para comenzar"
-          action={{ label: '+ Nuevo cliente', onClick: () => setCreateOpen(true) }}
+          action={
+            hasPermission('business_clients.create')
+              ? { label: '+ Nuevo cliente', onClick: () => setCreateOpen(true) }
+              : undefined
+          }
         />
       ) : (
         <>

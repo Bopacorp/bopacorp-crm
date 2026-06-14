@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
+import { Can } from '@/modules/auth/components/Can.js';
 import { getErrorMessage } from '@/shared/errors/index.js';
 import { ErrorState, FormAlert } from '@/shared/ui';
 import { updateBusinessClient } from '../clients.service.js';
@@ -74,9 +75,11 @@ export function BusinessClientSheet({ open, onOpenChange, clientId }: BusinessCl
         <SheetHeader className="flex flex-row items-center justify-between pr-10">
           <SheetTitle>{client.businessName}</SheetTitle>
           {!editing && (
-            <Button variant="ghost" size="icon" onClick={() => setEditing(true)}>
-              <Pencil className="size-4" />
-            </Button>
+            <Can permission="business_clients.update">
+              <Button variant="ghost" size="icon" onClick={() => setEditing(true)}>
+                <Pencil className="size-4" />
+              </Button>
+            </Can>
           )}
         </SheetHeader>
         {editing ? (
