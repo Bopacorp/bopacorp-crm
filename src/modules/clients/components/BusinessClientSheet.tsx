@@ -155,14 +155,13 @@ function EditForm({ client, onSaved }: { client: BusinessClientResponse; onSaved
   const handleSubmit = (values: BusinessClientFormValues) => {
     setFormError('');
     mutation.mutate({
+      ruc: values.ruc,
       advisorId: values.advisorId || undefined,
       businessName: values.businessName,
       contactName: values.contactName,
       contactPhone: values.contactPhone || undefined,
       contactEmail: values.contactEmail || undefined,
       address: values.address || undefined,
-      activeServicesCount: values.activeServicesCount,
-      currentMonthlyBilling: values.currentMonthlyBilling,
       isActive: values.isActive,
     });
   };
@@ -177,15 +176,12 @@ function EditForm({ client, onSaved }: { client: BusinessClientResponse; onSaved
         contactEmail: client.contactEmail ?? '',
         address: client.address ?? '',
         advisorId: client.advisor?.id ?? '',
-        activeServicesCount: client.activeServicesCount,
-        currentMonthlyBilling: client.currentMonthlyBilling,
         isActive: client.isActive,
       }}
       onSubmit={handleSubmit}
       isPending={mutation.isPending}
       error={formError}
       submitLabel="Guardar"
-      rucReadOnly
       showIsActive
     />
   );

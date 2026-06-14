@@ -23,8 +23,6 @@ const EMPTY_VALUES: BusinessClientFormValues = {
   contactEmail: '',
   address: '',
   advisorId: '',
-  activeServicesCount: 0,
-  currentMonthlyBilling: 0,
   isActive: true,
 };
 
@@ -66,8 +64,8 @@ export function CreateBusinessClientDialog({
       contactEmail: values.contactEmail || undefined,
       address: values.address || undefined,
       advisorId: values.advisorId || undefined,
-      activeServicesCount: values.activeServicesCount,
-      currentMonthlyBilling: values.currentMonthlyBilling,
+      activeServicesCount: 0,
+      currentMonthlyBilling: 0,
       isActive: true,
     });
   };

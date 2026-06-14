@@ -18,8 +18,6 @@ export interface BusinessClientFormValues {
   contactEmail: string;
   address: string;
   advisorId: string;
-  activeServicesCount: number;
-  currentMonthlyBilling: number;
   isActive: boolean;
 }
 
@@ -61,10 +59,6 @@ export function BusinessClientForm({
   const [contactEmail, setContactEmail] = useState(defaultValues.contactEmail);
   const [address, setAddress] = useState(defaultValues.address);
   const [advisorId, setAdvisorId] = useState(defaultValues.advisorId);
-  const [activeServicesCount, setActiveServicesCount] = useState(defaultValues.activeServicesCount);
-  const [currentMonthlyBilling, setCurrentMonthlyBilling] = useState(
-    defaultValues.currentMonthlyBilling,
-  );
   const [isActive, setIsActive] = useState(defaultValues.isActive);
 
   const advisorOptions = useMemo(
@@ -84,8 +78,6 @@ export function BusinessClientForm({
       contactEmail,
       address,
       advisorId,
-      activeServicesCount,
-      currentMonthlyBilling,
       isActive,
     });
   };
@@ -157,27 +149,6 @@ export function BusinessClientForm({
               />
             </Field>
           )}
-
-          <Field>
-            <FieldLabel>Servicios activos</FieldLabel>
-            <Input
-              type="number"
-              min={0}
-              value={activeServicesCount}
-              onChange={(e) => setActiveServicesCount(Number(e.target.value))}
-            />
-          </Field>
-
-          <Field>
-            <FieldLabel>Facturación mensual</FieldLabel>
-            <Input
-              type="number"
-              min={0}
-              step={0.01}
-              value={currentMonthlyBilling}
-              onChange={(e) => setCurrentMonthlyBilling(Number(e.target.value))}
-            />
-          </Field>
 
           {showIsActive && (
             <Field>
