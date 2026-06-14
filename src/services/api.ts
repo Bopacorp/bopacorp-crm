@@ -1,4 +1,9 @@
-import type { AxiosError, AxiosRequestConfig, InternalAxiosRequestConfig } from 'axios';
+import type {
+  AxiosError,
+  AxiosRequestConfig,
+  AxiosResponse,
+  InternalAxiosRequestConfig,
+} from 'axios';
 import axios from 'axios';
 import {
   clearAll,
@@ -39,7 +44,16 @@ export class ApiError extends Error {
 }
 
 export async function request<T>(config: AxiosRequestConfig): Promise<T> {
-  const response = await api(config);
+  let response: AxiosResponse;
+  try {
+    response = await api(config);
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response?.data?.error) {
+      const { code, message } = error.response.data.error;
+      throw new ApiError(code, message);
+    }
+    throw error;
+  }
   if (!response.data.success) {
     throw new ApiError(response.data.error.code, response.data.error.message);
   }
@@ -54,7 +68,16 @@ export interface PaginatedResponse<T, M = unknown> {
 export async function requestPaginated<T, M = unknown>(
   config: AxiosRequestConfig,
 ): Promise<PaginatedResponse<T, M>> {
-  const response = await api(config);
+  let response: AxiosResponse;
+  try {
+    response = await api(config);
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response?.data?.error) {
+      const { code, message } = error.response.data.error;
+      throw new ApiError(code, message);
+    }
+    throw error;
+  }
   if (!response.data.success) {
     throw new ApiError(response.data.error.code, response.data.error.message);
   }
@@ -93,7 +116,11 @@ function handleResponseError(error: AxiosError) {
   return isRefreshing ? queueForRefresh(originalRequest) : refreshWithRetry(originalRequest);
 }
 
+const PUBLIC_AUTH_PATHS = ['/auth/login', '/auth/refresh', '/auth/register'];
+
 function shouldRefresh(error: AxiosError, request: RetryConfig) {
+  const url = request.url ?? '';
+  if (PUBLIC_AUTH_PATHS.some((path) => url.includes(path))) return false;
   return error.response?.status === 401 && !request._retry;
 }
 
