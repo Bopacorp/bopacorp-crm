@@ -1,6 +1,6 @@
 import type { BusinessClientListItemResponse } from '@bopacorp/shared/crm';
 import { Plus } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Pagination,
@@ -14,32 +14,36 @@ import {
 import { cn } from '@/lib/utils';
 import { Can } from '@/modules/auth/components/Can.js';
 import { usePermission } from '@/modules/auth/hooks/usePermission.js';
+import { useAdvisors } from '@/modules/org/hooks/useAdvisors.js';
 import {
+  buildPageNumbers,
   EmptyState,
   EntityTable,
   ErrorState,
   FilterBar,
+  PageSizeSelect,
   SectionHeader,
+  StateBadge,
   TableSkeleton,
 } from '@/shared/ui';
 import { CreateBusinessClientDialog } from '../components/CreateBusinessClientDialog.js';
 import { useClientSheet } from '../context/ClientSheetContext.js';
 import { useBusinessClients } from '../hooks/useBusinessClients.js';
 
-type PageEntry = { type: 'page'; page: number } | { type: 'ellipsis'; key: string };
+function formatDate(value: string): string {
+  return new Date(value).toLocaleDateString('es-EC', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  });
+}
 
-function buildPageNumbers(current: number, total: number): PageEntry[] {
-  if (total <= 5) {
-    return Array.from({ length: total }, (_, i) => ({ type: 'page' as const, page: i + 1 }));
-  }
-  const entries: PageEntry[] = [{ type: 'page', page: 1 }];
-  if (current > 3) entries.push({ type: 'ellipsis', key: 'start' });
-  for (let i = Math.max(2, current - 1); i <= Math.min(total - 1, current + 1); i++) {
-    entries.push({ type: 'page', page: i });
-  }
-  if (current < total - 2) entries.push({ type: 'ellipsis', key: 'end' });
-  entries.push({ type: 'page', page: total });
-  return entries;
+function employeeName(emp: {
+  user: { firstName: string | null; lastName: string | null; username: string };
+}) {
+  return emp.user.firstName && emp.user.lastName
+    ? `${emp.user.firstName} ${emp.user.lastName}`
+    : emp.user.username;
 }
 
 export default function ClientsPage() {
@@ -47,23 +51,52 @@ export default function ClientsPage() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [isActive, setIsActive] = useState<boolean | undefined>();
+  const [advisorId, setAdvisorId] = useState<string | undefined>();
+  const [sortBy, setSortBy] = useState<string | undefined>();
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [pageSize, setPageSize] = useState(10);
   const [createOpen, setCreateOpen] = useState(false);
   const { hasPermission } = usePermission();
+  const { advisors } = useAdvisors();
 
   const { clients, meta, loading, fetching, error, refetch } = useBusinessClients(page, {
     search,
     isActive,
+    advisorId,
+    sortBy,
+    sortOrder,
+    limit: pageSize,
   });
 
   const searchRef = useRef(search);
   const isActiveRef = useRef(isActive);
+  const advisorIdRef = useRef(advisorId);
+  const sortByRef = useRef(sortBy);
+  const sortOrderRef = useRef(sortOrder);
+  const pageSizeRef = useRef(pageSize);
   useEffect(() => {
-    if (searchRef.current !== search || isActiveRef.current !== isActive) {
+    if (
+      searchRef.current !== search ||
+      isActiveRef.current !== isActive ||
+      advisorIdRef.current !== advisorId ||
+      sortByRef.current !== sortBy ||
+      sortOrderRef.current !== sortOrder ||
+      pageSizeRef.current !== pageSize
+    ) {
       searchRef.current = search;
       isActiveRef.current = isActive;
+      advisorIdRef.current = advisorId;
+      sortByRef.current = sortBy;
+      sortOrderRef.current = sortOrder;
+      pageSizeRef.current = pageSize;
       setPage(1);
     }
   });
+
+  const advisorOptions = useMemo(
+    () => advisors.map((emp) => ({ value: emp.userId, label: employeeName(emp) })),
+    [advisors],
+  );
 
   const columns = [
     {
@@ -72,6 +105,7 @@ export default function ClientsPage() {
       accessor: (item: BusinessClientListItemResponse) => (
         <span className="font-medium">{item.businessName}</span>
       ),
+      sortable: true,
     },
     {
       id: 'ruc',
@@ -82,6 +116,7 @@ export default function ClientsPage() {
       id: 'contactName',
       header: 'Contacto',
       accessor: (item: BusinessClientListItemResponse) => item.contactName,
+      sortable: true,
     },
     {
       id: 'advisor',
@@ -96,17 +131,14 @@ export default function ClientsPage() {
       id: 'status',
       header: 'Estado',
       accessor: (item: BusinessClientListItemResponse) => (
-        <span
-          className={cn(
-            'inline-flex rounded-full px-2 py-0.5 text-xs font-medium',
-            item.isActive
-              ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
-              : 'bg-muted text-muted-foreground',
-          )}
-        >
-          {item.isActive ? 'Activo' : 'Inactivo'}
-        </span>
+        <StateBadge state={item.isActive ? 'active' : 'inactive'} />
       ),
+    },
+    {
+      id: 'createdAt',
+      header: 'Creado',
+      accessor: (item: BusinessClientListItemResponse) => formatDate(item.createdAt),
+      sortable: true,
     },
   ];
 
@@ -116,7 +148,7 @@ export default function ClientsPage() {
     { value: 'false', label: 'Inactivo' },
   ];
 
-  if (loading) return <TableSkeleton columns={5} />;
+  if (loading) return <TableSkeleton columns={6} />;
   if (error) return <ErrorState error={error} onRetry={refetch} />;
 
   return (
@@ -146,24 +178,41 @@ export default function ClientsPage() {
         filters={[
           {
             id: 'active',
+            label: 'Estado',
             placeholder: 'Estado',
             options: activeOptions,
             value: isActive === undefined ? 'all' : String(isActive),
             onChange: (value) => setIsActive(value === 'all' ? undefined : value === 'true'),
           },
+          {
+            id: 'advisor',
+            label: 'Asesor',
+            placeholder: 'Seleccionar asesor',
+            searchable: true,
+            options: [{ value: 'all', label: 'Todos' }, ...advisorOptions],
+            value: advisorId ?? 'all',
+            onChange: (value) => setAdvisorId(value === 'all' ? undefined : value),
+          },
         ]}
       />
 
       {clients.length === 0 ? (
-        <EmptyState
-          title="No hay clientes"
-          description="Crea tu primer cliente para comenzar"
-          action={
-            hasPermission('business_clients.create')
-              ? { label: '+ Nuevo cliente', onClick: () => setCreateOpen(true) }
-              : undefined
-          }
-        />
+        search || isActive !== undefined || advisorId ? (
+          <EmptyState
+            title="Sin resultados"
+            description="No se encontraron clientes con los filtros aplicados"
+          />
+        ) : (
+          <EmptyState
+            title="No hay clientes"
+            description="Crea tu primer cliente para comenzar"
+            action={
+              hasPermission('business_clients.create')
+                ? { label: '+ Nuevo cliente', onClick: () => setCreateOpen(true) }
+                : undefined
+            }
+          />
+        )
       ) : (
         <>
           <EntityTable
@@ -171,7 +220,20 @@ export default function ClientsPage() {
             columns={columns}
             keyExtractor={(item) => item.id}
             onRowClick={(item) => openClientSheet(item.id)}
+            sortBy={sortBy}
+            sortOrder={sortOrder}
+            onSortChange={(col, order) => {
+              setSortBy(col);
+              setSortOrder(order);
+            }}
           />
+
+          <div className="flex items-center justify-between">
+            <PageSizeSelect value={pageSize} onChange={setPageSize} />
+            {meta && (
+              <span className="text-sm text-muted-foreground">{meta.totalItems} resultados</span>
+            )}
+          </div>
 
           {meta && meta.totalPages > 1 && (
             <Pagination>

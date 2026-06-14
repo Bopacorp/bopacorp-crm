@@ -17,10 +17,12 @@ import { Can } from '@/modules/auth/components/Can.js';
 import { usePermission } from '@/modules/auth/hooks/usePermission.js';
 import { useClientSheet } from '@/modules/clients/context/ClientSheetContext.js';
 import {
+  buildPageNumbers,
   EmptyState,
   EntityTable,
   ErrorState,
   FilterBar,
+  PageSizeSelect,
   SectionHeader,
   StateBadge,
   TableSkeleton,
@@ -38,34 +40,24 @@ function formatDate(value: string | null): string {
   });
 }
 
-type PageEntry = { type: 'page'; page: number } | { type: 'ellipsis'; key: string };
-
-function buildPageNumbers(current: number, total: number): PageEntry[] {
-  if (total <= 5) {
-    return Array.from({ length: total }, (_, i) => ({ type: 'page' as const, page: i + 1 }));
-  }
-  const entries: PageEntry[] = [{ type: 'page', page: 1 }];
-  if (current > 3) entries.push({ type: 'ellipsis', key: 'start' });
-  for (let i = Math.max(2, current - 1); i <= Math.min(total - 1, current + 1); i++) {
-    entries.push({ type: 'page', page: i });
-  }
-  if (current < total - 2) entries.push({ type: 'ellipsis', key: 'end' });
-  entries.push({ type: 'page', page: total });
-  return entries;
-}
-
 export default function NegotiationsPage() {
   const navigate = useNavigate();
   const { openClientSheet } = useClientSheet();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [stateId, setStateId] = useState<string | undefined>();
+  const [sortBy, setSortBy] = useState<string | undefined>();
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [pageSize, setPageSize] = useState(10);
   const [createOpen, setCreateOpen] = useState(false);
   const { hasPermission } = usePermission();
 
   const { negotiations, meta, loading, fetching, error, refetch } = useNegotiations(page, {
     search,
     stateId,
+    sortBy,
+    sortOrder,
+    limit: pageSize,
   });
   const { states } = useNegotiationStates();
 
@@ -104,20 +96,34 @@ export default function NegotiationsPage() {
       id: 'startDate',
       header: 'Fecha inicio',
       accessor: (item: NegotiationListItemResponse) => formatDate(item.startDate),
+      sortable: true,
     },
     {
-      id: 'closeDate',
+      id: 'estimatedCloseDate',
       header: 'Cierre estimado',
       accessor: (item: NegotiationListItemResponse) => formatDate(item.estimatedCloseDate),
+      sortable: true,
     },
   ];
 
   const searchRef = useRef(search);
   const stateIdRef = useRef(stateId);
+  const sortByRef = useRef(sortBy);
+  const sortOrderRef = useRef(sortOrder);
+  const pageSizeRef = useRef(pageSize);
   useEffect(() => {
-    if (searchRef.current !== search || stateIdRef.current !== stateId) {
+    if (
+      searchRef.current !== search ||
+      stateIdRef.current !== stateId ||
+      sortByRef.current !== sortBy ||
+      sortOrderRef.current !== sortOrder ||
+      pageSizeRef.current !== pageSize
+    ) {
       searchRef.current = search;
       stateIdRef.current = stateId;
+      sortByRef.current = sortBy;
+      sortOrderRef.current = sortOrder;
+      pageSizeRef.current = pageSize;
       setPage(1);
     }
   });
@@ -157,6 +163,7 @@ export default function NegotiationsPage() {
         filters={[
           {
             id: 'state',
+            label: 'Estado',
             placeholder: 'Estado',
             options: stateOptions,
             value: stateId ?? 'all',
@@ -166,15 +173,22 @@ export default function NegotiationsPage() {
       />
 
       {negotiations.length === 0 ? (
-        <EmptyState
-          title="No hay negociaciones"
-          description="Crea tu primera negociación para comenzar"
-          action={
-            hasPermission('negotiations.create')
-              ? { label: '+ Nueva negociación', onClick: () => setCreateOpen(true) }
-              : undefined
-          }
-        />
+        search || stateId ? (
+          <EmptyState
+            title="Sin resultados"
+            description="No se encontraron negociaciones con los filtros aplicados"
+          />
+        ) : (
+          <EmptyState
+            title="No hay negociaciones"
+            description="Crea tu primera negociación para comenzar"
+            action={
+              hasPermission('negotiations.create')
+                ? { label: '+ Nueva negociación', onClick: () => setCreateOpen(true) }
+                : undefined
+            }
+          />
+        )
       ) : (
         <>
           <EntityTable
@@ -182,7 +196,20 @@ export default function NegotiationsPage() {
             columns={columns}
             keyExtractor={(item) => item.id}
             onRowClick={(item) => navigate(`/negociaciones/${item.id}`)}
+            sortBy={sortBy}
+            sortOrder={sortOrder}
+            onSortChange={(col, order) => {
+              setSortBy(col);
+              setSortOrder(order);
+            }}
           />
+
+          <div className="flex items-center justify-between">
+            <PageSizeSelect value={pageSize} onChange={setPageSize} />
+            {meta && (
+              <span className="text-sm text-muted-foreground">{meta.totalItems} resultados</span>
+            )}
+          </div>
 
           {meta && meta.totalPages > 1 && (
             <Pagination>

@@ -176,9 +176,6 @@ export function CreateNegotiationDialog({
           </FieldGroup>
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => handleOpenChange(false)}>
-              Cancelar
-            </Button>
             <Button type="submit" disabled={mutation.isPending || !clientId || !stateId}>
               {mutation.isPending && <Loader2 data-icon="inline-start" className="animate-spin" />}
               Crear

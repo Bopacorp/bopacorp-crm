@@ -1,29 +1,18 @@
 import type { BusinessClientResponse, UpdateBusinessClientRequest } from '@bopacorp/shared/crm';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Loader2, Pencil, XIcon } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import { Field, FieldGroup, FieldLabel } from '@/components/ui/field';
-import { Input } from '@/components/ui/input';
-import {
-  Sheet,
-  SheetClose,
-  SheetContent,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-} from '@/components/ui/sheet';
-import { Switch } from '@/components/ui/switch';
-import { Textarea } from '@/components/ui/textarea';
+import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { queryKeys } from '@/lib/query-keys.js';
 import { Can } from '@/modules/auth/components/Can.js';
-import { useAuth } from '@/modules/auth/context/AuthContext.js';
-import { useAdvisors } from '@/modules/org/hooks/useAdvisors.js';
 import { getErrorMessage } from '@/shared/errors/index.js';
-import { ErrorState, FormAlert, SearchSelect } from '@/shared/ui';
+import { ErrorState } from '@/shared/ui';
 import { updateBusinessClient } from '../clients.service.js';
 import { useBusinessClient } from '../hooks/useBusinessClient.js';
+import type { BusinessClientFormValues } from './BusinessClientForm.js';
+import { BusinessClientForm } from './BusinessClientForm.js';
 
 interface BusinessClientSheetProps {
   open: boolean;
@@ -39,14 +28,6 @@ function advisorDisplayName(advisor: BusinessClientResponse['advisor']): string 
   if (!advisor) return '—';
   if (advisor.profile) return `${advisor.profile.firstName} ${advisor.profile.lastName}`;
   return advisor.username;
-}
-
-function employeeName(emp: {
-  user: { firstName: string | null; lastName: string | null; username: string };
-}) {
-  return emp.user.firstName && emp.user.lastName
-    ? `${emp.user.firstName} ${emp.user.lastName}`
-    : emp.user.username;
 }
 
 function DetailField({ label, value }: { label: string; value: string }) {
@@ -125,13 +106,7 @@ export function BusinessClientSheet({ open, onOpenChange, clientId }: BusinessCl
           </div>
         </SheetHeader>
         {editing ? (
-          <EditForm
-            client={client}
-            onCancel={() => setEditing(false)}
-            onSaved={() => {
-              setEditing(false);
-            }}
-          />
+          <EditForm client={client} onSaved={() => setEditing(false)} />
         ) : (
           <ViewMode client={client} />
         )}
@@ -162,34 +137,9 @@ function ViewMode({ client }: { client: BusinessClientResponse }) {
   );
 }
 
-function EditForm({
-  client,
-  onCancel,
-  onSaved,
-}: {
-  client: BusinessClientResponse;
-  onCancel: () => void;
-  onSaved: () => void;
-}) {
+function EditForm({ client, onSaved }: { client: BusinessClientResponse; onSaved: () => void }) {
   const queryClient = useQueryClient();
-  const { hasRole } = useAuth();
-  const canAssignAdvisor = !hasRole('advisor');
-  const { advisors } = useAdvisors();
-  const [advisorId, setAdvisorId] = useState(client.advisor?.id ?? '');
-  const [businessName, setBusinessName] = useState(client.businessName);
-  const [contactName, setContactName] = useState(client.contactName);
-  const [contactPhone, setContactPhone] = useState(client.contactPhone ?? '');
-  const [contactEmail, setContactEmail] = useState(client.contactEmail ?? '');
-  const [address, setAddress] = useState(client.address ?? '');
-  const [activeServicesCount, setActiveServicesCount] = useState(client.activeServicesCount);
-  const [currentMonthlyBilling, setCurrentMonthlyBilling] = useState(client.currentMonthlyBilling);
-  const [isActive, setIsActive] = useState(client.isActive);
   const [formError, setFormError] = useState('');
-
-  const advisorOptions = useMemo(
-    () => advisors.map((emp) => ({ value: emp.userId, label: employeeName(emp) })),
-    [advisors],
-  );
 
   const mutation = useMutation({
     mutationFn: (data: UpdateBusinessClientRequest) => updateBusinessClient(client.id, data),
@@ -202,122 +152,41 @@ function EditForm({
     onError: (err) => setFormError(getErrorMessage(err)),
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!businessName || !contactName) return;
+  const handleSubmit = (values: BusinessClientFormValues) => {
     setFormError('');
-
     mutation.mutate({
-      advisorId: advisorId || undefined,
-      businessName,
-      contactName,
-      contactPhone: contactPhone || undefined,
-      contactEmail: contactEmail || undefined,
-      address: address || undefined,
-      activeServicesCount,
-      currentMonthlyBilling,
-      isActive,
+      advisorId: values.advisorId || undefined,
+      businessName: values.businessName,
+      contactName: values.contactName,
+      contactPhone: values.contactPhone || undefined,
+      contactEmail: values.contactEmail || undefined,
+      address: values.address || undefined,
+      activeServicesCount: values.activeServicesCount,
+      currentMonthlyBilling: values.currentMonthlyBilling,
+      isActive: values.isActive,
     });
   };
 
   return (
-    <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
-      <div className="flex-1 overflow-y-auto p-4">
-        {formError && <FormAlert message={formError} />}
-
-        <FieldGroup>
-          <Field>
-            <FieldLabel>RUC</FieldLabel>
-            <Input value={client.ruc} readOnly className="bg-muted" />
-          </Field>
-
-          <Field>
-            <FieldLabel>Nombre comercial</FieldLabel>
-            <Input
-              value={businessName}
-              onChange={(e) => setBusinessName(e.target.value)}
-              required
-            />
-          </Field>
-
-          <Field>
-            <FieldLabel>Contacto</FieldLabel>
-            <Input value={contactName} onChange={(e) => setContactName(e.target.value)} required />
-          </Field>
-
-          <Field>
-            <FieldLabel>Teléfono</FieldLabel>
-            <Input value={contactPhone} onChange={(e) => setContactPhone(e.target.value)} />
-          </Field>
-
-          <Field>
-            <FieldLabel>Email</FieldLabel>
-            <Input
-              type="email"
-              value={contactEmail}
-              onChange={(e) => setContactEmail(e.target.value)}
-            />
-          </Field>
-
-          <Field>
-            <FieldLabel>Dirección</FieldLabel>
-            <Textarea value={address} onChange={(e) => setAddress(e.target.value)} />
-          </Field>
-
-          {canAssignAdvisor && (
-            <Field>
-              <FieldLabel>Asesor</FieldLabel>
-              <SearchSelect
-                options={advisorOptions}
-                value={advisorId}
-                onValueChange={setAdvisorId}
-                placeholder="Seleccionar asesor"
-                searchPlaceholder="Buscar asesor..."
-                emptyMessage="Sin asesores"
-              />
-            </Field>
-          )}
-
-          <Field>
-            <FieldLabel>Servicios activos</FieldLabel>
-            <Input
-              type="number"
-              min={0}
-              value={activeServicesCount}
-              onChange={(e) => setActiveServicesCount(Number(e.target.value))}
-            />
-          </Field>
-
-          <Field>
-            <FieldLabel>Facturación mensual</FieldLabel>
-            <Input
-              type="number"
-              min={0}
-              step={0.01}
-              value={currentMonthlyBilling}
-              onChange={(e) => setCurrentMonthlyBilling(Number(e.target.value))}
-            />
-          </Field>
-
-          <Field>
-            <div className="flex items-center justify-between">
-              <FieldLabel>Activo</FieldLabel>
-              <Switch checked={isActive} onCheckedChange={setIsActive} />
-            </div>
-          </Field>
-        </FieldGroup>
-      </div>
-
-      <SheetFooter>
-        <Button type="button" variant="outline" onClick={onCancel}>
-          <XIcon data-icon="inline-start" />
-          Cancelar
-        </Button>
-        <Button type="submit" disabled={mutation.isPending || !businessName || !contactName}>
-          {mutation.isPending && <Loader2 data-icon="inline-start" className="animate-spin" />}
-          Guardar
-        </Button>
-      </SheetFooter>
-    </form>
+    <BusinessClientForm
+      defaultValues={{
+        ruc: client.ruc,
+        businessName: client.businessName,
+        contactName: client.contactName,
+        contactPhone: client.contactPhone ?? '',
+        contactEmail: client.contactEmail ?? '',
+        address: client.address ?? '',
+        advisorId: client.advisor?.id ?? '',
+        activeServicesCount: client.activeServicesCount,
+        currentMonthlyBilling: client.currentMonthlyBilling,
+        isActive: client.isActive,
+      }}
+      onSubmit={handleSubmit}
+      isPending={mutation.isPending}
+      error={formError}
+      submitLabel="Guardar"
+      rucReadOnly
+      showIsActive
+    />
   );
 }

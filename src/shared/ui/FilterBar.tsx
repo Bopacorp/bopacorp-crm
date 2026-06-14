@@ -7,6 +7,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { SearchSelect } from './SearchSelect.js';
 
 interface FilterBarProps {
   searchValue?: string;
@@ -14,10 +15,12 @@ interface FilterBarProps {
   searchPlaceholder?: string;
   filters?: Array<{
     id: string;
+    label?: string;
     placeholder: string;
     options: Array<{ value: string; label: string }>;
     value?: string;
     onChange?: (value: string) => void;
+    searchable?: boolean;
   }>;
   actions?: React.ReactNode;
 }
@@ -30,8 +33,8 @@ export function FilterBar({
   actions,
 }: FilterBarProps) {
   return (
-    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-      <div className="flex flex-1 flex-col gap-2 sm:flex-row sm:items-center">
+    <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      <div className="flex flex-1 flex-col gap-2 sm:flex-row sm:items-end">
         {onSearchChange && (
           <div className="relative flex-1 sm:max-w-sm">
             <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -46,18 +49,34 @@ export function FilterBar({
         {filters.length > 0 && (
           <div className="flex gap-2">
             {filters.map((filter) => (
-              <Select key={filter.id} value={filter.value} onValueChange={filter.onChange}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder={filter.placeholder} />
-                </SelectTrigger>
-                <SelectContent>
-                  {filter.options.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div key={filter.id} className="flex flex-col gap-1">
+                {filter.label && (
+                  <span className="text-xs font-medium text-muted-foreground">{filter.label}</span>
+                )}
+                {filter.searchable ? (
+                  <SearchSelect
+                    options={filter.options}
+                    value={filter.value ?? ''}
+                    onValueChange={(v) => filter.onChange?.(v)}
+                    placeholder={filter.placeholder}
+                    searchPlaceholder={`Buscar ${filter.label?.toLowerCase() ?? ''}...`}
+                    emptyMessage="Sin resultados"
+                  />
+                ) : (
+                  <Select value={filter.value} onValueChange={filter.onChange}>
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder={filter.placeholder} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {filter.options.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
             ))}
           </div>
         )}

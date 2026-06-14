@@ -18,6 +18,7 @@ const stateVariants: Record<string, 'default' | 'secondary' | 'destructive' | 'o
   rejected: 'destructive',
   // Matrix states
   draft: 'secondary',
+  inactive: 'outline',
   // General
   completed: 'default',
   in_progress: 'secondary',
@@ -35,6 +36,7 @@ const stateLabels: Record<string, string> = {
   rejected: 'Rechazado',
   // Matrix states
   draft: 'Borrador',
+  inactive: 'Inactivo',
   // General
   completed: 'Completado',
   in_progress: 'En progreso',
