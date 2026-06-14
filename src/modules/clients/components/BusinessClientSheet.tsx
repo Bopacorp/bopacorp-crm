@@ -1,12 +1,19 @@
 import type { BusinessClientResponse, UpdateBusinessClientRequest } from '@bopacorp/shared/crm';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Loader2, Pencil, X } from 'lucide-react';
+import { Loader2, Pencil, XIcon } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Field, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import {
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { queryKeys } from '@/lib/query-keys.js';
@@ -62,9 +69,14 @@ export function BusinessClientSheet({ open, onOpenChange, clientId }: BusinessCl
   if (loading) {
     return (
       <Sheet open={open} onOpenChange={onOpenChange}>
-        <SheetContent>
-          <SheetHeader>
+        <SheetContent showCloseButton={false}>
+          <SheetHeader className="flex flex-row items-center justify-between">
             <SheetTitle>Cliente</SheetTitle>
+            <SheetClose asChild>
+              <Button variant="ghost" size="icon-sm">
+                <XIcon />
+              </Button>
+            </SheetClose>
           </SheetHeader>
           <div className="flex items-center justify-center py-12">
             <Loader2 className="size-6 animate-spin text-muted-foreground" />
@@ -77,9 +89,14 @@ export function BusinessClientSheet({ open, onOpenChange, clientId }: BusinessCl
   if (error || !client) {
     return (
       <Sheet open={open} onOpenChange={onOpenChange}>
-        <SheetContent>
-          <SheetHeader>
+        <SheetContent showCloseButton={false}>
+          <SheetHeader className="flex flex-row items-center justify-between">
             <SheetTitle>Cliente</SheetTitle>
+            <SheetClose asChild>
+              <Button variant="ghost" size="icon-sm">
+                <XIcon />
+              </Button>
+            </SheetClose>
           </SheetHeader>
           <ErrorState error={error} onRetry={refetch} />
         </SheetContent>
@@ -89,16 +106,23 @@ export function BusinessClientSheet({ open, onOpenChange, clientId }: BusinessCl
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent>
-        <SheetHeader className="flex flex-row items-center justify-between pr-10">
-          <SheetTitle>{client.businessName}</SheetTitle>
-          {!editing && (
-            <Can permission="business_clients.update">
-              <Button variant="ghost" size="icon" onClick={() => setEditing(true)}>
-                <Pencil className="size-4" />
+      <SheetContent showCloseButton={false}>
+        <SheetHeader className="flex flex-row items-center justify-between">
+          <SheetTitle className="truncate">{client.businessName}</SheetTitle>
+          <div className="flex items-center gap-1">
+            {!editing && (
+              <Can permission="business_clients.update">
+                <Button variant="ghost" size="icon-sm" onClick={() => setEditing(true)}>
+                  <Pencil />
+                </Button>
+              </Can>
+            )}
+            <SheetClose asChild>
+              <Button variant="ghost" size="icon-sm">
+                <XIcon />
               </Button>
-            </Can>
-          )}
+            </SheetClose>
+          </div>
         </SheetHeader>
         {editing ? (
           <EditForm
@@ -286,7 +310,7 @@ function EditForm({
 
       <SheetFooter>
         <Button type="button" variant="outline" onClick={onCancel}>
-          <X data-icon="inline-start" />
+          <XIcon data-icon="inline-start" />
           Cancelar
         </Button>
         <Button type="submit" disabled={mutation.isPending || !businessName || !contactName}>

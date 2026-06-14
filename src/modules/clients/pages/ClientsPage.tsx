@@ -86,7 +86,11 @@ export default function ClientsPage() {
     {
       id: 'advisor',
       header: 'Asesor',
-      accessor: (item: BusinessClientListItemResponse) => item.advisor?.username ?? '—',
+      accessor: (item: BusinessClientListItemResponse) => {
+        const a = item.advisor;
+        if (!a) return '—';
+        return a.profile ? `${a.profile.firstName} ${a.profile.lastName}` : a.username;
+      },
     },
     {
       id: 'status',

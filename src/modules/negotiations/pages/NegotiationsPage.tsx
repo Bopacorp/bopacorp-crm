@@ -95,7 +95,10 @@ export default function NegotiationsPage() {
     {
       id: 'advisor',
       header: 'Asesor',
-      accessor: (item: NegotiationListItemResponse) => item.advisor.username,
+      accessor: (item: NegotiationListItemResponse) => {
+        const a = item.advisor;
+        return a.profile ? `${a.profile.firstName} ${a.profile.lastName}` : a.username;
+      },
     },
     {
       id: 'startDate',
