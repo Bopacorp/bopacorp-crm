@@ -1,28 +1,36 @@
-import { AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
+import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/ui/empty';
 
 interface ErrorStateProps {
   message?: string;
+  code?: string;
   onRetry?: () => void;
 }
 
-export function ErrorState({
-  message = 'Ocurrió un error al cargar los datos',
-  onRetry,
-}: ErrorStateProps) {
+const errorMessages: Record<string, string> = {
+  UNAUTHORIZED: 'Sesion expirada. Por favor inicia sesion nuevamente.',
+  VALIDATION_ERROR: 'Algunos campos tienen errores. Revisalos e intenta de nuevo.',
+  FORBIDDEN: 'No tienes permisos para realizar esta accion.',
+  NOT_FOUND: 'El recurso solicitado no existe.',
+  CONFLICT: 'Ya existe un registro con esos datos.',
+};
+
+function getErrorMessage(code: string | undefined, fallback?: string): string {
+  if (code && errorMessages[code]) return errorMessages[code];
+  if (fallback) return fallback;
+  return 'Ocurrio un error inesperado. Intenta de nuevo mas tarde.';
+}
+
+export function ErrorState({ message, code, onRetry }: ErrorStateProps) {
   return (
-    <Card className="flex flex-col items-center justify-center gap-4 py-12">
-      <AlertTriangle className="size-12 text-destructive" />
-      <div className="flex flex-col gap-2 text-center">
-        <h3 className="text-sm font-medium text-foreground">Error</h3>
-        <p className="text-sm text-muted-foreground">{message}</p>
-      </div>
-      {onRetry && (
-        <Button onClick={onRetry} variant="outline" size="sm">
-          Reintentar
-        </Button>
-      )}
-    </Card>
+    <div className="flex items-center justify-center py-20">
+      <Empty>
+        <EmptyHeader>
+          <EmptyTitle>Error al cargar el contenido</EmptyTitle>
+          <EmptyDescription>{getErrorMessage(code, message)}</EmptyDescription>
+        </EmptyHeader>
+        {onRetry && <Button onClick={onRetry}>Reintentar</Button>}
+      </Empty>
+    </div>
   );
 }

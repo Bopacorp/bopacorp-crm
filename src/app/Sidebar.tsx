@@ -2,19 +2,33 @@ import {
   BarChart3,
   BookOpen,
   Briefcase,
-  ChevronLeft,
-  ChevronRight,
   FileText,
   HandshakeIcon,
   Home,
+  LogOut,
   Users,
 } from 'lucide-react';
-import { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import logo from '@/assets/logo.png';
-import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
-import { useSidebar } from './SidebarContext';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import {
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
+  Sidebar as SidebarPrimitive,
+  useSidebar,
+} from '@/components/ui/sidebar';
+import { useAuth } from '@/modules/auth/context/AuthContext.js';
+import { ModeToggle } from '@/shared/ui/ModeToggle';
 
 const navigation = [
   { name: 'Overview', href: '/overview', icon: Home },
@@ -22,20 +36,24 @@ const navigation = [
   { name: 'Documentación', href: '/documentacion', icon: FileText },
   { name: 'Catálogo', href: '/catalogo', icon: BookOpen },
   { name: 'Reportes', href: '/reportes', icon: BarChart3 },
-  {
-    name: 'Empleabilidad',
-    icon: '',
-    children: [
-      { name: 'Aplicantes', href: '/empleabilidad/aplicantes', icon: Briefcase },
-      { name: 'Mensajes', href: '/empleabilidad/mensajes', icon: Users },
-    ],
-  },
 ];
 
-export function Sidebar() {
+const employabilityChildren = [
+  { name: 'Aplicantes', href: '/empleabilidad/aplicantes', icon: Briefcase },
+  { name: 'Mensajes', href: '/empleabilidad/mensajes', icon: Users },
+];
+
+function getInitials(profile: { firstName: string; lastName: string } | null): string {
+  if (!profile) return '??';
+  return `${profile.firstName[0]}${profile.lastName[0]}`.toUpperCase();
+}
+
+export function AppSidebar() {
   const location = useLocation();
-  const { isCollapsed, toggleCollapse } = useSidebar();
-  const [expandedSection, setExpandedSection] = useState<string | null>(null);
+  const navigate = useNavigate();
+  const { state } = useSidebar();
+  const { user, logout } = useAuth();
+  const isCollapsed = state === 'collapsed';
 
   const isActive = (href: string) => {
     if (href === '/overview') {
@@ -44,20 +62,16 @@ export function Sidebar() {
     return location.pathname.startsWith(href);
   };
 
-  const toggleSection = (name: string) => {
-    setExpandedSection(expandedSection === name ? null : name);
+  const handleLogout = async () => {
+    await logout();
+    navigate('/login', { replace: true });
   };
 
   return (
-    <aside
-      className={cn(
-        'border-r border-sidebar-border bg-sidebar transition-all duration-300 lg:block',
-        isCollapsed ? 'w-20' : 'hidden w-64 lg:block',
-      )}
-    >
-      <div className="flex h-14 items-center justify-between border-b border-sidebar-border px-4">
+    <SidebarPrimitive collapsible="icon">
+      <SidebarHeader className="border-b border-sidebar-border">
         {!isCollapsed ? (
-          <div className="flex items-center gap-2 cursor-pointer">
+          <div className="flex items-center gap-2 px-2 py-1">
             <div className="flex flex-col">
               <span className="font-extrabold text-foreground tracking-tight leading-none text-lg">
                 BOPACORP
@@ -68,83 +82,86 @@ export function Sidebar() {
             </div>
           </div>
         ) : (
-          <img src={logo} alt="Bopacorp" className="h-8 w-auto" />
+          <div className="flex items-center justify-center px-2 py-1">
+            <img src={logo} alt="Bopacorp" className="size-8" />
+          </div>
         )}
+      </SidebarHeader>
 
-        <Button variant="ghost" size="icon" onClick={toggleCollapse} className="h-8 w-8 ml-auto">
-          {isCollapsed ? <ChevronRight className="size-5" /> : <ChevronLeft className="size-5" />}
-        </Button>
-      </div>
+      <SidebarContent>
+        <SidebarGroup>
+          <SidebarGroupLabel>Menú</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {navigation.map((item) => (
+                <SidebarMenuItem key={item.href}>
+                  <SidebarMenuButton asChild isActive={isActive(item.href)} tooltip={item.name}>
+                    <Link to={item.href}>
+                      <item.icon />
+                      <span>{item.name}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
 
-      <nav className="flex flex-col gap-1 p-2">
-        {navigation.map((item) => {
-          if (item.children) {
-            const isExpanded = expandedSection === item.name;
+              <SidebarMenuItem>
+                <SidebarMenuButton isActive={isActive('/empleabilidad')} tooltip="Empleabilidad">
+                  <Briefcase />
+                  <span>Empleabilidad</span>
+                </SidebarMenuButton>
+                <SidebarMenuSub>
+                  {employabilityChildren.map((child) => (
+                    <SidebarMenuSubItem key={child.href}>
+                      <SidebarMenuSubButton asChild isActive={isActive(child.href)}>
+                        <Link to={child.href}>
+                          <child.icon />
+                          <span>{child.name}</span>
+                        </Link>
+                      </SidebarMenuSubButton>
+                    </SidebarMenuSubItem>
+                  ))}
+                </SidebarMenuSub>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+      </SidebarContent>
 
-            return (
-              <div key={item.name} className="flex flex-col gap-1">
-                <Button
-                  variant="ghost"
-                  onClick={() => !isCollapsed && toggleSection(item.name)}
-                  className={cn(
-                    'justify-start gap-2 px-3 py-2 h-9 text-sidebar-foreground hover:bg-sidebar-accent',
-                    isCollapsed && 'justify-center w-full',
-                  )}
-                  title={isCollapsed ? item.name : undefined}
-                >
-                  <span className="text-base">{item.icon}</span>
+      <SidebarFooter>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <div className="flex items-center gap-2 px-2">
+              {user && (
+                <>
+                  <Avatar className="size-7">
+                    <AvatarFallback className="text-xs">{getInitials(user.profile)}</AvatarFallback>
+                  </Avatar>
                   {!isCollapsed && (
-                    <>
-                      <span className="flex-1 text-sm font-medium">{item.name}</span>
-                      <ChevronRight
-                        className={cn('size-4 transition-transform', isExpanded && 'rotate-90')}
-                      />
-                    </>
+                    <div className="flex flex-1 flex-col truncate">
+                      <span className="truncate text-sm font-medium">
+                        {user.profile
+                          ? `${user.profile.firstName} ${user.profile.lastName}`
+                          : user.username}
+                      </span>
+                      <span className="truncate text-xs text-muted-foreground">{user.email}</span>
+                    </div>
                   )}
-                </Button>
-
-                {!isCollapsed && isExpanded && (
-                  <div className="ml-2 flex flex-col gap-1 border-l border-sidebar-border pl-2">
-                    {item.children.map((child) => (
-                      <Link
-                        key={child.href}
-                        to={child.href}
-                        className={cn(
-                          'flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors h-9',
-                          isActive(child.href)
-                            ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                            : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
-                        )}
-                      >
-                        <child.icon className="size-4" />
-                        <span>{child.name}</span>
-                      </Link>
-                    ))}
-                  </div>
-                )}
-              </div>
-            );
-          }
-
-          return (
-            <Link
-              key={item.href}
-              to={item.href}
-              className={cn(
-                'flex items-center justify-start gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors h-9',
-                isActive(item.href)
-                  ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                  : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
-                isCollapsed && 'justify-center',
+                </>
               )}
-              title={isCollapsed ? item.name : undefined}
-            >
-              <item.icon className="size-4" />
-              {!isCollapsed && <span>{item.name}</span>}
-            </Link>
-          );
-        })}
-      </nav>
-    </aside>
+              <div className="ml-auto flex items-center gap-1">
+                <ModeToggle />
+                <SidebarMenuButton
+                  tooltip="Cerrar sesión"
+                  onClick={handleLogout}
+                  className="size-8"
+                >
+                  <LogOut className="size-4" />
+                </SidebarMenuButton>
+              </div>
+            </div>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarFooter>
+    </SidebarPrimitive>
   );
 }

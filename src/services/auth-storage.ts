@@ -1,35 +1,55 @@
-const ACCESS_TOKEN_KEY = 'access_token';
-const REFRESH_TOKEN_KEY = 'refresh_token';
-const EXPIRES_AT_KEY = 'token_expires_at';
+const KEYS = {
+  user: 'bopacorp_user',
+  accessToken: 'bopacorp_access_token',
+  refreshToken: 'bopacorp_refresh_token',
+  expiresAt: 'bopacorp_token_expires_at',
+} as const;
 
-interface TokenPayload {
+const LEGACY_KEYS = ['access_token', 'refresh_token', 'token_expires_at'] as const;
+
+export interface StoredTokens {
   accessToken: string;
   refreshToken: string;
   expiresIn: number;
 }
 
-export function saveTokens({ accessToken, refreshToken, expiresIn }: TokenPayload) {
-  const expiresAt = Date.now() + expiresIn * 1000;
-  localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
-  localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
-  localStorage.setItem(EXPIRES_AT_KEY, String(expiresAt));
-}
-
 export function getAccessToken(): string | null {
-  return localStorage.getItem(ACCESS_TOKEN_KEY);
+  return localStorage.getItem(KEYS.accessToken);
 }
 
 export function getRefreshToken(): string | null {
-  return localStorage.getItem(REFRESH_TOKEN_KEY);
+  return localStorage.getItem(KEYS.refreshToken);
 }
 
 export function getTokenExpiresAt(): number | null {
-  const raw = localStorage.getItem(EXPIRES_AT_KEY);
+  const raw = localStorage.getItem(KEYS.expiresAt);
   return raw ? Number(raw) : null;
 }
 
-export function clearAll() {
-  localStorage.removeItem(ACCESS_TOKEN_KEY);
-  localStorage.removeItem(REFRESH_TOKEN_KEY);
-  localStorage.removeItem(EXPIRES_AT_KEY);
+export function getStoredUser<T>(): T | null {
+  try {
+    const raw = localStorage.getItem(KEYS.user);
+    return raw ? (JSON.parse(raw) as T) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function saveTokens(tokens: StoredTokens): void {
+  localStorage.setItem(KEYS.accessToken, tokens.accessToken);
+  localStorage.setItem(KEYS.refreshToken, tokens.refreshToken);
+  localStorage.setItem(KEYS.expiresAt, String(Date.now() + tokens.expiresIn * 1000));
+}
+
+export function saveUser<T>(user: T): void {
+  localStorage.setItem(KEYS.user, JSON.stringify(user));
+}
+
+export function clearAll(): void {
+  for (const key of Object.values(KEYS)) {
+    localStorage.removeItem(key);
+  }
+  for (const key of LEGACY_KEYS) {
+    localStorage.removeItem(key);
+  }
 }

@@ -46,6 +46,21 @@ export async function request<T>(config: AxiosRequestConfig): Promise<T> {
   return response.data.data as T;
 }
 
+export interface PaginatedResponse<T, M = unknown> {
+  data: T[];
+  meta: M;
+}
+
+export async function requestPaginated<T, M = unknown>(
+  config: AxiosRequestConfig,
+): Promise<PaginatedResponse<T, M>> {
+  const response = await api(config);
+  if (!response.data.success) {
+    throw new ApiError(response.data.error.code, response.data.error.message);
+  }
+  return { data: response.data.data as T[], meta: response.data.meta as M };
+}
+
 export default api;
 
 function injectAuthHeader(config: InternalAxiosRequestConfig) {

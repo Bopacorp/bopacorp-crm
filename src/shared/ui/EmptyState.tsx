@@ -1,24 +1,25 @@
-import { FileQuestion } from 'lucide-react';
-import { Card } from '@/components/ui/card';
+import type { ComponentType, SVGProps } from 'react';
+import { Button } from '@/components/ui/button';
+import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/ui/empty';
 
 interface EmptyStateProps {
-  title?: string;
+  title: string;
   description?: string;
-  icon?: React.ComponentType<{ className?: string }>;
+  icon?: ComponentType<SVGProps<SVGSVGElement>>;
+  action?: { label: string; onClick: () => void };
 }
 
-export function EmptyState({
-  title = 'No hay datos',
-  description = 'No se encontraron registros para mostrar',
-  icon: Icon = FileQuestion,
-}: EmptyStateProps) {
+export function EmptyState({ title, description, icon: Icon, action }: EmptyStateProps) {
   return (
-    <Card className="flex flex-col items-center justify-center gap-3 py-12">
-      <Icon className="size-12 text-muted-foreground" />
-      <div className="flex flex-col gap-1 text-center">
-        <h3 className="text-sm font-medium text-foreground">{title}</h3>
-        <p className="text-sm text-muted-foreground">{description}</p>
-      </div>
-    </Card>
+    <div className="flex items-center justify-center py-20">
+      <Empty>
+        <EmptyHeader>
+          {Icon && <Icon className="size-12 text-muted-foreground" />}
+          <EmptyTitle>{title}</EmptyTitle>
+          {description && <EmptyDescription>{description}</EmptyDescription>}
+        </EmptyHeader>
+        {action && <Button onClick={action.onClick}>{action.label}</Button>}
+      </Empty>
+    </div>
   );
 }
