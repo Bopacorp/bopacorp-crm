@@ -1,7 +1,6 @@
-import type { PaginationMeta } from '@bopacorp/shared/common';
-import type { NegotiationListItemResponse } from '@bopacorp/shared/crm';
-import { useCallback, useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useDebounce } from 'use-debounce';
+import { queryKeys } from '@/lib/query-keys.js';
 import { listNegotiations } from '../negotiations.service.js';
 
 export interface NegotiationFilters {
@@ -11,38 +10,24 @@ export interface NegotiationFilters {
 }
 
 export function useNegotiations(page: number, filters: NegotiationFilters) {
-  const [negotiations, setNegotiations] = useState<NegotiationListItemResponse[]>([]);
-  const [meta, setMeta] = useState<PaginationMeta | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [fetching, setFetching] = useState(false);
-  const [error, setError] = useState<unknown>(null);
-  const [debouncedSearch] = useDebounce(filters.search, 300);
+  const [debouncedSearch] = useDebounce(filters.search ?? '', 300);
+  const params = {
+    search: debouncedSearch || undefined,
+    stateId: filters.stateId,
+    advisorId: filters.advisorId,
+  };
 
-  const fetch = useCallback(async () => {
-    setFetching(true);
-    setError(null);
-    try {
-      const result = await listNegotiations({
-        page,
-        limit: 10,
-        sortOrder: 'asc',
-        search: debouncedSearch,
-        stateId: filters.stateId,
-        advisorId: filters.advisorId,
-      });
-      setNegotiations(result.data);
-      setMeta(result.meta);
-    } catch (err) {
-      setError(err);
-    } finally {
-      setLoading(false);
-      setFetching(false);
-    }
-  }, [page, debouncedSearch, filters.stateId, filters.advisorId]);
+  const { data, isLoading, isFetching, error, refetch } = useQuery({
+    queryKey: queryKeys.negotiations.list(page, params),
+    queryFn: () => listNegotiations({ page, limit: 10, sortOrder: 'asc', ...params }),
+  });
 
-  useEffect(() => {
-    fetch();
-  }, [fetch]);
-
-  return { negotiations, meta, loading, fetching, error, refetch: fetch };
+  return {
+    negotiations: data?.data ?? [],
+    meta: data?.meta ?? null,
+    loading: isLoading,
+    fetching: isFetching,
+    error,
+    refetch,
+  };
 }

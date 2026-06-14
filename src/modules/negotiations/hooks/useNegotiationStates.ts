@@ -1,28 +1,13 @@
-import type { NegotiationStateResponse } from '@bopacorp/shared/crm';
-import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { queryKeys } from '@/lib/query-keys.js';
 import { listNegotiationStates } from '../negotiations.service.js';
 
 export function useNegotiationStates() {
-  const [states, setStates] = useState<NegotiationStateResponse[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<unknown>(null);
+  const { data, isLoading, error } = useQuery({
+    queryKey: queryKeys.negotiationStates.all,
+    queryFn: () => listNegotiationStates({ page: 1, limit: 100, sortOrder: 'asc' }),
+    staleTime: 5 * 60_000,
+  });
 
-  useEffect(() => {
-    let stale = false;
-    listNegotiationStates({ page: 1, limit: 100, sortOrder: 'asc' })
-      .then((res) => {
-        if (!stale) setStates(res.data);
-      })
-      .catch((err) => {
-        if (!stale) setError(err);
-      })
-      .finally(() => {
-        if (!stale) setLoading(false);
-      });
-    return () => {
-      stale = true;
-    };
-  }, []);
-
-  return { states, loading, error };
+  return { states: data?.data ?? [], loading: isLoading, error };
 }

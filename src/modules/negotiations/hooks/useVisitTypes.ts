@@ -1,28 +1,13 @@
-import type { VisitTypeResponse } from '@bopacorp/shared/crm';
-import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { queryKeys } from '@/lib/query-keys.js';
 import { listVisitTypes } from '../negotiations.service.js';
 
 export function useVisitTypes() {
-  const [visitTypes, setVisitTypes] = useState<VisitTypeResponse[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<unknown>(null);
+  const { data, isLoading, error } = useQuery({
+    queryKey: queryKeys.visitTypes.all,
+    queryFn: () => listVisitTypes({ page: 1, limit: 100, sortOrder: 'asc' }),
+    staleTime: 5 * 60_000,
+  });
 
-  useEffect(() => {
-    let stale = false;
-    listVisitTypes({ page: 1, limit: 100, sortOrder: 'asc' })
-      .then((res) => {
-        if (!stale) setVisitTypes(res.data);
-      })
-      .catch((err) => {
-        if (!stale) setError(err);
-      })
-      .finally(() => {
-        if (!stale) setLoading(false);
-      });
-    return () => {
-      stale = true;
-    };
-  }, []);
-
-  return { visitTypes, loading, error };
+  return { visitTypes: data?.data ?? [], loading: isLoading, error };
 }

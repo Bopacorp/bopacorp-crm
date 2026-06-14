@@ -1,6 +1,5 @@
-import type { PaginationMeta } from '@bopacorp/shared/common';
-import type { VisitListItemResponse } from '@bopacorp/shared/crm';
-import { useCallback, useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { queryKeys } from '@/lib/query-keys.js';
 import { listVisits } from '../negotiations.service.js';
 
 export interface VisitFilters {
@@ -13,16 +12,10 @@ export interface VisitFilters {
 }
 
 export function useVisits(page: number, filters: VisitFilters) {
-  const [visits, setVisits] = useState<VisitListItemResponse[]>([]);
-  const [meta, setMeta] = useState<PaginationMeta | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<unknown>(null);
-
-  const fetch = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const result = await listVisits({
+  const { data, isLoading, isFetching, error, refetch } = useQuery({
+    queryKey: queryKeys.visits.list(page, filters as Record<string, unknown>),
+    queryFn: () =>
+      listVisits({
         page,
         limit: 10,
         sortOrder: 'asc',
@@ -32,27 +25,15 @@ export function useVisits(page: number, filters: VisitFilters) {
         isVerified: filters.isVerified,
         dateFrom: filters.dateFrom,
         dateTo: filters.dateTo,
-      });
-      setVisits(result.data);
-      setMeta(result.meta);
-    } catch (err) {
-      setError(err);
-    } finally {
-      setLoading(false);
-    }
-  }, [
-    page,
-    filters.clientId,
-    filters.advisorId,
-    filters.visitTypeId,
-    filters.isVerified,
-    filters.dateFrom,
-    filters.dateTo,
-  ]);
+      }),
+  });
 
-  useEffect(() => {
-    fetch();
-  }, [fetch]);
-
-  return { visits, meta, loading, error, refetch: fetch };
+  return {
+    visits: data?.data ?? [],
+    meta: data?.meta ?? null,
+    loading: isLoading,
+    fetching: isFetching,
+    error,
+    refetch,
+  };
 }

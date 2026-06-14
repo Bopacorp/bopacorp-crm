@@ -1,3 +1,4 @@
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -18,6 +19,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { queryKeys } from '@/lib/query-keys.js';
 import { getErrorMessage } from '@/shared/errors/index.js';
 import { FormAlert } from '@/shared/ui';
 import { useNegotiationStates } from '../hooks/useNegotiationStates.js';
@@ -39,12 +41,24 @@ export function ChangeStateDialog({
   onSuccess,
 }: ChangeStateDialogProps) {
   const { states } = useNegotiationStates();
+  const queryClient = useQueryClient();
   const availableStates = states.filter((s) => s.id !== currentStateId);
 
   const [stateId, setStateId] = useState('');
   const [notes, setNotes] = useState('');
-  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+
+  const mutation = useMutation({
+    mutationFn: (data: { stateId: string; notes?: string }) =>
+      changeNegotiationState(negotiationId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.negotiations.all });
+      toast.success('Estado actualizado');
+      handleOpenChange(false);
+      onSuccess();
+    },
+    onError: (err) => setError(getErrorMessage(err)),
+  });
 
   const resetForm = () => {
     setStateId('');
@@ -57,25 +71,12 @@ export function ChangeStateDialog({
     onOpenChange(value);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!stateId) return;
-
-    setSubmitting(true);
     setError('');
-    try {
-      await changeNegotiationState(negotiationId, {
-        stateId,
-        notes: notes || undefined,
-      });
-      toast.success('Estado actualizado');
-      handleOpenChange(false);
-      onSuccess();
-    } catch (err) {
-      setError(getErrorMessage(err));
-    } finally {
-      setSubmitting(false);
-    }
+
+    mutation.mutate({ stateId, notes: notes || undefined });
   };
 
   return (
@@ -118,8 +119,8 @@ export function ChangeStateDialog({
             <Button type="button" variant="outline" onClick={() => handleOpenChange(false)}>
               Cancelar
             </Button>
-            <Button type="submit" disabled={submitting || !stateId}>
-              {submitting && <Loader2 data-icon="inline-start" className="animate-spin" />}
+            <Button type="submit" disabled={mutation.isPending || !stateId}>
+              {mutation.isPending && <Loader2 data-icon="inline-start" className="animate-spin" />}
               Cambiar
             </Button>
           </DialogFooter>

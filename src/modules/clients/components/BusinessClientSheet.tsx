@@ -1,4 +1,5 @@
-import type { BusinessClientResponse } from '@bopacorp/shared/crm';
+import type { BusinessClientResponse, UpdateBusinessClientRequest } from '@bopacorp/shared/crm';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Loader2, Pencil, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
@@ -8,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
+import { queryKeys } from '@/lib/query-keys.js';
 import { Can } from '@/modules/auth/components/Can.js';
 import { getErrorMessage } from '@/shared/errors/index.js';
 import { ErrorState, FormAlert } from '@/shared/ui';
@@ -88,7 +90,6 @@ export function BusinessClientSheet({ open, onOpenChange, clientId }: BusinessCl
             onCancel={() => setEditing(false)}
             onSaved={() => {
               setEditing(false);
-              refetch();
             }}
           />
         ) : (
@@ -129,6 +130,7 @@ function EditForm({
   onCancel: () => void;
   onSaved: () => void;
 }) {
+  const queryClient = useQueryClient();
   const [businessName, setBusinessName] = useState(client.businessName);
   const [contactName, setContactName] = useState(client.contactName);
   const [contactPhone, setContactPhone] = useState(client.contactPhone ?? '');
@@ -137,33 +139,34 @@ function EditForm({
   const [activeServicesCount, setActiveServicesCount] = useState(client.activeServicesCount);
   const [currentMonthlyBilling, setCurrentMonthlyBilling] = useState(client.currentMonthlyBilling);
   const [isActive, setIsActive] = useState(client.isActive);
-  const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState('');
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!businessName || !contactName) return;
-
-    setSubmitting(true);
-    setFormError('');
-    try {
-      await updateBusinessClient(client.id, {
-        businessName,
-        contactName,
-        contactPhone: contactPhone || undefined,
-        contactEmail: contactEmail || undefined,
-        address: address || undefined,
-        activeServicesCount,
-        currentMonthlyBilling,
-        isActive,
-      });
+  const mutation = useMutation({
+    mutationFn: (data: UpdateBusinessClientRequest) => updateBusinessClient(client.id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.businessClients.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.negotiations.all });
       toast.success('Cliente actualizado');
       onSaved();
-    } catch (err) {
-      setFormError(getErrorMessage(err));
-    } finally {
-      setSubmitting(false);
-    }
+    },
+    onError: (err) => setFormError(getErrorMessage(err)),
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!businessName || !contactName) return;
+    setFormError('');
+
+    mutation.mutate({
+      businessName,
+      contactName,
+      contactPhone: contactPhone || undefined,
+      contactEmail: contactEmail || undefined,
+      address: address || undefined,
+      activeServicesCount,
+      currentMonthlyBilling,
+      isActive,
+    });
   };
 
   return (
@@ -245,8 +248,8 @@ function EditForm({
           <X data-icon="inline-start" />
           Cancelar
         </Button>
-        <Button type="submit" disabled={submitting || !businessName || !contactName}>
-          {submitting && <Loader2 data-icon="inline-start" className="animate-spin" />}
+        <Button type="submit" disabled={mutation.isPending || !businessName || !contactName}>
+          {mutation.isPending && <Loader2 data-icon="inline-start" className="animate-spin" />}
           Guardar
         </Button>
       </SheetFooter>

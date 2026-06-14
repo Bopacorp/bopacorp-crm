@@ -1,4 +1,5 @@
-import type { BusinessClientResponse } from '@bopacorp/shared/crm';
+import type { BusinessClientResponse, CreateBusinessClientRequest } from '@bopacorp/shared/crm';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -13,6 +14,7 @@ import {
 import { Field, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { queryKeys } from '@/lib/query-keys.js';
 import { useAuth } from '@/modules/auth/context/AuthContext.js';
 import { getErrorMessage } from '@/shared/errors/index.js';
 import { FormAlert } from '@/shared/ui';
@@ -30,6 +32,7 @@ export function CreateBusinessClientDialog({
   onSuccess,
 }: CreateBusinessClientDialogProps) {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
 
   const [ruc, setRuc] = useState('');
   const [businessName, setBusinessName] = useState('');
@@ -39,8 +42,18 @@ export function CreateBusinessClientDialog({
   const [address, setAddress] = useState('');
   const [activeServicesCount, setActiveServicesCount] = useState(0);
   const [currentMonthlyBilling, setCurrentMonthlyBilling] = useState(0);
-  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+
+  const mutation = useMutation({
+    mutationFn: (data: CreateBusinessClientRequest) => createBusinessClient(data),
+    onSuccess: (client) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.businessClients.all });
+      toast.success('Cliente creado');
+      handleOpenChange(false);
+      onSuccess(client);
+    },
+    onError: (err) => setError(getErrorMessage(err)),
+  });
 
   const resetForm = () => {
     setRuc('');
@@ -59,33 +72,23 @@ export function CreateBusinessClientDialog({
     onOpenChange(value);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!ruc || !businessName || !contactName) return;
-
-    setSubmitting(true);
     setError('');
-    try {
-      const client = await createBusinessClient({
-        advisorId: user?.id,
-        ruc,
-        businessName,
-        contactName,
-        contactPhone: contactPhone || undefined,
-        contactEmail: contactEmail || undefined,
-        address: address || undefined,
-        activeServicesCount,
-        currentMonthlyBilling,
-        isActive: true,
-      });
-      toast.success('Cliente creado');
-      handleOpenChange(false);
-      onSuccess(client);
-    } catch (err) {
-      setError(getErrorMessage(err));
-    } finally {
-      setSubmitting(false);
-    }
+
+    mutation.mutate({
+      advisorId: user?.id,
+      ruc,
+      businessName,
+      contactName,
+      contactPhone: contactPhone || undefined,
+      contactEmail: contactEmail || undefined,
+      address: address || undefined,
+      activeServicesCount,
+      currentMonthlyBilling,
+      isActive: true,
+    });
   };
 
   return (
@@ -172,8 +175,11 @@ export function CreateBusinessClientDialog({
             <Button type="button" variant="outline" onClick={() => handleOpenChange(false)}>
               Cancelar
             </Button>
-            <Button type="submit" disabled={submitting || !ruc || !businessName || !contactName}>
-              {submitting && <Loader2 data-icon="inline-start" className="animate-spin" />}
+            <Button
+              type="submit"
+              disabled={mutation.isPending || !ruc || !businessName || !contactName}
+            >
+              {mutation.isPending && <Loader2 data-icon="inline-start" className="animate-spin" />}
               Crear
             </Button>
           </DialogFooter>

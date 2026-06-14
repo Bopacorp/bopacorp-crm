@@ -1,3 +1,5 @@
+import type { CreateNegotiationRequest } from '@bopacorp/shared/crm';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Loader2, Plus } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -19,6 +21,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { queryKeys } from '@/lib/query-keys.js';
 import { Can } from '@/modules/auth/components/Can.js';
 import { useAuth } from '@/modules/auth/context/AuthContext.js';
 import { CreateBusinessClientDialog } from '@/modules/clients/components/CreateBusinessClientDialog.js';
@@ -40,8 +43,9 @@ export function CreateNegotiationDialog({
   onSuccess,
 }: CreateNegotiationDialogProps) {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const { states } = useNegotiationStates();
-  const { clients, refetch: refetchClients } = useBusinessClients(1, {});
+  const { clients } = useBusinessClients(1, {});
 
   const [clientId, setClientId] = useState('');
   const [createClientOpen, setCreateClientOpen] = useState(false);
@@ -49,8 +53,18 @@ export function CreateNegotiationDialog({
   const [startDate, setStartDate] = useState('');
   const [estimatedCloseDate, setEstimatedCloseDate] = useState('');
   const [observations, setObservations] = useState('');
-  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+
+  const mutation = useMutation({
+    mutationFn: (data: CreateNegotiationRequest) => createNegotiation(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.negotiations.all });
+      toast.success('Negociación creada');
+      handleOpenChange(false);
+      onSuccess();
+    },
+    onError: (err) => setError(getErrorMessage(err)),
+  });
 
   const resetForm = () => {
     setClientId('');
@@ -66,30 +80,20 @@ export function CreateNegotiationDialog({
     onOpenChange(value);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!clientId || !stateId || !user) return;
-
-    setSubmitting(true);
     setError('');
-    try {
-      await createNegotiation({
-        clientId,
-        advisorId: user.id,
-        stateId,
-        startDate: startDate || undefined,
-        estimatedCloseDate: estimatedCloseDate || undefined,
-        observations: observations || undefined,
-        isActive: true,
-      });
-      toast.success('Negociación creada');
-      handleOpenChange(false);
-      onSuccess();
-    } catch (err) {
-      setError(getErrorMessage(err));
-    } finally {
-      setSubmitting(false);
-    }
+
+    mutation.mutate({
+      clientId,
+      advisorId: user.id,
+      stateId,
+      startDate: startDate || undefined,
+      estimatedCloseDate: estimatedCloseDate || undefined,
+      observations: observations || undefined,
+      isActive: true,
+    });
   };
 
   return (
@@ -174,8 +178,8 @@ export function CreateNegotiationDialog({
             <Button type="button" variant="outline" onClick={() => handleOpenChange(false)}>
               Cancelar
             </Button>
-            <Button type="submit" disabled={submitting || !clientId || !stateId}>
-              {submitting && <Loader2 data-icon="inline-start" className="animate-spin" />}
+            <Button type="submit" disabled={mutation.isPending || !clientId || !stateId}>
+              {mutation.isPending && <Loader2 data-icon="inline-start" className="animate-spin" />}
               Crear
             </Button>
           </DialogFooter>
@@ -187,7 +191,6 @@ export function CreateNegotiationDialog({
         onOpenChange={setCreateClientOpen}
         onSuccess={(client) => {
           setClientId(client.id);
-          refetchClients();
         }}
       />
     </Dialog>

@@ -1,27 +1,13 @@
-import type { NegotiationStateHistoryResponse } from '@bopacorp/shared/crm';
-import { useCallback, useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { queryKeys } from '@/lib/query-keys.js';
 import { getNegotiationHistory } from '../negotiations.service.js';
 
 export function useNegotiationHistory(id: string) {
-  const [history, setHistory] = useState<NegotiationStateHistoryResponse[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<unknown>(null);
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: queryKeys.negotiations.history(id),
+    queryFn: () => getNegotiationHistory(id),
+    enabled: !!id,
+  });
 
-  const fetch = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      setHistory(await getNegotiationHistory(id));
-    } catch (err) {
-      setError(err);
-    } finally {
-      setLoading(false);
-    }
-  }, [id]);
-
-  useEffect(() => {
-    fetch();
-  }, [fetch]);
-
-  return { history, loading, error, refetch: fetch };
+  return { history: data ?? [], loading: isLoading, error, refetch };
 }

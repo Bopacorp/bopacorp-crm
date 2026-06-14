@@ -1,7 +1,6 @@
-import type { PaginationMeta } from '@bopacorp/shared/common';
-import type { BusinessClientListItemResponse } from '@bopacorp/shared/crm';
-import { useCallback, useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useDebounce } from 'use-debounce';
+import { queryKeys } from '@/lib/query-keys.js';
 import { listBusinessClients } from '../clients.service.js';
 
 export interface BusinessClientFilters {
@@ -11,38 +10,24 @@ export interface BusinessClientFilters {
 }
 
 export function useBusinessClients(page: number, filters: BusinessClientFilters) {
-  const [clients, setClients] = useState<BusinessClientListItemResponse[]>([]);
-  const [meta, setMeta] = useState<PaginationMeta | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [fetching, setFetching] = useState(false);
-  const [error, setError] = useState<unknown>(null);
-  const [debouncedSearch] = useDebounce(filters.search, 300);
+  const [debouncedSearch] = useDebounce(filters.search ?? '', 300);
+  const params = {
+    search: debouncedSearch || undefined,
+    advisorId: filters.advisorId,
+    isActive: filters.isActive,
+  };
 
-  const fetch = useCallback(async () => {
-    setFetching(true);
-    setError(null);
-    try {
-      const result = await listBusinessClients({
-        page,
-        limit: 10,
-        sortOrder: 'asc',
-        search: debouncedSearch,
-        advisorId: filters.advisorId,
-        isActive: filters.isActive,
-      });
-      setClients(result.data);
-      setMeta(result.meta);
-    } catch (err) {
-      setError(err);
-    } finally {
-      setLoading(false);
-      setFetching(false);
-    }
-  }, [page, debouncedSearch, filters.advisorId, filters.isActive]);
+  const { data, isLoading, isFetching, error, refetch } = useQuery({
+    queryKey: queryKeys.businessClients.list(page, params),
+    queryFn: () => listBusinessClients({ page, limit: 10, sortOrder: 'asc', ...params }),
+  });
 
-  useEffect(() => {
-    fetch();
-  }, [fetch]);
-
-  return { clients, meta, loading, fetching, error, refetch: fetch };
+  return {
+    clients: data?.data ?? [],
+    meta: data?.meta ?? null,
+    loading: isLoading,
+    fetching: isFetching,
+    error,
+    refetch,
+  };
 }
