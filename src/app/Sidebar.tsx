@@ -9,7 +9,6 @@ import {
   Users,
 } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import logo from '@/assets/logo.png';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
   SidebarContent,
@@ -82,8 +81,12 @@ export function AppSidebar() {
             </div>
           </div>
         ) : (
-          <div className="flex items-center justify-center px-2 py-1">
-            <img src={logo} alt="Bopacorp" className="size-8" />
+          <div className="flex items-center justify-center py-1">
+            <Avatar className="size-8 rounded-md">
+              <AvatarFallback className="rounded-md bg-primary text-primary-foreground font-bold">
+                B
+              </AvatarFallback>
+            </Avatar>
           </div>
         )}
       </SidebarHeader>
