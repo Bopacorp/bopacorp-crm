@@ -1,31 +1,11 @@
-import type { AuthTokensResponse, ProfileResponse } from '@bopacorp/shared/auth';
+import type { LoginRequest, LoginResponse, MeResponse } from '@bopacorp/shared/auth';
 import { request } from './api.js';
 import { getAccessToken } from './auth-storage.js';
 import { decodeJwtPayload } from './jwt.js';
 
-export interface AuthUser {
-  id: string;
-  username: string;
-  email: string;
-  roles: string[];
-  permissions: string[];
-  profile: ProfileResponse | null;
-}
+export type AuthUser = LoginResponse['user'];
 
-interface MeResponse {
-  id: string;
-  username: string;
-  email: string;
-  roles: string[];
-  profile: ProfileResponse | null;
-}
-
-interface LoginResponse {
-  user: AuthUser;
-  tokens: AuthTokensResponse;
-}
-
-export async function login(data: { email: string; password: string }) {
+export async function login(data: LoginRequest) {
   return request<LoginResponse>({
     method: 'POST',
     url: '/auth/login',

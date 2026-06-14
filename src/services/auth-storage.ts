@@ -5,13 +5,9 @@ const KEYS = {
   expiresAt: 'bopacorp_token_expires_at',
 } as const;
 
-const LEGACY_KEYS = ['access_token', 'refresh_token', 'token_expires_at'] as const;
+import type { AuthTokensResponse } from '@bopacorp/shared/auth';
 
-export interface StoredTokens {
-  accessToken: string;
-  refreshToken: string;
-  expiresIn: number;
-}
+const LEGACY_KEYS = ['access_token', 'refresh_token', 'token_expires_at'] as const;
 
 export function getAccessToken(): string | null {
   return localStorage.getItem(KEYS.accessToken);
@@ -35,7 +31,7 @@ export function getStoredUser<T>(): T | null {
   }
 }
 
-export function saveTokens(tokens: StoredTokens): void {
+export function saveTokens(tokens: AuthTokensResponse): void {
   localStorage.setItem(KEYS.accessToken, tokens.accessToken);
   localStorage.setItem(KEYS.refreshToken, tokens.refreshToken);
   localStorage.setItem(KEYS.expiresAt, String(Date.now() + tokens.expiresIn * 1000));

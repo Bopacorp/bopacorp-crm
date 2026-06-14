@@ -1,3 +1,4 @@
+import type { LoginRequest } from '@bopacorp/shared/auth';
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useState } from 'react';
 import * as authService from '@/services/auth.service.js';
 import { type AuthUser, buildAuthUser, fetchMe } from '@/services/auth.service.js';
@@ -13,7 +14,7 @@ import {
 interface AuthState {
   user: AuthUser | null;
   isLoading: boolean;
-  login: (data: { email: string; password: string }) => Promise<void>;
+  login: (data: LoginRequest) => Promise<void>;
   logout: () => Promise<void>;
   hasPermission: (permission: string) => boolean;
 }
@@ -58,7 +59,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => window.removeEventListener('bopacorp:token-refreshed', handleTokenRefresh);
   }, []);
 
-  const login = useCallback(async (data: { email: string; password: string }) => {
+  const login = useCallback(async (data: LoginRequest) => {
     const response = await authService.login(data);
     saveTokens(response.tokens);
     saveUser(response.user);
