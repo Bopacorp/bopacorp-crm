@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Field, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
+import { LOGIN_ERRORS } from '@/shared/errors/auth.js';
+import { getErrorMessage } from '@/shared/errors/index.js';
 import { ModeToggle } from '@/shared/ui/ModeToggle';
 import { useAuth } from '../context/AuthContext.js';
 
@@ -28,7 +30,7 @@ export default function LoginPage() {
       await login({ email, password });
       navigate(from, { replace: true });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al iniciar sesión');
+      setError(getErrorMessage(err, LOGIN_ERRORS));
     } finally {
       setLoading(false);
     }
