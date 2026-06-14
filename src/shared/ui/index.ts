@@ -1,4 +1,5 @@
 export { Can } from '@/modules/auth/components/Can';
+export { DetailSkeleton } from './DetailSkeleton';
 export { EmptyState } from './EmptyState';
 export { EntityTable } from './EntityTable';
 export { ErrorBoundary } from './ErrorBoundary';
@@ -10,4 +11,5 @@ export { ModeToggle } from './ModeToggle';
 export { PageLoader } from './PageLoader';
 export { SectionHeader } from './SectionHeader';
 export { StateBadge } from './StateBadge';
+export { TableSkeleton } from './TableSkeleton';
 export { TimelinePanel } from './TimelinePanel';

@@ -18,9 +18,9 @@ import {
   EntityTable,
   ErrorState,
   FilterBar,
-  PageLoader,
   SectionHeader,
   StateBadge,
+  TableSkeleton,
 } from '@/shared/ui';
 import { CreateNegotiationDialog } from '../components/CreateNegotiationDialog.js';
 import { useNegotiationStates } from '../hooks/useNegotiationStates.js';
@@ -109,7 +109,7 @@ export default function NegotiationsPage() {
     ...states.map((s) => ({ value: s.id, label: s.name })),
   ];
 
-  if (loading) return <PageLoader />;
+  if (loading) return <TableSkeleton columns={5} />;
   if (error) return <ErrorState error={error} onRetry={refetch} />;
 
   return (

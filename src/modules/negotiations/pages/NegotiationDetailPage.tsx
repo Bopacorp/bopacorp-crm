@@ -4,7 +4,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { EmptyState, ErrorState, PageLoader, StateBadge } from '@/shared/ui';
+import { DetailSkeleton, EmptyState, ErrorState, StateBadge } from '@/shared/ui';
 import { ChangeStateDialog } from '../components/ChangeStateDialog.js';
 import { HistoryTab } from '../components/HistoryTab.js';
 import { VisitsTab } from '../components/VisitsTab.js';
@@ -33,7 +33,7 @@ export default function NegotiationDetailPage() {
   const { negotiation, loading, error, refetch } = useNegotiation(id);
   const [changeStateOpen, setChangeStateOpen] = useState(false);
 
-  if (loading) return <PageLoader />;
+  if (loading) return <DetailSkeleton fields={4} tabs={4} />;
   if (error || !negotiation) return <ErrorState error={error} onRetry={refetch} />;
 
   return (
