@@ -13,12 +13,23 @@ import {
   Pencil,
   Phone,
   Settings,
+  Trash2,
   User,
   UserCheck,
   XIcon,
 } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
@@ -26,7 +37,7 @@ import { queryKeys } from '@/lib/query-keys.js';
 import { Can } from '@/modules/auth/components/Can.js';
 import { getErrorMessage } from '@/shared/errors/index.js';
 import { DiscardChangesDialog, ErrorState, StateBadge } from '@/shared/ui';
-import { updateBusinessClient } from '../clients.service.js';
+import { deleteBusinessClient, updateBusinessClient } from '../clients.service.js';
 import { useBusinessClient } from '../hooks/useBusinessClient.js';
 import type { BusinessClientFormValues } from './BusinessClientForm.js';
 import { BusinessClientForm } from './BusinessClientForm.js';
@@ -87,11 +98,27 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 }
 
 export function BusinessClientSheet({ open, onOpenChange, clientId }: BusinessClientSheetProps) {
+  const queryClient = useQueryClient();
   const { client, loading, error, refetch } = useBusinessClient(clientId);
   const [editing, setEditing] = useState(false);
   const [showDiscard, setShowDiscard] = useState(false);
+  const [showDelete, setShowDelete] = useState(false);
   const dirtyRef = useRef(false);
   const pendingAction = useRef<'close' | 'back' | null>(null);
+
+  const deleteMutation = useMutation({
+    mutationFn: () => deleteBusinessClient(clientId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.businessClients.all });
+      toast.success('Cliente eliminado');
+      setShowDelete(false);
+      onOpenChange(false);
+    },
+    onError: (err) => {
+      toast.error(getErrorMessage(err));
+      setShowDelete(false);
+    },
+  });
 
   useEffect(() => {
     if (!open) {
@@ -151,11 +178,18 @@ export function BusinessClientSheet({ open, onOpenChange, clientId }: BusinessCl
             </div>
             <div className="flex items-center gap-1">
               {showViewHeader && (
-                <Can permission="business_clients.update">
-                  <Button variant="ghost" size="icon-sm" onClick={() => setEditing(true)}>
-                    <Pencil />
-                  </Button>
-                </Can>
+                <>
+                  <Can permission="business_clients.update">
+                    <Button variant="ghost" size="icon-sm" onClick={() => setEditing(true)}>
+                      <Pencil />
+                    </Button>
+                  </Can>
+                  <Can permission="business_clients.delete">
+                    <Button variant="ghost" size="icon-sm" onClick={() => setShowDelete(true)}>
+                      <Trash2 />
+                    </Button>
+                  </Can>
+                </>
               )}
               <Button variant="ghost" size="icon-sm" onClick={() => guardedAction('close')}>
                 <XIcon />
@@ -203,6 +237,38 @@ export function BusinessClientSheet({ open, onOpenChange, clientId }: BusinessCl
         onCancel={() => setShowDiscard(false)}
         onDiscard={handleDiscard}
       />
+
+      <AlertDialog open={showDelete} onOpenChange={(v) => !v && setShowDelete(false)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar cliente?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Se eliminará {client?.businessName ?? 'este cliente'}. Esta acción no se puede
+              deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteMutation.isPending}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              onClick={(e) => {
+                e.preventDefault();
+                deleteMutation.mutate();
+              }}
+              disabled={deleteMutation.isPending}
+            >
+              {deleteMutation.isPending ? (
+                <>
+                  <Loader2 className="animate-spin" />
+                  Eliminando…
+                </>
+              ) : (
+                'Eliminar'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Sheet>
   );
 }
