@@ -4,7 +4,6 @@ import { useCallback, useEffect, useState } from 'react';
 import { listVisits } from '../negotiations.service.js';
 
 export interface VisitFilters {
-  negotiationId?: string;
   clientId?: string;
   advisorId?: string;
   visitTypeId?: string;
@@ -27,7 +26,12 @@ export function useVisits(page: number, filters: VisitFilters) {
         page,
         limit: 10,
         sortOrder: 'asc',
-        ...filters,
+        clientId: filters.clientId,
+        advisorId: filters.advisorId,
+        visitTypeId: filters.visitTypeId,
+        isVerified: filters.isVerified,
+        dateFrom: filters.dateFrom,
+        dateTo: filters.dateTo,
       });
       setVisits(result.data);
       setMeta(result.meta);
@@ -36,7 +40,15 @@ export function useVisits(page: number, filters: VisitFilters) {
     } finally {
       setLoading(false);
     }
-  }, [page, filters]);
+  }, [
+    page,
+    filters.clientId,
+    filters.advisorId,
+    filters.visitTypeId,
+    filters.isVerified,
+    filters.dateFrom,
+    filters.dateTo,
+  ]);
 
   useEffect(() => {
     fetch();
