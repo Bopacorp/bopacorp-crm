@@ -7,6 +7,7 @@ import { Field, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { LOGIN_ERRORS } from '@/shared/errors/auth.js';
 import { getErrorMessage } from '@/shared/errors/index.js';
+import { FormAlert } from '@/shared/ui/FormAlert';
 import { ModeToggle } from '@/shared/ui/ModeToggle';
 import { useAuth } from '../context/AuthContext.js';
 
@@ -48,11 +49,7 @@ export default function LoginPage() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-            {error && (
-              <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
-                {error}
-              </div>
-            )}
+            {error && <FormAlert message={error} />}
 
             <FieldGroup>
               <Field>

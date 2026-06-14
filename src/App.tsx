@@ -12,109 +12,112 @@ import NegotiationDetailPage from '@/modules/negotiations/pages/NegotiationDetai
 import NegotiationsPage from '@/modules/negotiations/pages/NegotiationsPage';
 import OverviewPage from '@/modules/overview/pages/OverviewPage';
 import ReportsPage from '@/modules/reports/pages/ReportsPage';
+import { ErrorBoundary } from '@/shared/ui/ErrorBoundary';
 
 export default function App() {
   return (
     <BrowserRouter>
       <TooltipProvider>
-        <Routes>
-          <Route element={<MainLayout />}>
-            {/* Overview */}
-            <Route
-              path="/"
-              element={
-                <RequireAuth>
-                  <OverviewPage />
-                </RequireAuth>
-              }
-            />
-            <Route
-              path="/overview"
-              element={
-                <RequireAuth>
-                  <OverviewPage />
-                </RequireAuth>
-              }
-            />
+        <ErrorBoundary>
+          <Routes>
+            <Route element={<MainLayout />}>
+              {/* Overview */}
+              <Route
+                path="/"
+                element={
+                  <RequireAuth>
+                    <OverviewPage />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/overview"
+                element={
+                  <RequireAuth>
+                    <OverviewPage />
+                  </RequireAuth>
+                }
+              />
 
-            {/* Negotiations */}
-            <Route
-              path="/negociaciones"
-              element={
-                <RequireAuth>
-                  <NegotiationsPage />
-                </RequireAuth>
-              }
-            />
-            <Route
-              path="/negociaciones/:id"
-              element={
-                <RequireAuth>
-                  <NegotiationDetailPage />
-                </RequireAuth>
-              }
-            />
+              {/* Negotiations */}
+              <Route
+                path="/negociaciones"
+                element={
+                  <RequireAuth>
+                    <NegotiationsPage />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/negociaciones/:id"
+                element={
+                  <RequireAuth>
+                    <NegotiationDetailPage />
+                  </RequireAuth>
+                }
+              />
 
-            {/* Documentation */}
-            <Route
-              path="/documentacion"
-              element={
-                <RequireAuth>
-                  <DocumentationPage />
-                </RequireAuth>
-              }
-            />
+              {/* Documentation */}
+              <Route
+                path="/documentacion"
+                element={
+                  <RequireAuth>
+                    <DocumentationPage />
+                  </RequireAuth>
+                }
+              />
 
-            {/* Catalog */}
-            <Route
-              path="/catalogo"
-              element={
-                <RequireAuth>
-                  <CatalogPage />
-                </RequireAuth>
-              }
-            />
-            <Route
-              path="/catalogo/matrices/:id"
-              element={
-                <RequireAuth>
-                  <MatrixDetailPage />
-                </RequireAuth>
-              }
-            />
+              {/* Catalog */}
+              <Route
+                path="/catalogo"
+                element={
+                  <RequireAuth>
+                    <CatalogPage />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/catalogo/matrices/:id"
+                element={
+                  <RequireAuth>
+                    <MatrixDetailPage />
+                  </RequireAuth>
+                }
+              />
 
-            {/* Reports */}
-            <Route
-              path="/reportes"
-              element={
-                <RequireAuth>
-                  <ReportsPage />
-                </RequireAuth>
-              }
-            />
+              {/* Reports */}
+              <Route
+                path="/reportes"
+                element={
+                  <RequireAuth>
+                    <ReportsPage />
+                  </RequireAuth>
+                }
+              />
 
-            {/* Employability */}
-            <Route
-              path="/empleabilidad/aplicantes"
-              element={
-                <RequireAuth>
-                  <ApplicantsPage />
-                </RequireAuth>
-              }
-            />
-            <Route
-              path="/empleabilidad/mensajes"
-              element={
-                <RequireAuth>
-                  <MessagesPage />
-                </RequireAuth>
-              }
-            />
-          </Route>
+              {/* Employability */}
+              <Route
+                path="/empleabilidad/aplicantes"
+                element={
+                  <RequireAuth>
+                    <ApplicantsPage />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/empleabilidad/mensajes"
+                element={
+                  <RequireAuth>
+                    <MessagesPage />
+                  </RequireAuth>
+                }
+              />
+            </Route>
 
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </ErrorBoundary>
       </TooltipProvider>
     </BrowserRouter>
   );
