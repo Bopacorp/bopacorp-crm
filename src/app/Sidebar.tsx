@@ -10,6 +10,7 @@ import {
   LogOut,
   Monitor,
   Moon,
+  Settings,
   Sun,
   Users,
 } from 'lucide-react';
@@ -53,7 +54,6 @@ const navigation = [
     icon: HandshakeIcon,
     permission: 'negotiations.read',
   },
-  { name: 'Catálogo', href: '/catalogo', icon: BookOpen },
   { name: 'Documentación', href: '/documentacion', icon: FileText },
   { name: 'Reportes', href: '/reportes', icon: BarChart3 },
 ];
@@ -154,6 +154,25 @@ export function AppSidebar() {
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 ))}
+
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={isActive('/catalogo')} tooltip="Catálogo">
+                  <Link to="/catalogo">
+                    <BookOpen />
+                    <span>Catálogo</span>
+                  </Link>
+                </SidebarMenuButton>
+                <SidebarMenuSub>
+                  <SidebarMenuSubItem>
+                    <SidebarMenuSubButton asChild isActive={isActive('/catalogo/configuracion')}>
+                      <Link to="/catalogo/configuracion">
+                        <Settings />
+                        <span>Configuración</span>
+                      </Link>
+                    </SidebarMenuSubButton>
+                  </SidebarMenuSubItem>
+                </SidebarMenuSub>
+              </SidebarMenuItem>
 
               <SidebarMenuItem>
                 <SidebarMenuButton isActive={isActive('/empleabilidad')} tooltip="Empleabilidad">

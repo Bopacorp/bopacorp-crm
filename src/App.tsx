@@ -4,6 +4,7 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import RequireAuth from '@/modules/auth/components/RequireAuth.js';
 import LoginPage from '@/modules/auth/pages/LoginPage';
 import CatalogPage from '@/modules/catalog/pages/CatalogPage';
+import CatalogSettingsPage from '@/modules/catalog/pages/CatalogSettingsPage';
 import MatrixDetailPage from '@/modules/catalog/pages/MatrixDetailPage';
 import { ClientSheetProvider } from '@/modules/clients/context/ClientSheetContext';
 import ClientsPage from '@/modules/clients/pages/ClientsPage';
@@ -91,6 +92,14 @@ export default function App() {
                 element={
                   <RequireAuth>
                     <CatalogPage />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/catalogo/configuracion"
+                element={
+                  <RequireAuth>
+                    <CatalogSettingsPage />
                   </RequireAuth>
                 }
               />
