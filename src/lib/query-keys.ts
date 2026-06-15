@@ -27,4 +27,66 @@ export const queryKeys = {
     all: ['employees'] as const,
     list: (filters: Record<string, unknown>) => ['employees', 'list', filters] as const,
   },
+  catalog: {
+    all: ['catalog'] as const,
+    itemTypes: {
+      all: ['catalog', 'item-types'] as const,
+      list: (page: number, filters: Record<string, unknown>) =>
+        ['catalog', 'item-types', 'list', page, filters] as const,
+    },
+    contractTypes: {
+      all: ['catalog', 'contract-types'] as const,
+      list: (page: number, filters: Record<string, unknown>) =>
+        ['catalog', 'contract-types', 'list', page, filters] as const,
+    },
+    segments: {
+      all: ['catalog', 'segments'] as const,
+      list: (page: number, filters: Record<string, unknown>) =>
+        ['catalog', 'segments', 'list', page, filters] as const,
+    },
+    tiers: {
+      all: ['catalog', 'tiers'] as const,
+      list: (page: number, filters: Record<string, unknown>) =>
+        ['catalog', 'tiers', 'list', page, filters] as const,
+    },
+    geoZones: {
+      all: ['catalog', 'geo-zones'] as const,
+      list: (page: number, filters: Record<string, unknown>) =>
+        ['catalog', 'geo-zones', 'list', page, filters] as const,
+    },
+    benefitTypes: {
+      all: ['catalog', 'benefit-types'] as const,
+      list: (page: number, filters: Record<string, unknown>) =>
+        ['catalog', 'benefit-types', 'list', page, filters] as const,
+    },
+    contentTypes: {
+      all: ['catalog', 'content-types'] as const,
+      list: (page: number, filters: Record<string, unknown>) =>
+        ['catalog', 'content-types', 'list', page, filters] as const,
+    },
+    categories: {
+      all: ['catalog', 'categories'] as const,
+      list: (page: number, filters: Record<string, unknown>) =>
+        ['catalog', 'categories', 'list', page, filters] as const,
+      tree: ['catalog', 'categories', 'tree'] as const,
+    },
+    items: {
+      all: ['catalog', 'items'] as const,
+      list: (page: number, filters: Record<string, unknown>) =>
+        ['catalog', 'items', 'list', page, filters] as const,
+      detail: (id: string) => ['catalog', 'items', 'detail', id] as const,
+    },
+    contentBlocks: {
+      all: ['catalog', 'content-blocks'] as const,
+      list: (page: number, filters: Record<string, unknown>) =>
+        ['catalog', 'content-blocks', 'list', page, filters] as const,
+      detail: (id: string) => ['catalog', 'content-blocks', 'detail', id] as const,
+    },
+    contactRequests: {
+      all: ['catalog', 'contact-requests'] as const,
+      list: (page: number, filters: Record<string, unknown>) =>
+        ['catalog', 'contact-requests', 'list', page, filters] as const,
+      detail: (id: string) => ['catalog', 'contact-requests', 'detail', id] as const,
+    },
+  },
 };

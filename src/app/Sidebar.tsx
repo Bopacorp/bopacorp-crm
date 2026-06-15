@@ -53,8 +53,8 @@ const navigation = [
     icon: HandshakeIcon,
     permission: 'negotiations.read',
   },
-  { name: 'Documentación', href: '/documentacion', icon: FileText },
   { name: 'Catálogo', href: '/catalogo', icon: BookOpen },
+  { name: 'Documentación', href: '/documentacion', icon: FileText },
   { name: 'Reportes', href: '/reportes', icon: BarChart3 },
 ];
 
