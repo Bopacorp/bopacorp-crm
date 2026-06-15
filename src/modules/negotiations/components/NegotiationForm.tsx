@@ -34,7 +34,7 @@ interface NegotiationFormProps {
   submitLabel: string;
   onDirtyChange?: (dirty: boolean) => void;
   clientOptions?: { value: string; label: string }[];
-  stateOptions: { id: string; name: string }[];
+  stateOptions: { id: string; name: string; position: number }[];
   onCreateClient?: () => void;
   showCreateClient?: boolean;
   clientReadOnly?: boolean;

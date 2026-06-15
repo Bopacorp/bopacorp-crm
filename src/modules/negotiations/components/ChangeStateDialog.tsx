@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import {
@@ -44,9 +44,20 @@ export function ChangeStateDialog({
   const queryClient = useQueryClient();
   const availableStates = states.filter((s) => s.id !== currentStateId);
 
-  const [stateId, setStateId] = useState('');
+  const suggestedId = useMemo(() => {
+    const current = states.find((s) => s.id === currentStateId);
+    return states.find((s) => s.position === (current?.position ?? 0) + 1)?.id ?? '';
+  }, [states, currentStateId]);
+
+  const [stateId, setStateId] = useState(suggestedId);
   const [notes, setNotes] = useState('');
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (open && suggestedId) {
+      setStateId(suggestedId);
+    }
+  }, [open, suggestedId]);
 
   const mutation = useMutation({
     mutationFn: (data: { stateId: string; notes?: string }) =>
@@ -61,7 +72,7 @@ export function ChangeStateDialog({
   });
 
   const resetForm = () => {
-    setStateId('');
+    setStateId(suggestedId);
     setNotes('');
     setError('');
   };
@@ -90,7 +101,14 @@ export function ChangeStateDialog({
 
           <FieldGroup>
             <Field>
-              <FieldLabel>Nuevo estado</FieldLabel>
+              <FieldLabel>
+                Nuevo estado
+                {suggestedId && (
+                  <span className="ml-1 font-normal text-muted-foreground">
+                    — sugerido: siguiente etapa
+                  </span>
+                )}
+              </FieldLabel>
               <Select value={stateId} onValueChange={setStateId}>
                 <SelectTrigger>
                   <SelectValue placeholder="Seleccionar estado" />

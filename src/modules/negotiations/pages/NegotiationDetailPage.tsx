@@ -23,6 +23,7 @@ import { EditNegotiationSheet } from '../components/EditNegotiationSheet.js';
 import { HistoryTab } from '../components/HistoryTab.js';
 import { VisitsTab } from '../components/VisitsTab.js';
 import { useNegotiation } from '../hooks/useNegotiation.js';
+import { useNegotiationStates } from '../hooks/useNegotiationStates.js';
 
 function advisorName(advisor: {
   username: string;
@@ -35,6 +36,7 @@ function advisorName(advisor: {
 export default function NegotiationDetailPage() {
   const { id = '' } = useParams<{ id: string }>();
   const { negotiation, loading, error, refetch } = useNegotiation(id);
+  const { states } = useNegotiationStates();
   const { openClientSheet } = useClientSheet();
   const [changeStateOpen, setChangeStateOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
@@ -53,6 +55,12 @@ export default function NegotiationDetailPage() {
           </h1>
         </button>
         <StateBadge state={negotiation.state.code} label={negotiation.state.name} />
+        {states.length > 0 && (
+          <span className="text-xs text-muted-foreground">
+            Etapa {states.find((s) => s.id === negotiation.state.id)?.position ?? '?'} de{' '}
+            {states.length}
+          </span>
+        )}
         <div className="ml-auto flex items-center gap-2">
           <Can permission="negotiations.update">
             <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
