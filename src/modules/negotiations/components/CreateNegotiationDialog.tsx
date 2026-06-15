@@ -2,7 +2,7 @@ import type { CreateNegotiationRequest } from '@bopacorp/shared/crm';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useMemo, useState } from 'react';
 import { toast } from 'sonner';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { queryKeys } from '@/lib/query-keys.js';
 import { useAuth } from '@/modules/auth/context/AuthContext.js';
 import { CreateBusinessClientDialog } from '@/modules/clients/components/CreateBusinessClientDialog.js';
@@ -99,11 +99,11 @@ export function CreateNegotiationDialog({
     : EMPTY_VALUES;
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Nueva negociación</DialogTitle>
-        </DialogHeader>
+    <Sheet open={open} onOpenChange={handleOpenChange}>
+      <SheetContent>
+        <SheetHeader>
+          <SheetTitle>Nueva negociación</SheetTitle>
+        </SheetHeader>
         <NegotiationForm
           key={key}
           defaultValues={defaultValues}
@@ -117,7 +117,7 @@ export function CreateNegotiationDialog({
           showCreateClient
           onCreateClient={() => setCreateClientOpen(true)}
         />
-      </DialogContent>
+      </SheetContent>
 
       <DiscardChangesDialog open={showDiscard} onCancel={cancelDiscard} onDiscard={handleDiscard} />
 
@@ -128,6 +128,6 @@ export function CreateNegotiationDialog({
           setPreselectedClientId(client.id);
         }}
       />
-    </Dialog>
+    </Sheet>
   );
 }
