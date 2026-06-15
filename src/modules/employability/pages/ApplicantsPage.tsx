@@ -1,93 +1,191 @@
-import { Eye, Plus } from 'lucide-react';
+import type { JobApplicationListItemResponse } from '@bopacorp/shared/employability';
+import { ArrowLeft, Eye, FileText } from 'lucide-react';
 import { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { EmptyState, EntityTable, FilterBar, SectionHeader, StateBadge } from '@/shared/ui';
+import { formatDate } from '@/lib/format.js';
+import { cn } from '@/lib/utils';
+import { usePageReset } from '@/shared/hooks/usePageReset.js';
+import {
+  EmptyState,
+  EntityTable,
+  ErrorState,
+  FilterBar,
+  PaginationFooter,
+  SectionHeader,
+  StateBadge,
+  TableSkeleton,
+} from '@/shared/ui';
+import { ApplicationDetailSheet } from '../components/ApplicationDetailSheet.js';
+import { useJobApplications } from '../hooks/useJobApplications.js';
+import { applicationStateLabel, applicationStateVariant } from '../lib/state.js';
 
-interface Application {
-  id: string;
-  candidateName: string;
-  vacancyTitle: string;
-  appliedAt: string;
-  status: string;
-  hasResume: boolean;
-}
+const STATE_OPTIONS = [
+  { value: 'all', label: 'Todos' },
+  { value: 'DRAFT', label: 'Borrador' },
+  { value: 'PENDING', label: 'Pendiente' },
+  { value: 'ACCEPTED', label: 'Aceptado' },
+  { value: 'REJECTED', label: 'Rechazado' },
+];
 
 export default function ApplicantsPage() {
-  const [searchQuery, setSearchQuery] = useState('');
-  const applications: Application[] = [];
+  const [searchParams, setSearchParams] = useSearchParams();
+  const vacancyId = searchParams.get('vacancyId') ?? undefined;
+
+  const [page, setPage] = useState(1);
+  const [search, setSearch] = useState('');
+  const [stateFilter, setStateFilter] = useState('all');
+  const [pageSize, setPageSize] = useState(10);
+  const [detailId, setDetailId] = useState<string | null>(null);
+
+  const state = stateFilter === 'all' ? undefined : stateFilter;
+
+  const { applications, meta, loading, fetching, error, refetch } = useJobApplications(page, {
+    search,
+    vacancyId,
+    state,
+  });
+
+  usePageReset([search, stateFilter, vacancyId, pageSize], setPage);
 
   const columns = [
     {
       id: 'candidate',
       header: 'Candidato',
-      accessor: (item: Application) => <span className="font-medium">{item.candidateName}</span>,
+      accessor: (item: JobApplicationListItemResponse) => (
+        <span className="font-medium text-foreground hover:underline">
+          {item.candidate.firstName} {item.candidate.lastName}
+        </span>
+      ),
     },
     {
       id: 'vacancy',
       header: 'Vacante',
-      accessor: (item: Application) => item.vacancyTitle,
+      accessor: (item: JobApplicationListItemResponse) => item.vacancy.title,
     },
     {
-      id: 'applied',
+      id: 'appliedAt',
       header: 'Fecha de aplicación',
-      accessor: (item: Application) => item.appliedAt,
+      accessor: (item: JobApplicationListItemResponse) =>
+        item.appliedAt ? formatDate(item.appliedAt) : '—',
     },
     {
-      id: 'status',
+      id: 'state',
       header: 'Estado',
-      accessor: (item: Application) => <StateBadge state={item.status} />,
+      accessor: (item: JobApplicationListItemResponse) => (
+        <StateBadge
+          state={item.state}
+          label={applicationStateLabel(item.state)}
+          variant={applicationStateVariant(item.state)}
+        />
+      ),
+    },
+    {
+      id: 'resume',
+      header: 'CV',
+      accessor: (item: JobApplicationListItemResponse) =>
+        item.hasResume ? <FileText className="size-4 text-muted-foreground" /> : '—',
     },
     {
       id: 'actions',
       header: 'Acciones',
-      accessor: () => (
-        <Button size="sm" variant="outline">
-          <Eye data-icon="inline-start" />
+      accessor: (item: JobApplicationListItemResponse) => (
+        <Button size="sm" variant="outline" onClick={() => setDetailId(item.id)}>
+          <Eye data-icon="inline-start" className="size-4" />
           Ver detalle
         </Button>
       ),
     },
   ];
 
+  if (loading) return <TableSkeleton columns={columns.length} />;
+  if (error) return <ErrorState error={error} onRetry={refetch} />;
+
   return (
-    <div className="flex flex-col gap-6">
+    <div
+      className={cn(
+        'flex min-w-0 flex-col gap-6',
+        fetching && 'pointer-events-none opacity-60 transition-opacity',
+      )}
+    >
+      {vacancyId && (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="w-fit"
+          onClick={() => {
+            searchParams.delete('vacancyId');
+            setSearchParams(searchParams);
+          }}
+        >
+          <ArrowLeft className="mr-2 size-4" />
+          Volver a vacantes
+        </Button>
+      )}
+
       <SectionHeader
         title="Aplicantes"
-        description="Gestión de candidatos y aplicaciones a vacantes"
-        actions={
-          <Button>
-            <Plus data-icon="inline-start" />
-            Nueva vacante
-          </Button>
+        description={
+          vacancyId
+            ? 'Postulantes filtrados por vacante seleccionada'
+            : 'Gestión de candidatos y aplicaciones a vacantes'
         }
       />
 
       <FilterBar
-        searchValue={searchQuery}
-        onSearchChange={setSearchQuery}
+        searchValue={search}
+        onSearchChange={setSearch}
         searchPlaceholder="Buscar candidatos..."
         filters={[
           {
-            id: 'status',
+            id: 'state',
             placeholder: 'Estado',
-            options: [
-              { value: 'all', label: 'Todos' },
-              { value: 'pending', label: 'Pendiente' },
-              { value: 'approved', label: 'Aprobado' },
-              { value: 'rejected', label: 'Rechazado' },
-            ],
+            options: STATE_OPTIONS,
+            value: stateFilter,
+            onChange: setStateFilter,
           },
         ]}
       />
 
       {applications.length === 0 ? (
-        <EmptyState
-          title="No hay aplicaciones"
-          description="Las aplicaciones de candidatos aparecerán aquí"
-        />
+        search || state ? (
+          <EmptyState
+            title="Sin resultados"
+            description="No se encontraron aplicaciones con los filtros aplicados"
+          />
+        ) : (
+          <EmptyState
+            title="No hay aplicaciones"
+            description="Las aplicaciones de candidatos aparecerán aquí"
+          />
+        )
       ) : (
-        <EntityTable data={applications} columns={columns} keyExtractor={(item) => item.id} />
+        <>
+          <EntityTable
+            data={applications}
+            columns={columns}
+            keyExtractor={(item) => item.id}
+            onRowClick={(item) => setDetailId(item.id)}
+          />
+
+          <PaginationFooter
+            page={page}
+            onPageChange={setPage}
+            pageSize={pageSize}
+            onPageSizeChange={setPageSize}
+            meta={meta}
+          />
+        </>
       )}
+
+      <ApplicationDetailSheet
+        open={!!detailId}
+        onOpenChange={(open) => {
+          if (!open) setDetailId(null);
+        }}
+        applicationId={detailId}
+        onSuccess={refetch}
+      />
     </div>
   );
 }

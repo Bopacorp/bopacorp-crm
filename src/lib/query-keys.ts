@@ -27,6 +27,20 @@ export const queryKeys = {
     all: ['employees'] as const,
     list: (filters: Record<string, unknown>) => ['employees', 'list', filters] as const,
   },
+  employability: {
+    vacancies: {
+      all: ['employability', 'vacancies'] as const,
+      list: (page: number, filters: Record<string, unknown>) =>
+        ['employability', 'vacancies', 'list', page, filters] as const,
+      detail: (id: string) => ['employability', 'vacancies', 'detail', id] as const,
+    },
+    applications: {
+      all: ['employability', 'applications'] as const,
+      list: (page: number, filters: Record<string, unknown>) =>
+        ['employability', 'applications', 'list', page, filters] as const,
+      detail: (id: string) => ['employability', 'applications', 'detail', id] as const,
+    },
+  },
   catalog: {
     all: ['catalog'] as const,
     itemTypes: {
