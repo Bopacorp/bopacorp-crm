@@ -10,6 +10,7 @@ import {
   LogOut,
   Monitor,
   Moon,
+  Package,
   Settings,
   Sun,
   Users,
@@ -163,6 +164,14 @@ export function AppSidebar() {
                   </Link>
                 </SidebarMenuButton>
                 <SidebarMenuSub>
+                  <SidebarMenuSubItem>
+                    <SidebarMenuSubButton asChild isActive={location.pathname === '/catalogo'}>
+                      <Link to="/catalogo">
+                        <Package />
+                        <span>Productos</span>
+                      </Link>
+                    </SidebarMenuSubButton>
+                  </SidebarMenuSubItem>
                   <SidebarMenuSubItem>
                     <SidebarMenuSubButton asChild isActive={isActive('/catalogo/configuracion')}>
                       <Link to="/catalogo/configuracion">

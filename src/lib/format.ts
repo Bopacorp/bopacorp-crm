@@ -25,3 +25,7 @@ export function formatDateTime(value: string): string {
 export function formatRelativeTime(value: string): string {
   return formatDistanceToNow(new Date(value), { addSuffix: true, locale: es });
 }
+
+export function formatCurrency(value: number): string {
+  return `$${value.toLocaleString('es-EC', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
