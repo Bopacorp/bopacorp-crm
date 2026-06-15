@@ -1,10 +1,11 @@
 import type { BusinessClientResponse, CreateBusinessClientRequest } from '@bopacorp/shared/crm';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { toast } from 'sonner';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { queryKeys } from '@/lib/query-keys.js';
 import { getErrorMessage } from '@/shared/errors/index.js';
+import { useUnsavedGuard } from '@/shared/hooks/useUnsavedGuard.js';
 import { DiscardChangesDialog } from '@/shared/ui';
 import { createBusinessClient } from '../clients.service.js';
 import type { BusinessClientFormValues } from './BusinessClientForm.js';
@@ -35,12 +36,15 @@ export function CreateBusinessClientDialog({
   const queryClient = useQueryClient();
   const [error, setError] = useState('');
   const [key, setKey] = useState(0);
-  const [showDiscard, setShowDiscard] = useState(false);
-  const dirtyRef = useRef(false);
 
-  const handleDirtyChange = useCallback((dirty: boolean) => {
-    dirtyRef.current = dirty;
-  }, []);
+  const forceClose = useCallback(() => {
+    setKey((k) => k + 1);
+    setError('');
+    onOpenChange(false);
+  }, [onOpenChange]);
+
+  const { dirtyRef, showDiscard, handleDirtyChange, guardedAction, handleDiscard, cancelDiscard } =
+    useUnsavedGuard({ onClose: forceClose });
 
   const mutation = useMutation({
     mutationFn: (data: CreateBusinessClientRequest) => createBusinessClient(data),
@@ -54,28 +58,12 @@ export function CreateBusinessClientDialog({
     onError: (err) => setError(getErrorMessage(err)),
   });
 
-  const forceClose = () => {
-    setKey((k) => k + 1);
-    setError('');
-    onOpenChange(false);
-  };
-
   const handleOpenChange = (value: boolean) => {
     if (!value) {
-      if (dirtyRef.current) {
-        setShowDiscard(true);
-        return;
-      }
-      setKey((k) => k + 1);
-      setError('');
+      guardedAction('close');
+    } else {
+      onOpenChange(true);
     }
-    onOpenChange(value);
-  };
-
-  const handleDiscard = () => {
-    setShowDiscard(false);
-    dirtyRef.current = false;
-    forceClose();
   };
 
   const handleSubmit = (values: BusinessClientFormValues) => {
@@ -111,11 +99,7 @@ export function CreateBusinessClientDialog({
         />
       </SheetContent>
 
-      <DiscardChangesDialog
-        open={showDiscard}
-        onCancel={() => setShowDiscard(false)}
-        onDiscard={handleDiscard}
-      />
+      <DiscardChangesDialog open={showDiscard} onCancel={cancelDiscard} onDiscard={handleDiscard} />
     </Sheet>
   );
 }

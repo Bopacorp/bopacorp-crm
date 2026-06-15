@@ -18,7 +18,7 @@ import {
   UserCheck,
   XIcon,
 } from 'lucide-react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import {
   AlertDialog,
@@ -35,10 +35,11 @@ import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Skeleton } from '@/components/ui/skeleton';
 import { queryKeys } from '@/lib/query-keys.js';
-import { cn } from '@/lib/utils.js';
 import { Can } from '@/modules/auth/components/Can.js';
+
 import { getErrorMessage } from '@/shared/errors/index.js';
-import { DiscardChangesDialog, ErrorState, StateBadge } from '@/shared/ui';
+import { useUnsavedGuard } from '@/shared/hooks/useUnsavedGuard.js';
+import { DiscardChangesDialog, ErrorState, SheetDetailSkeleton, StateBadge } from '@/shared/ui';
 import { deleteBusinessClient, updateBusinessClient } from '../clients.service.js';
 import { useBusinessClient } from '../hooks/useBusinessClient.js';
 import type { BusinessClientFormValues } from './BusinessClientForm.js';
@@ -99,52 +100,23 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
-function SkeletonRow({ width = 'w-32' }: { width?: string }) {
-  return (
-    <div className="flex items-center gap-3 px-2 py-1.5">
-      <Skeleton className="size-4 rounded" />
-      <Skeleton className="h-4 w-24" />
-      <Skeleton className={cn('h-4', width)} />
-    </div>
-  );
-}
-
-function SheetDetailSkeleton() {
-  return (
-    <div className="flex-1 overflow-y-auto p-4">
-      <div className="flex flex-col gap-5">
-        <div className="flex flex-col gap-1">
-          <Skeleton className="mx-2 h-3 w-20" />
-          <SkeletonRow width="w-28" />
-          <SkeletonRow width="w-40" />
-          <SkeletonRow width="w-16" />
-        </div>
-        <div className="flex flex-col gap-1">
-          <Skeleton className="mx-2 h-3 w-16" />
-          <SkeletonRow width="w-36" />
-          <SkeletonRow width="w-24" />
-          <SkeletonRow width="w-44" />
-          <SkeletonRow width="w-48" />
-        </div>
-        <div className="flex flex-col gap-1">
-          <Skeleton className="mx-2 h-3 w-16" />
-          <SkeletonRow width="w-12" />
-          <SkeletonRow width="w-20" />
-          <SkeletonRow width="w-36" />
-        </div>
-      </div>
-    </div>
-  );
-}
+const CLIENT_SKELETON_SECTIONS = [
+  { rows: ['w-28', 'w-40', 'w-16'] },
+  { labelWidth: 'w-16', rows: ['w-36', 'w-24', 'w-44', 'w-48'] },
+  { labelWidth: 'w-16', rows: ['w-12', 'w-20', 'w-36'] },
+];
 
 export function BusinessClientSheet({ open, onOpenChange, clientId }: BusinessClientSheetProps) {
   const queryClient = useQueryClient();
   const { client, loading, error, refetch } = useBusinessClient(clientId);
   const [editing, setEditing] = useState(false);
-  const [showDiscard, setShowDiscard] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
-  const dirtyRef = useRef(false);
-  const pendingAction = useRef<'close' | 'back' | null>(null);
+
+  const onClose = useCallback(() => onOpenChange(false), [onOpenChange]);
+  const onBack = useCallback(() => setEditing(false), []);
+
+  const { dirtyRef, showDiscard, handleDirtyChange, guardedAction, handleDiscard, cancelDiscard } =
+    useUnsavedGuard({ onClose, onBack });
 
   const deleteMutation = useMutation({
     mutationFn: () => deleteBusinessClient(clientId),
@@ -165,33 +137,7 @@ export function BusinessClientSheet({ open, onOpenChange, clientId }: BusinessCl
       setEditing(false);
       dirtyRef.current = false;
     }
-  }, [open]);
-
-  const handleDirtyChange = useCallback((dirty: boolean) => {
-    dirtyRef.current = dirty;
-  }, []);
-
-  const guardedAction = (action: 'close' | 'back') => {
-    if (editing && dirtyRef.current) {
-      pendingAction.current = action;
-      setShowDiscard(true);
-    } else if (action === 'close') {
-      onOpenChange(false);
-    } else {
-      setEditing(false);
-    }
-  };
-
-  const handleDiscard = () => {
-    setShowDiscard(false);
-    dirtyRef.current = false;
-    if (pendingAction.current === 'close') {
-      onOpenChange(false);
-    } else {
-      setEditing(false);
-    }
-    pendingAction.current = null;
-  };
+  }, [open, dirtyRef]);
 
   const handleOpenChange = (value: boolean) => {
     if (!value) {
@@ -268,7 +214,7 @@ export function BusinessClientSheet({ open, onOpenChange, clientId }: BusinessCl
         </SheetHeader>
 
         {loading ? (
-          <SheetDetailSkeleton />
+          <SheetDetailSkeleton sections={CLIENT_SKELETON_SECTIONS} />
         ) : error || !client ? (
           <ErrorState error={error} onRetry={refetch} />
         ) : editing ? (
@@ -282,11 +228,7 @@ export function BusinessClientSheet({ open, onOpenChange, clientId }: BusinessCl
         )}
       </SheetContent>
 
-      <DiscardChangesDialog
-        open={showDiscard}
-        onCancel={() => setShowDiscard(false)}
-        onDiscard={handleDiscard}
-      />
+      <DiscardChangesDialog open={showDiscard} onCancel={cancelDiscard} onDiscard={handleDiscard} />
 
       <AlertDialog open={showDelete} onOpenChange={(v) => !v && setShowDelete(false)}>
         <AlertDialogContent>

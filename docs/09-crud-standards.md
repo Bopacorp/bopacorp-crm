@@ -36,7 +36,7 @@ Types come from `@bopacorp/shared/<module>` — never define inline interfaces f
 | Page header | `SectionHeader` | Title + description + action button |
 | Search + filters | `FilterBar` | Debounced search, select filters |
 | Data table | `EntityTable` | Sortable columns, row click → detail |
-| Pagination | `Pagination` + `PageSizeSelect` | Page numbers + size selector |
+| Pagination | `PaginationFooter` | Page numbers + size selector (see 13.1) |
 | Loading state | `TableSkeleton` | Shown on initial load |
 | Error state | `ErrorState` | With retry button |
 | Empty state | `EmptyState` | **Must differentiate filtered vs truly empty** |
@@ -71,16 +71,10 @@ When the table has zero results, show different messages depending on whether fi
 
 ### 2.3 Filter reset on change
 
-When any filter, search term, sort column, or page size changes, reset to page 1. Use refs to detect changes:
+When any filter, search term, sort column, or page size changes, reset to page 1. Use `usePageReset` (see section 13.2):
 
 ```tsx
-const searchRef = useRef(search);
-useEffect(() => {
-  if (searchRef.current !== search) {
-    searchRef.current = search;
-    setPage(1);
-  }
-});
+usePageReset([search, isActive, advisorId, sortBy, sortOrder, pageSize], setPage);
 ```
 
 ### 2.4 Fetching overlay
@@ -373,39 +367,28 @@ Any form that can be dismissed (Sheet, Dialog) must warn the user before discard
 
 ### 7.1 Pattern
 
+Use the `useUnsavedGuard` hook (see section 13.4):
+
 ```tsx
-const dirtyRef = useRef(false);
-const pendingAction = useRef<'close' | 'back' | null>(null);
-const [showDiscard, setShowDiscard] = useState(false);
+const onClose = useCallback(() => onOpenChange(false), [onOpenChange]);
+const onBack = useCallback(() => setEditing(false), []);
 
-const handleDirtyChange = useCallback((dirty: boolean) => {
-  dirtyRef.current = dirty;
-}, []);
-
-const guardedAction = (action: 'close' | 'back') => {
-  if (editing && dirtyRef.current) {
-    pendingAction.current = action;
-    setShowDiscard(true);
-  } else if (action === 'close') {
-    onOpenChange(false);
-  } else {
-    setEditing(false);
-  }
-};
+const { dirtyRef, showDiscard, handleDirtyChange, guardedAction, handleDiscard, cancelDiscard } =
+  useUnsavedGuard({ onClose, onBack });
 ```
 
 ### 7.2 Why useRef instead of useState
 
-The dirty flag is read inside event handlers and Sheet's `onOpenChange` callback. Using `useState` would capture stale values in closures. `useRef` always gives the current value.
+The dirty flag is read inside event handlers and Sheet's `onOpenChange` callback. Using `useState` would capture stale values in closures. `useRef` always gives the current value. The `useUnsavedGuard` hook uses refs internally.
 
 ### 7.3 DiscardChangesDialog
 
-Reusable component from `@/shared/ui`:
+Wire hook returns to `DiscardChangesDialog` from `@/shared/ui`:
 
 ```tsx
 <DiscardChangesDialog
   open={showDiscard}
-  onCancel={() => setShowDiscard(false)}
+  onCancel={cancelDiscard}
   onDiscard={handleDiscard}
 />
 ```
@@ -417,15 +400,20 @@ Reusable component from `@/shared/ui`:
 
 ### 7.4 Create flow guard
 
-For create dialogs, intercept `onOpenChange` and check dirty before allowing close:
+For create dialogs, use `useUnsavedGuard` with only `onClose` (no `onBack`):
 
 ```tsx
+const forceClose = useCallback(() => {
+  setKey((k) => k + 1);
+  setError('');
+  onOpenChange(false);
+}, [onOpenChange]);
+
+const { guardedAction, ... } = useUnsavedGuard({ onClose: forceClose });
+
 const handleOpenChange = (value: boolean) => {
-  if (!value && dirtyRef.current) {
-    setShowDiscard(true);
-    return;
-  }
-  // clean up and close
+  if (!value) guardedAction('close');
+  else onOpenChange(true);
 };
 ```
 
@@ -508,6 +496,106 @@ queryClient.invalidateQueries({ queryKey: queryKeys.negotiations.all });
 
 ---
 
+## 13. Shared primitives
+
+Reusable hooks and components in `src/shared/` that eliminate CRUD boilerplate. **Always use these instead of rolling your own.**
+
+### 13.1 `PaginationFooter` — `src/shared/ui/PaginationFooter.tsx`
+
+Replaces the repeated pagination + page size + results count block (~50 lines per page).
+
+```tsx
+import { PaginationFooter } from '@/shared/ui';
+
+<PaginationFooter
+  page={page}
+  onPageChange={setPage}
+  pageSize={pageSize}
+  onPageSizeChange={setPageSize}
+  meta={meta}
+/>
+```
+
+Renders `PageSizeSelect`, total results count, and full page navigation. Only shows pagination when `totalPages > 1`.
+
+### 13.2 `usePageReset` — `src/shared/hooks/usePageReset.ts`
+
+Replaces the refs + useEffect boilerplate that resets page to 1 on filter change.
+
+```tsx
+import { usePageReset } from '@/shared/hooks/usePageReset.js';
+
+usePageReset([search, isActive, advisorId, sortBy, sortOrder, pageSize], setPage);
+```
+
+Pass all filter/sort/pageSize deps as array. Hook tracks previous values and calls `setPage(1)` when any dep changes.
+
+### 13.3 `usePaginatedList` — `src/shared/hooks/usePaginatedList.ts`
+
+Generic TanStack Query wrapper for paginated lists with debounced search. **Don't call directly from pages** — wrap in domain hooks.
+
+```tsx
+import { usePaginatedList } from '@/shared/hooks/usePaginatedList.js';
+
+export function useEntities(page: number, filters: EntityFilters) {
+  const { data, ...rest } = usePaginatedList<EntityResponse, EntityFilters>({
+    page,
+    filters,
+    queryKey: queryKeys.entities.list,
+    queryFn: (params) => listEntities(params),
+    buildParams: (f, debouncedSearch) => ({
+      search: debouncedSearch || undefined,
+      sortBy: f.sortBy,
+      sortOrder: f.sortOrder ?? 'asc',
+      limit: f.limit ?? 10,
+    }),
+  });
+  return { entities: data, ...rest };
+}
+```
+
+Handles `useDebounce` on search (400ms default), `keepPreviousData`, and standard return shape (`data`, `meta`, `loading`, `fetching`, `error`, `refetch`).
+
+### 13.4 `useUnsavedGuard` — `src/shared/hooks/useUnsavedGuard.ts`
+
+Consolidates dirty tracking + discard dialog state + guarded close/back actions.
+
+```tsx
+import { useUnsavedGuard } from '@/shared/hooks/useUnsavedGuard.js';
+
+const onClose = useCallback(() => onOpenChange(false), [onOpenChange]);
+const onBack = useCallback(() => setEditing(false), []);
+
+const { dirtyRef, showDiscard, handleDirtyChange, guardedAction, handleDiscard, cancelDiscard } =
+  useUnsavedGuard({ onClose, onBack });
+```
+
+- Pass `onClose` for sheets/dialogs, `onBack` only for detail sheets with edit toggle
+- Wire `handleDirtyChange` to form's `onDirtyChange` prop
+- Wire `guardedAction('close')` to close button and `onOpenChange`
+- Wire `guardedAction('back')` to back arrow button
+- Wire `showDiscard`, `cancelDiscard`, `handleDiscard` to `DiscardChangesDialog`
+
+### 13.5 `SheetDetailSkeleton` — `src/shared/ui/SheetDetailSkeleton.tsx`
+
+Parameterized skeleton for detail panel bodies. Configure sections to match the real layout.
+
+```tsx
+import { SheetDetailSkeleton } from '@/shared/ui';
+
+const SKELETON_SECTIONS = [
+  { rows: ['w-28', 'w-40', 'w-16'] },                    // section 1: 3 rows
+  { labelWidth: 'w-16', rows: ['w-36', 'w-24', 'w-44'] }, // section 2: custom label width
+  { labelWidth: 'w-16', rows: ['w-12', 'w-20', 'w-36'] }, // section 3
+];
+
+<SheetDetailSkeleton sections={SKELETON_SECTIONS} />
+```
+
+Each section renders a skeleton section header + `SkeletonRow` components (icon + label + value). Match row count and widths to the actual detail sections.
+
+---
+
 ## Checklist
 
 Before considering a CRUD page complete, verify:
@@ -535,4 +623,9 @@ Before considering a CRUD page complete, verify:
 - [ ] No computed/read-only fields in forms
 - [ ] Form submit button disabled when required fields empty or pending
 - [ ] No spinners for content loading — use `Skeleton` components only
+- [ ] List page uses `PaginationFooter` (not inline pagination)
+- [ ] List page uses `usePageReset` (not manual refs + useEffect)
+- [ ] Paginated list hook wraps `usePaginatedList`
+- [ ] Unsaved guard uses `useUnsavedGuard` hook (not inline refs)
+- [ ] Detail skeleton uses `SheetDetailSkeleton` (not inline skeleton)
 - [ ] `npm run check` passes

@@ -1,6 +1,6 @@
-import { keepPreviousData, useQuery } from '@tanstack/react-query';
-import { useDebounce } from 'use-debounce';
+import type { ListNegotiationsQuery, NegotiationListItemResponse } from '@bopacorp/shared/crm';
 import { queryKeys } from '@/lib/query-keys.js';
+import { usePaginatedList } from '@/shared/hooks/usePaginatedList.js';
 import { listNegotiations } from '../negotiations.service.js';
 
 export interface NegotiationFilters {
@@ -13,28 +13,20 @@ export interface NegotiationFilters {
 }
 
 export function useNegotiations(page: number, filters: NegotiationFilters) {
-  const [debouncedSearch] = useDebounce(filters.search ?? '', 400);
-  const params = {
-    search: debouncedSearch || undefined,
-    stateId: filters.stateId,
-    advisorId: filters.advisorId,
-    sortBy: filters.sortBy,
-    sortOrder: filters.sortOrder ?? 'asc',
-    limit: filters.limit ?? 10,
-  };
-
-  const { data, isLoading, isFetching, error, refetch } = useQuery({
-    queryKey: queryKeys.negotiations.list(page, params),
-    queryFn: () => listNegotiations({ page, ...params }),
-    placeholderData: keepPreviousData,
+  const { data, ...rest } = usePaginatedList<NegotiationListItemResponse, NegotiationFilters>({
+    page,
+    filters,
+    queryKey: queryKeys.negotiations.list,
+    queryFn: (params) => listNegotiations(params as ListNegotiationsQuery),
+    buildParams: (f, debouncedSearch) => ({
+      search: debouncedSearch || undefined,
+      stateId: f.stateId,
+      advisorId: f.advisorId,
+      sortBy: f.sortBy,
+      sortOrder: f.sortOrder ?? 'asc',
+      limit: f.limit ?? 10,
+    }),
   });
 
-  return {
-    negotiations: data?.data ?? [],
-    meta: data?.meta ?? null,
-    loading: isLoading,
-    fetching: isFetching,
-    error,
-    refetch,
-  };
+  return { negotiations: data, ...rest };
 }

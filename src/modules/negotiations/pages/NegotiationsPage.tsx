@@ -1,28 +1,19 @@
 import type { NegotiationListItemResponse } from '@bopacorp/shared/crm';
 import { Plus } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import {
-  Pagination,
-  PaginationContent,
-  PaginationEllipsis,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from '@/components/ui/pagination';
 import { cn } from '@/lib/utils';
 import { Can } from '@/modules/auth/components/Can.js';
 import { usePermission } from '@/modules/auth/hooks/usePermission.js';
 import { useClientSheet } from '@/modules/clients/context/ClientSheetContext.js';
+import { usePageReset } from '@/shared/hooks/usePageReset.js';
 import {
-  buildPageNumbers,
   EmptyState,
   EntityTable,
   ErrorState,
   FilterBar,
-  PageSizeSelect,
+  PaginationFooter,
   SectionHeader,
   StateBadge,
   TableSkeleton,
@@ -60,6 +51,8 @@ export default function NegotiationsPage() {
     limit: pageSize,
   });
   const { states } = useNegotiationStates();
+
+  usePageReset([search, stateId, sortBy, sortOrder, pageSize], setPage);
 
   const columns = [
     {
@@ -105,28 +98,6 @@ export default function NegotiationsPage() {
       sortable: true,
     },
   ];
-
-  const searchRef = useRef(search);
-  const stateIdRef = useRef(stateId);
-  const sortByRef = useRef(sortBy);
-  const sortOrderRef = useRef(sortOrder);
-  const pageSizeRef = useRef(pageSize);
-  useEffect(() => {
-    if (
-      searchRef.current !== search ||
-      stateIdRef.current !== stateId ||
-      sortByRef.current !== sortBy ||
-      sortOrderRef.current !== sortOrder ||
-      pageSizeRef.current !== pageSize
-    ) {
-      searchRef.current = search;
-      stateIdRef.current = stateId;
-      sortByRef.current = sortBy;
-      sortOrderRef.current = sortOrder;
-      pageSizeRef.current = pageSize;
-      setPage(1);
-    }
-  });
 
   const stateOptions = [
     { value: 'all', label: 'Todos' },
@@ -204,56 +175,13 @@ export default function NegotiationsPage() {
             }}
           />
 
-          <div className="flex items-center justify-between">
-            <PageSizeSelect value={pageSize} onChange={setPageSize} />
-            {meta && (
-              <span className="text-sm text-muted-foreground">{meta.totalItems} resultados</span>
-            )}
-          </div>
-
-          {meta && meta.totalPages > 1 && (
-            <Pagination>
-              <PaginationContent>
-                <PaginationItem>
-                  <PaginationPrevious
-                    text="Anterior"
-                    onClick={() => setPage((p) => Math.max(1, p - 1))}
-                    aria-disabled={page === 1}
-                    className={page === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
-                  />
-                </PaginationItem>
-
-                {buildPageNumbers(page, meta.totalPages).map((entry) =>
-                  entry.type === 'ellipsis' ? (
-                    <PaginationItem key={entry.key}>
-                      <PaginationEllipsis />
-                    </PaginationItem>
-                  ) : (
-                    <PaginationItem key={entry.page}>
-                      <PaginationLink
-                        isActive={entry.page === page}
-                        onClick={() => setPage(entry.page)}
-                        className="cursor-pointer"
-                      >
-                        {entry.page}
-                      </PaginationLink>
-                    </PaginationItem>
-                  ),
-                )}
-
-                <PaginationItem>
-                  <PaginationNext
-                    text="Siguiente"
-                    onClick={() => setPage((p) => Math.min(meta.totalPages, p + 1))}
-                    aria-disabled={page === meta.totalPages}
-                    className={
-                      page === meta.totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'
-                    }
-                  />
-                </PaginationItem>
-              </PaginationContent>
-            </Pagination>
-          )}
+          <PaginationFooter
+            page={page}
+            onPageChange={setPage}
+            pageSize={pageSize}
+            onPageSizeChange={setPageSize}
+            meta={meta}
+          />
         </>
       )}
 
