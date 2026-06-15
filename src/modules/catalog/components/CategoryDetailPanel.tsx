@@ -237,7 +237,7 @@ interface EditFormProps {
 
 function EditForm({ entity, tree, onDirtyChange, onSaved, onCancel }: EditFormProps) {
   const [name, setName] = useState(entity.name);
-  const [parentId, setParentId] = useState(entity.parentId ?? '');
+  const [parentId, setParentId] = useState(entity.parentId ?? '__none__');
   const [description, setDescription] = useState(entity.description ?? '');
   const [sortOrder, setSortOrder] = useState(String(entity.sortOrder));
   const [isActive, setIsActive] = useState(entity.isActive);
@@ -251,7 +251,7 @@ function EditForm({ entity, tree, onDirtyChange, onSaved, onCancel }: EditFormPr
 
   const isDirty =
     name !== entity.name ||
-    parentId !== (entity.parentId ?? '') ||
+    parentId !== (entity.parentId ?? '__none__') ||
     description !== (entity.description ?? '') ||
     sortOrder !== String(entity.sortOrder) ||
     isActive !== entity.isActive;
@@ -264,7 +264,7 @@ function EditForm({ entity, tree, onDirtyChange, onSaved, onCancel }: EditFormPr
     mutationFn: () =>
       updateCategory(entity.id, {
         name,
-        parentId: parentId || null,
+        parentId: parentId === '__none__' ? null : parentId,
         description: description || undefined,
         sortOrder: Number(sortOrder),
         isActive,
@@ -298,7 +298,7 @@ function EditForm({ entity, tree, onDirtyChange, onSaved, onCancel }: EditFormPr
               <SelectValue placeholder="Sin padre (raíz)" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Sin padre (raíz)</SelectItem>
+              <SelectItem value="__none__">Sin padre (raíz)</SelectItem>
               {options.map((opt) => (
                 <SelectItem key={opt.value} value={opt.value} disabled={opt.disabled}>
                   {opt.label}

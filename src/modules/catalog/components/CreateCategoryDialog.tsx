@@ -87,7 +87,7 @@ function CreateForm({
   onSuccess: (id: string) => void;
 }) {
   const [name, setName] = useState('');
-  const [parentId, setParentId] = useState('');
+  const [parentId, setParentId] = useState('__none__');
   const [description, setDescription] = useState('');
   const [sortOrder, setSortOrder] = useState('0');
   const [isActive, setIsActive] = useState(true);
@@ -95,7 +95,7 @@ function CreateForm({
 
   const { options } = useCategoryOptions();
 
-  const isDirty = name !== '' || parentId !== '' || description !== '' || sortOrder !== '0';
+  const isDirty = name !== '' || parentId !== '__none__' || description !== '' || sortOrder !== '0';
 
   useEffect(() => {
     onDirtyChange(isDirty);
@@ -105,7 +105,7 @@ function CreateForm({
     mutationFn: () =>
       createCategory({
         name,
-        parentId: parentId || undefined,
+        parentId: parentId === '__none__' ? undefined : parentId,
         description: description || undefined,
         sortOrder: Number(sortOrder),
         isActive,
@@ -144,7 +144,7 @@ function CreateForm({
                 <SelectValue placeholder="Sin padre (raíz)" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Sin padre (raíz)</SelectItem>
+                <SelectItem value="__none__">Sin padre (raíz)</SelectItem>
                 {options.map((opt) => (
                   <SelectItem key={opt.value} value={opt.value}>
                     {opt.label}

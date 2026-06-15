@@ -3,6 +3,8 @@ import MainLayout from '@/app/MainLayout.js';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import RequireAuth from '@/modules/auth/components/RequireAuth.js';
 import LoginPage from '@/modules/auth/pages/LoginPage';
+import CatalogItemCreatePage from '@/modules/catalog/pages/CatalogItemCreatePage';
+import CatalogItemDetailPage from '@/modules/catalog/pages/CatalogItemDetailPage';
 import CatalogPage from '@/modules/catalog/pages/CatalogPage';
 import CatalogSettingsPage from '@/modules/catalog/pages/CatalogSettingsPage';
 import MatrixDetailPage from '@/modules/catalog/pages/MatrixDetailPage';
@@ -108,6 +110,22 @@ export default function App() {
                 element={
                   <RequireAuth>
                     <MatrixDetailPage />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/catalogo/nuevo"
+                element={
+                  <RequireAuth>
+                    <CatalogItemCreatePage />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/catalogo/:id"
+                element={
+                  <RequireAuth>
+                    <CatalogItemDetailPage />
                   </RequireAuth>
                 }
               />
