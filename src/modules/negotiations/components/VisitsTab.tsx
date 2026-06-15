@@ -1,7 +1,7 @@
 import type { VisitListItemResponse } from '@bopacorp/shared/crm';
 import { CheckCircle } from 'lucide-react';
 import { formatDateTime } from '@/lib/format.js';
-import { EmptyState, EntityTable, ErrorState, TableSkeleton } from '@/shared/ui';
+import { EmptyState, EntityTable, ErrorState, StateBadge, TableSkeleton } from '@/shared/ui';
 import { useVisits } from '../hooks/useVisits.js';
 
 const columns = [
@@ -13,12 +13,17 @@ const columns = [
   {
     id: 'type',
     header: 'Tipo',
-    accessor: (item: VisitListItemResponse) => item.visitType.name,
+    accessor: (item: VisitListItemResponse) => (
+      <StateBadge state={item.visitType.code} label={item.visitType.name} />
+    ),
   },
   {
     id: 'advisor',
     header: 'Asesor',
-    accessor: (item: VisitListItemResponse) => item.advisor.username,
+    accessor: (item: VisitListItemResponse) => {
+      const a = item.advisor;
+      return a.profile ? `${a.profile.firstName} ${a.profile.lastName}` : a.username;
+    },
   },
   {
     id: 'verified',

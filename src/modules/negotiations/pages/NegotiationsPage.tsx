@@ -67,7 +67,9 @@ export default function NegotiationsPage() {
     {
       id: 'state',
       header: 'Estado',
-      accessor: (item: NegotiationListItemResponse) => <StateBadge state={item.state.code} />,
+      accessor: (item: NegotiationListItemResponse) => (
+        <StateBadge state={item.state.code} label={item.state.name} />
+      ),
     },
     {
       id: 'advisor',

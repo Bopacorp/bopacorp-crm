@@ -10,10 +10,14 @@ interface StateBadgeProps {
 
 const stateVariants: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
   // Negotiation states
-  active: 'default',
-  pending: 'secondary',
-  closed: 'outline',
-  expired: 'destructive',
+  prospecting: 'secondary',
+  initial_contact: 'secondary',
+  negotiation: 'default',
+  closing: 'default',
+  post_sale: 'outline',
+  // Visit types (prospecting, closing, post_sale shared with negotiation states)
+  presentation: 'default',
+  follow_up: 'secondary',
   // Document states
   approved: 'default',
   rejected: 'destructive',
@@ -21,36 +25,18 @@ const stateVariants: Record<string, 'default' | 'secondary' | 'destructive' | 'o
   draft: 'secondary',
   inactive: 'outline',
   // General
+  active: 'default',
   completed: 'default',
   in_progress: 'secondary',
   cancelled: 'destructive',
 };
 
-const stateLabels: Record<string, string> = {
-  // Negotiation states
-  active: 'Activa',
-  pending: 'Pendiente',
-  closed: 'Cerrada',
-  expired: 'Expirada',
-  // Document states
-  approved: 'Aprobado',
-  rejected: 'Rechazado',
-  // Matrix states
-  draft: 'Borrador',
-  inactive: 'Inactivo',
-  // General
-  completed: 'Completado',
-  in_progress: 'En progreso',
-  cancelled: 'Cancelado',
-};
-
-export function StateBadge({ state, label: customLabel, variant, className }: StateBadgeProps) {
+export function StateBadge({ state, label, variant, className }: StateBadgeProps) {
   const badgeVariant = variant || stateVariants[state] || 'secondary';
-  const label = customLabel || stateLabels[state] || state;
 
   return (
     <Badge variant={badgeVariant} className={cn(className)}>
-      {label}
+      {label ?? state}
     </Badge>
   );
 }

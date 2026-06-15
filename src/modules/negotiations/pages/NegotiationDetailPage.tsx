@@ -47,7 +47,7 @@ export default function NegotiationDetailPage() {
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
-          <StateBadge state={negotiation.state.code} />
+          <StateBadge state={negotiation.state.code} label={negotiation.state.name} />
           <Can permission="negotiations.change_state">
             <Button variant="outline" size="sm" onClick={() => setChangeStateOpen(true)}>
               <RefreshCw data-icon="inline-start" />
