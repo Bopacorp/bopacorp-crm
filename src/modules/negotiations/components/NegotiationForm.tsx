@@ -14,7 +14,7 @@ import { SheetFooter } from '@/components/ui/sheet';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { Can } from '@/modules/auth/components/Can.js';
-import { FormAlert, SearchSelect } from '@/shared/ui';
+import { DatePicker, FormAlert, SearchSelect } from '@/shared/ui';
 
 export interface NegotiationFormValues {
   clientId: string;
@@ -154,16 +154,12 @@ export function NegotiationForm({
 
           <Field>
             <FieldLabel>Fecha de inicio</FieldLabel>
-            <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+            <DatePicker value={startDate} onChange={setStartDate} />
           </Field>
 
           <Field>
             <FieldLabel>Cierre estimado</FieldLabel>
-            <Input
-              type="date"
-              value={estimatedCloseDate}
-              onChange={(e) => setEstimatedCloseDate(e.target.value)}
-            />
+            <DatePicker value={estimatedCloseDate} onChange={setEstimatedCloseDate} />
           </Field>
 
           <Field>

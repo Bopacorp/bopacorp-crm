@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { SheetFooter } from '@/components/ui/sheet';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
-import { FormAlert } from '@/shared/ui';
+import { DateTimePicker, FormAlert } from '@/shared/ui';
 
 export interface VacancyFormValues {
   title: string;
@@ -25,16 +25,6 @@ interface VacancyFormProps {
   error?: string;
   submitLabel: string;
   onDirtyChange?: (dirty: boolean) => void;
-  showPublicationControls?: boolean;
-}
-
-function isoToDatetimeLocal(iso: string | null | undefined): string {
-  if (!iso) return '';
-  return new Date(iso).toISOString().slice(0, 16);
-}
-
-function datetimeLocalToIso(value: string): string | undefined {
-  return value ? new Date(value).toISOString() : undefined;
 }
 
 export function VacancyForm({
@@ -44,17 +34,14 @@ export function VacancyForm({
   error,
   submitLabel,
   onDirtyChange,
-  showPublicationControls,
 }: VacancyFormProps) {
   const [title, setTitle] = useState(defaultValues.title);
   const [description, setDescription] = useState(defaultValues.description);
   const [requirements, setRequirements] = useState(defaultValues.requirements);
   const [isActive, setIsActive] = useState(defaultValues.isActive);
   const [isPublished, setIsPublished] = useState(defaultValues.isPublished);
-  const [publicationDate, setPublicationDate] = useState(
-    isoToDatetimeLocal(defaultValues.publicationDate),
-  );
-  const [closingDate, setClosingDate] = useState(isoToDatetimeLocal(defaultValues.closingDate));
+  const [publicationDate, setPublicationDate] = useState(defaultValues.publicationDate ?? '');
+  const [closingDate, setClosingDate] = useState(defaultValues.closingDate ?? '');
   const [dateError, setDateError] = useState('');
 
   const isDirty =
@@ -63,8 +50,8 @@ export function VacancyForm({
     requirements !== defaultValues.requirements ||
     isActive !== defaultValues.isActive ||
     isPublished !== defaultValues.isPublished ||
-    publicationDate !== isoToDatetimeLocal(defaultValues.publicationDate) ||
-    closingDate !== isoToDatetimeLocal(defaultValues.closingDate);
+    publicationDate !== (defaultValues.publicationDate ?? '') ||
+    closingDate !== (defaultValues.closingDate ?? '');
 
   useEffect(() => {
     onDirtyChange?.(isDirty);
@@ -81,14 +68,17 @@ export function VacancyForm({
 
     if (!title.trim() || !description.trim() || !requirements.trim()) return;
 
+    const finalPublicationDate =
+      isPublished && !publicationDate ? new Date().toISOString() : publicationDate;
+
     onSubmit({
       title: title.trim(),
       description: description.trim(),
       requirements: requirements.trim(),
       isActive,
       isPublished,
-      publicationDate: datetimeLocalToIso(publicationDate),
-      closingDate: datetimeLocalToIso(closingDate),
+      publicationDate: finalPublicationDate || undefined,
+      closingDate: closingDate || undefined,
     });
   };
 
@@ -130,20 +120,12 @@ export function VacancyForm({
 
           <Field>
             <FieldLabel>Fecha de publicación</FieldLabel>
-            <Input
-              type="datetime-local"
-              value={publicationDate}
-              onChange={(e) => setPublicationDate(e.target.value)}
-            />
+            <DateTimePicker value={publicationDate} onChange={setPublicationDate} />
           </Field>
 
           <Field>
             <FieldLabel>Fecha de cierre</FieldLabel>
-            <Input
-              type="datetime-local"
-              value={closingDate}
-              onChange={(e) => setClosingDate(e.target.value)}
-            />
+            <DateTimePicker value={closingDate} onChange={setClosingDate} />
           </Field>
 
           <Field orientation="horizontal">
@@ -151,12 +133,10 @@ export function VacancyForm({
             <Switch checked={isActive} onCheckedChange={setIsActive} />
           </Field>
 
-          {showPublicationControls && (
-            <Field orientation="horizontal">
-              <FieldLabel>Publicada</FieldLabel>
-              <Switch checked={isPublished} onCheckedChange={setIsPublished} />
-            </Field>
-          )}
+          <Field orientation="horizontal">
+            <FieldLabel>Publicada</FieldLabel>
+            <Switch checked={isPublished} onCheckedChange={setIsPublished} />
+          </Field>
         </FieldGroup>
       </div>
 

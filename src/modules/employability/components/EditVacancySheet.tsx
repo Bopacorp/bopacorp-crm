@@ -84,6 +84,10 @@ export function EditVacancySheet({
       data.closingDate = values.closingDate || undefined;
     }
 
+    if (values.isPublished && !data.publicationDate && !vacancy.publicationDate) {
+      data.publicationDate = new Date().toISOString();
+    }
+
     mutation.mutate(data);
   };
 
@@ -94,8 +98,8 @@ export function EditVacancySheet({
         requirements: vacancy.requirements,
         isActive: vacancy.isActive,
         isPublished: vacancy.isPublished,
-        publicationDate: vacancy.publicationDate ?? '',
-        closingDate: vacancy.closingDate ?? '',
+        publicationDate: vacancy.publicationDate ?? undefined,
+        closingDate: vacancy.closingDate ?? undefined,
       }
     : null;
 
@@ -127,7 +131,6 @@ export function EditVacancySheet({
               error={formError}
               submitLabel="Guardar"
               onDirtyChange={handleDirtyChange}
-              showPublicationControls
             />
           )}
         </SheetContent>

@@ -1,3 +1,4 @@
+import { Fragment } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
   Breadcrumb,
@@ -77,19 +78,19 @@ export function AppBreadcrumb() {
       <Separator orientation="vertical" className="mr-2 h-4" />
       <Breadcrumb>
         <BreadcrumbList>
-          {segments.map((segment) => (
-            <BreadcrumbItem key={segment.label}>
-              {segment.href ? (
-                <>
+          {segments.map((segment, index) => (
+            <Fragment key={segment.label}>
+              <BreadcrumbItem>
+                {segment.href ? (
                   <BreadcrumbLink asChild>
                     <Link to={segment.href}>{segment.label}</Link>
                   </BreadcrumbLink>
-                  {segment !== segments[segments.length - 1] && <BreadcrumbSeparator />}
-                </>
-              ) : (
-                <BreadcrumbPage>{segment.label}</BreadcrumbPage>
-              )}
-            </BreadcrumbItem>
+                ) : (
+                  <BreadcrumbPage>{segment.label}</BreadcrumbPage>
+                )}
+              </BreadcrumbItem>
+              {index < segments.length - 1 && <BreadcrumbSeparator />}
+            </Fragment>
           ))}
         </BreadcrumbList>
       </Breadcrumb>
