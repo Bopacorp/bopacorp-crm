@@ -206,6 +206,7 @@ export default function CatalogPage() {
         filters={[
           {
             id: 'category',
+            label: 'Categoría',
             placeholder: 'Categoría',
             options: [{ value: 'all', label: 'Todas' }, ...categoryOptions],
             value: categoryId,
@@ -213,6 +214,7 @@ export default function CatalogPage() {
           },
           {
             id: 'itemType',
+            label: 'Tipo',
             placeholder: 'Tipo de item',
             options: [{ value: 'all', label: 'Todos' }, ...itemTypeOptions],
             value: itemTypeId,
@@ -220,6 +222,7 @@ export default function CatalogPage() {
           },
           {
             id: 'isActive',
+            label: 'Estado',
             placeholder: 'Estado',
             options: STATUS_OPTIONS,
             value: isActiveFilter,
@@ -227,6 +230,7 @@ export default function CatalogPage() {
           },
           {
             id: 'isPublished',
+            label: 'Publicación',
             placeholder: 'Publicado',
             options: PUBLISHED_OPTIONS,
             value: isPublishedFilter,

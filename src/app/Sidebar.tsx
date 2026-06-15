@@ -46,7 +46,7 @@ import {
 import { useAuth } from '@/modules/auth/context/AuthContext.js';
 import { usePermission } from '@/modules/auth/hooks/usePermission.js';
 
-const navigation = [
+const navigationTop = [
   { name: 'Overview', href: '/overview', icon: Home },
   { name: 'Clientes', href: '/clientes', icon: Building2, permission: 'business_clients.read' },
   {
@@ -55,6 +55,9 @@ const navigation = [
     icon: HandshakeIcon,
     permission: 'negotiations.read',
   },
+];
+
+const navigationBottom = [
   { name: 'Documentación', href: '/documentacion', icon: FileText },
   { name: 'Reportes', href: '/reportes', icon: BarChart3 },
 ];
@@ -143,7 +146,7 @@ export function AppSidebar() {
           <SidebarGroupLabel>Menú</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {navigation
+              {navigationTop
                 .filter((item) => !item.permission || hasPermission(item.permission))
                 .map((item) => (
                   <SidebarMenuItem key={item.href}>
@@ -182,6 +185,17 @@ export function AppSidebar() {
                   </SidebarMenuSubItem>
                 </SidebarMenuSub>
               </SidebarMenuItem>
+
+              {navigationBottom.map((item) => (
+                <SidebarMenuItem key={item.href}>
+                  <SidebarMenuButton asChild isActive={isActive(item.href)} tooltip={item.name}>
+                    <Link to={item.href}>
+                      <item.icon />
+                      <span>{item.name}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
 
               <SidebarMenuItem>
                 <SidebarMenuButton isActive={isActive('/empleabilidad')} tooltip="Empleabilidad">
