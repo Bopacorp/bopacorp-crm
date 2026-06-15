@@ -1,7 +1,5 @@
 import type { BusinessClientResponse, UpdateBusinessClientRequest } from '@bopacorp/shared/crm';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { formatDistanceToNow } from 'date-fns';
-import { es } from 'date-fns/locale';
 import {
   ArrowLeft,
   Building2,
@@ -34,6 +32,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Skeleton } from '@/components/ui/skeleton';
+import { formatRelativeTime } from '@/lib/format.js';
 import { queryKeys } from '@/lib/query-keys.js';
 import { Can } from '@/modules/auth/components/Can.js';
 
@@ -62,10 +61,6 @@ function getInitials(name: string): string {
     .map((w) => w[0])
     .join('')
     .toUpperCase();
-}
-
-function timeAgo(date: string): string {
-  return formatDistanceToNow(new Date(date), { addSuffix: true, locale: es });
 }
 
 function advisorDisplayName(advisor: BusinessClientResponse['advisor']): string {
@@ -205,7 +200,7 @@ export function BusinessClientSheet({ open, onOpenChange, clientId }: BusinessCl
                 <SheetTitle className="text-lg">{client.businessName}</SheetTitle>
                 {client.createdAt && (
                   <span className="text-xs text-muted-foreground">
-                    Creado {timeAgo(client.createdAt)}
+                    Creado {formatRelativeTime(client.createdAt)}
                   </span>
                 )}
               </div>

@@ -1,11 +1,11 @@
 import type { NegotiationListItemResponse, NegotiationStateResponse } from '@bopacorp/shared/crm';
 import { DragDropContext, Draggable, Droppable, type DropResult } from '@hello-pangea/dnd';
-import { CalendarClock, Loader2, UserCheck } from 'lucide-react';
+import { CalendarClock, Clock, Loader2, UserCheck } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { formatDate } from '@/lib/format.js';
+import { formatDate, formatRelativeTime } from '@/lib/format.js';
 import { cn } from '@/lib/utils';
 import { StateBadge } from '@/shared/ui';
 import { useNegotiations } from '../hooks/useNegotiations.js';
@@ -109,6 +109,8 @@ function KanbanColumn({ state, filters, onCardClick, onClientClick }: KanbanColu
     stateId: state.id,
     search: filters.search,
     advisorId: filters.advisorId,
+    sortBy: 'updatedAt',
+    sortOrder: 'desc',
     limit: COLUMN_PAGE_SIZE,
   });
 
@@ -156,7 +158,7 @@ function KanbanColumn({ state, filters, onCardClick, onClientClick }: KanbanColu
             ref={provided.innerRef}
             {...provided.droppableProps}
             className={cn(
-              'flex flex-1 flex-col gap-2 overflow-y-auto px-2 pb-2',
+              'flex flex-1 flex-col gap-2 overflow-y-auto p-2',
               snapshot.isDraggingOver && 'bg-accent/30 rounded-b-lg',
             )}
           >
@@ -178,8 +180,9 @@ function KanbanColumn({ state, filters, onCardClick, onClientClick }: KanbanColu
                       style={dragProvided.draggableProps.style as React.CSSProperties}
                     >
                       <Card
+                        size="sm"
                         className={cn(
-                          'cursor-grab p-3 transition-colors hover:bg-accent/50',
+                          'cursor-grab gap-0 px-3 py-2.5 transition-colors hover:bg-accent/50',
                           !neg.isActive && 'opacity-60',
                           dragSnapshot.isDragging && 'rotate-2 shadow-lg',
                         )}
@@ -207,6 +210,10 @@ function KanbanColumn({ state, filters, onCardClick, onClientClick }: KanbanColu
                               {formatDate(neg.estimatedCloseDate)}
                             </div>
                           )}
+                          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                            <Clock className="size-3 shrink-0" />
+                            {formatRelativeTime(neg.updatedAt)}
+                          </div>
                         </div>
                       </Card>
                     </div>
