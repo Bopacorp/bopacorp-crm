@@ -1,6 +1,8 @@
-import { ArrowLeft, RefreshCw } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
+import { Calendar, CalendarClock, MessageSquare, RefreshCw, User, UserCheck } from 'lucide-react';
 import { useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
+import { useBreadcrumbTitle } from '@/app/BreadcrumbTitleContext.js';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -23,31 +25,31 @@ function advisorName(advisor: {
 
 export default function NegotiationDetailPage() {
   const { id = '' } = useParams<{ id: string }>();
-  const navigate = useNavigate();
   const { negotiation, loading, error, refetch } = useNegotiation(id);
   const { openClientSheet } = useClientSheet();
   const [changeStateOpen, setChangeStateOpen] = useState(false);
+
+  useBreadcrumbTitle(negotiation?.client.businessName ?? null);
 
   if (loading) return <DetailSkeleton fields={4} tabs={4} />;
   if (error || !negotiation) return <ErrorState error={error} onRetry={refetch} />;
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="sm" onClick={() => navigate('/negociaciones')}>
-          <ArrowLeft data-icon="inline-start" />
-          Volver
-        </Button>
+      <div className="flex items-center gap-3">
         <button type="button" onClick={() => openClientSheet(negotiation.client.id)}>
-          <h1 className="text-xl font-semibold text-primary hover:underline">
+          <h1 className="text-lg font-semibold text-primary hover:underline">
             {negotiation.client.businessName}
           </h1>
         </button>
+        <StateBadge state={negotiation.state.code} label={negotiation.state.name} />
       </div>
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
-          <StateBadge state={negotiation.state.code} label={negotiation.state.name} />
+          <span className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+            Detalles
+          </span>
           <Can permission="negotiations.change_state">
             <Button variant="outline" size="sm" onClick={() => setChangeStateOpen(true)}>
               <RefreshCw data-icon="inline-start" />
@@ -56,17 +58,24 @@ export default function NegotiationDetailPage() {
           </Can>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4 md:grid-cols-2">
-            <DetailField label="Contacto" value={negotiation.client.contactName} />
-            <DetailField label="Asesor" value={advisorName(negotiation.advisor)} />
-            <DetailField label="Fecha de inicio" value={formatDate(negotiation.startDate)} />
-            <DetailField
-              label="Cierre estimado"
-              value={formatDate(negotiation.estimatedCloseDate)}
-            />
+          <div className="grid gap-1 md:grid-cols-2">
+            <DetailField icon={User} label="Contacto">
+              {negotiation.client.contactName}
+            </DetailField>
+            <DetailField icon={UserCheck} label="Asesor">
+              {advisorName(negotiation.advisor)}
+            </DetailField>
+            <DetailField icon={Calendar} label="Fecha inicio">
+              {formatDate(negotiation.startDate)}
+            </DetailField>
+            <DetailField icon={CalendarClock} label="Cierre est.">
+              {formatDate(negotiation.estimatedCloseDate)}
+            </DetailField>
             {negotiation.observations && (
               <div className="md:col-span-2">
-                <DetailField label="Observaciones" value={negotiation.observations} />
+                <DetailField icon={MessageSquare} label="Observaciones">
+                  {negotiation.observations}
+                </DetailField>
               </div>
             )}
           </div>
@@ -105,11 +114,20 @@ export default function NegotiationDetailPage() {
   );
 }
 
-function DetailField({ label, value }: { label: string; value: string }) {
+function DetailField({
+  icon: Icon,
+  label,
+  children,
+}: {
+  icon: LucideIcon;
+  label: string;
+  children: React.ReactNode;
+}) {
   return (
-    <div className="flex flex-col gap-1">
-      <span className="text-sm font-medium text-muted-foreground">{label}</span>
-      <span className="text-base text-foreground">{value}</span>
+    <div className="flex items-start gap-3 rounded-md px-2 py-1.5">
+      <Icon className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+      <span className="w-24 shrink-0 text-sm text-muted-foreground">{label}</span>
+      <span className="min-w-0 text-sm text-foreground">{children ?? '—'}</span>
     </div>
   );
 }

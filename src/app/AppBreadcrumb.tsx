@@ -8,6 +8,7 @@ import {
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb';
 import { Separator } from '@/components/ui/separator';
+import { useBreadcrumbTitleValue } from './BreadcrumbTitleContext';
 
 interface BreadcrumbSegment {
   label: string;
@@ -27,7 +28,11 @@ const routeLabels: Record<string, string> = {
   matrices: 'Matrices',
 };
 
-function getSegments(pathname: string): BreadcrumbSegment[] {
+function isUuid(segment: string): boolean {
+  return segment.length > 10 && segment.includes('-');
+}
+
+function getSegments(pathname: string, dynamicTitle: string | null): BreadcrumbSegment[] {
   const paths = pathname.split('/').filter(Boolean);
 
   if (paths.length === 0 || pathname === '/') {
@@ -40,14 +45,14 @@ function getSegments(pathname: string): BreadcrumbSegment[] {
   for (let i = 0; i < paths.length; i++) {
     const segment = paths[i];
     currentPath += `/${segment}`;
+    const isLast = i === paths.length - 1;
 
-    // Skip IDs in breadcrumbs (they're typically UUIDs)
-    if (segment.length > 10 && segment.includes('-')) {
+    if (isUuid(segment)) {
+      segments.push({ label: dynamicTitle ?? '...' });
       continue;
     }
 
     const label = routeLabels[segment] || segment;
-    const isLast = i === paths.length - 1;
 
     segments.push({
       label,
@@ -60,7 +65,8 @@ function getSegments(pathname: string): BreadcrumbSegment[] {
 
 export function AppBreadcrumb() {
   const location = useLocation();
-  const segments = getSegments(location.pathname);
+  const dynamicTitle = useBreadcrumbTitleValue();
+  const segments = getSegments(location.pathname, dynamicTitle);
 
   if (segments.length <= 1) {
     return null;
