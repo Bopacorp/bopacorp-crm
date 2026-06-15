@@ -55,107 +55,109 @@ export function ApplicationDetailSheet({
           ) : error || !application ? (
             <ErrorState error={error} onRetry={refetch} />
           ) : (
-            <div className="flex flex-1 flex-col gap-6 overflow-y-auto min-h-0 p-4">
-              <div className="flex items-center justify-between">
-                <StateBadge
-                  state={application.state}
-                  label={applicationStateLabel(application.state)}
-                  variant={applicationStateVariant(application.state)}
-                />
-                <Can permission="job_applications.update">
-                  <Button size="sm" variant="outline" onClick={() => setChangeStateOpen(true)}>
-                    <Pencil data-icon="inline-start" className="size-4" />
-                    Cambiar estado
-                  </Button>
-                </Can>
-              </div>
+            <div className="flex-1 overflow-y-auto min-h-0 p-4">
+              <div className="flex flex-col gap-6">
+                <div className="flex items-center justify-between">
+                  <StateBadge
+                    state={application.state}
+                    label={applicationStateLabel(application.state)}
+                    variant={applicationStateVariant(application.state)}
+                  />
+                  <Can permission="job_applications.update">
+                    <Button size="sm" variant="outline" onClick={() => setChangeStateOpen(true)}>
+                      <Pencil data-icon="inline-start" className="size-4" />
+                      Cambiar estado
+                    </Button>
+                  </Can>
+                </div>
 
-              <Card>
-                <CardHeader>
-                  <span className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-                    Candidato
-                  </span>
-                </CardHeader>
-                <CardContent className="flex flex-col gap-2">
-                  <DetailRow label="Nombre">
-                    {application.candidate.firstName} {application.candidate.lastName}
-                  </DetailRow>
-                  <DetailRow label="Email">{application.candidate.email}</DetailRow>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <span className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-                    Vacante
-                  </span>
-                </CardHeader>
-                <CardContent>
-                  <DetailRow label="Título">{application.vacancy.title}</DetailRow>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <span className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-                    Aplicación
-                  </span>
-                </CardHeader>
-                <CardContent className="flex flex-col gap-2">
-                  <DetailRow label="Fecha de aplicación">
-                    {application.appliedAt ? formatDateTime(application.appliedAt) : '—'}
-                  </DetailRow>
-                  <DetailRow label="Revisor">
-                    {application.reviewer ? application.reviewer.username : '—'}
-                  </DetailRow>
-                  <DetailRow label="Fecha de revisión">
-                    {application.reviewDate ? formatDateTime(application.reviewDate) : '—'}
-                  </DetailRow>
-                  {application.reviewNotes && (
-                    <DetailBlock label="Notas de revisión">{application.reviewNotes}</DetailBlock>
-                  )}
-                  {application.coverLetter && (
-                    <DetailBlock label="Carta de presentación">
-                      {application.coverLetter}
-                    </DetailBlock>
-                  )}
-                </CardContent>
-              </Card>
-
-              {application.resume ? (
                 <Card>
                   <CardHeader>
                     <span className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-                      Hoja de vida
+                      Candidato
                     </span>
                   </CardHeader>
                   <CardContent className="flex flex-col gap-2">
-                    <DetailRow label="Archivo">{application.resume.filename}</DetailRow>
-                    <DetailRow label="Tamaño">
-                      {application.resume.fileSizeMb.toFixed(2)} MB
+                    <DetailRow label="Nombre">
+                      {application.candidate.firstName} {application.candidate.lastName}
                     </DetailRow>
-                    <Can permission="candidate_resumes.read">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-fit"
-                        onClick={handleDownload}
-                        disabled={downloading}
-                      >
-                        <Download data-icon="inline-start" className="size-4" />
-                        {downloading ? 'Descargando...' : 'Descargar CV'}
-                      </Button>
-                    </Can>
+                    <DetailRow label="Email">{application.candidate.email}</DetailRow>
                   </CardContent>
                 </Card>
-              ) : (
+
                 <Card>
-                  <CardContent className="flex items-center gap-2 py-6 text-muted-foreground">
-                    <FileText className="size-4" />
-                    <span className="text-sm">Sin hoja de vida adjunta</span>
+                  <CardHeader>
+                    <span className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                      Vacante
+                    </span>
+                  </CardHeader>
+                  <CardContent>
+                    <DetailRow label="Título">{application.vacancy.title}</DetailRow>
                   </CardContent>
                 </Card>
-              )}
+
+                <Card>
+                  <CardHeader>
+                    <span className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                      Aplicación
+                    </span>
+                  </CardHeader>
+                  <CardContent className="flex flex-col gap-2">
+                    <DetailRow label="Fecha de aplicación">
+                      {application.appliedAt ? formatDateTime(application.appliedAt) : '—'}
+                    </DetailRow>
+                    <DetailRow label="Revisor">
+                      {application.reviewer ? application.reviewer.username : '—'}
+                    </DetailRow>
+                    <DetailRow label="Fecha de revisión">
+                      {application.reviewDate ? formatDateTime(application.reviewDate) : '—'}
+                    </DetailRow>
+                    {application.reviewNotes && (
+                      <DetailBlock label="Notas de revisión">{application.reviewNotes}</DetailBlock>
+                    )}
+                    {application.coverLetter && (
+                      <DetailBlock label="Carta de presentación">
+                        {application.coverLetter}
+                      </DetailBlock>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {application.resume ? (
+                  <Card>
+                    <CardHeader>
+                      <span className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                        Hoja de vida
+                      </span>
+                    </CardHeader>
+                    <CardContent className="flex flex-col gap-2">
+                      <DetailRow label="Archivo">{application.resume.filename}</DetailRow>
+                      <DetailRow label="Tamaño">
+                        {application.resume.fileSizeMb.toFixed(2)} MB
+                      </DetailRow>
+                      <Can permission="candidate_resumes.read">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-fit"
+                          onClick={handleDownload}
+                          disabled={downloading}
+                        >
+                          <Download data-icon="inline-start" className="size-4" />
+                          {downloading ? 'Descargando...' : 'Descargar CV'}
+                        </Button>
+                      </Can>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <Card>
+                    <CardContent className="flex items-center gap-2 py-6 text-muted-foreground">
+                      <FileText className="size-4" />
+                      <span className="text-sm">Sin hoja de vida adjunta</span>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
             </div>
           )}
         </SheetContent>
