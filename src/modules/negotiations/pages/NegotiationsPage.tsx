@@ -1,13 +1,15 @@
 import type { NegotiationListItemResponse } from '@bopacorp/shared/crm';
 import { Plus } from 'lucide-react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { formatDate } from '@/lib/format.js';
 import { cn } from '@/lib/utils';
 import { Can } from '@/modules/auth/components/Can.js';
+import { useAuth } from '@/modules/auth/context/AuthContext.js';
 import { usePermission } from '@/modules/auth/hooks/usePermission.js';
 import { useClientSheet } from '@/modules/clients/context/ClientSheetContext.js';
+import { useAdvisors } from '@/modules/org/hooks/useAdvisors.js';
 import { usePageReset } from '@/shared/hooks/usePageReset.js';
 import {
   EmptyState,
@@ -23,28 +25,48 @@ import { CreateNegotiationDialog } from '../components/CreateNegotiationDialog.j
 import { useNegotiationStates } from '../hooks/useNegotiationStates.js';
 import { useNegotiations } from '../hooks/useNegotiations.js';
 
+function employeeName(emp: {
+  user: { firstName: string | null; lastName: string | null; username: string };
+}) {
+  return emp.user.firstName && emp.user.lastName
+    ? `${emp.user.firstName} ${emp.user.lastName}`
+    : emp.user.username;
+}
+
 export default function NegotiationsPage() {
   const navigate = useNavigate();
   const { openClientSheet } = useClientSheet();
+  const { user, hasRole } = useAuth();
+  const isAdvisor = hasRole('advisor');
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [stateId, setStateId] = useState<string | undefined>();
+  const [advisorId, setAdvisorId] = useState<string | undefined>();
   const [sortBy, setSortBy] = useState<string | undefined>();
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [pageSize, setPageSize] = useState(10);
   const [createOpen, setCreateOpen] = useState(false);
   const { hasPermission } = usePermission();
 
+  const effectiveAdvisorId = isAdvisor ? user?.id : advisorId;
+
   const { negotiations, meta, loading, fetching, error, refetch } = useNegotiations(page, {
     search,
     stateId,
+    advisorId: effectiveAdvisorId,
     sortBy,
     sortOrder,
     limit: pageSize,
   });
   const { states } = useNegotiationStates();
+  const { advisors } = useAdvisors();
 
-  usePageReset([search, stateId, sortBy, sortOrder, pageSize], setPage);
+  const advisorOptions = useMemo(
+    () => advisors.map((emp) => ({ value: emp.userId, label: employeeName(emp) })),
+    [advisors],
+  );
+
+  usePageReset([search, stateId, effectiveAdvisorId, sortBy, sortOrder, pageSize], setPage);
 
   const columns = [
     {
@@ -71,14 +93,18 @@ export default function NegotiationsPage() {
         <StateBadge state={item.state.code} label={item.state.name} />
       ),
     },
-    {
-      id: 'advisor',
-      header: 'Asesor',
-      accessor: (item: NegotiationListItemResponse) => {
-        const a = item.advisor;
-        return a.profile ? `${a.profile.firstName} ${a.profile.lastName}` : a.username;
-      },
-    },
+    ...(!isAdvisor
+      ? [
+          {
+            id: 'advisor',
+            header: 'Asesor',
+            accessor: (item: NegotiationListItemResponse) => {
+              const a = item.advisor;
+              return a.profile ? `${a.profile.firstName} ${a.profile.lastName}` : a.username;
+            },
+          },
+        ]
+      : []),
     {
       id: 'startDate',
       header: 'Fecha inicio',
@@ -134,11 +160,24 @@ export default function NegotiationsPage() {
             value: stateId ?? 'all',
             onChange: (value) => setStateId(value === 'all' ? undefined : value),
           },
+          ...(!isAdvisor
+            ? [
+                {
+                  id: 'advisor',
+                  label: 'Asesor',
+                  placeholder: 'Seleccionar asesor',
+                  searchable: true,
+                  options: [{ value: 'all', label: 'Todos' }, ...advisorOptions],
+                  value: advisorId ?? 'all',
+                  onChange: (value: string) => setAdvisorId(value === 'all' ? undefined : value),
+                },
+              ]
+            : []),
         ]}
       />
 
       {negotiations.length === 0 ? (
-        search || stateId ? (
+        search || stateId || advisorId ? (
           <EmptyState
             title="Sin resultados"
             description="No se encontraron negociaciones con los filtros aplicados"
