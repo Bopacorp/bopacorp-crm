@@ -3,6 +3,7 @@ import { Plus } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { formatDate } from '@/lib/format.js';
 import { cn } from '@/lib/utils';
 import { Can } from '@/modules/auth/components/Can.js';
 import { usePermission } from '@/modules/auth/hooks/usePermission.js';
@@ -21,15 +22,6 @@ import {
 import { CreateNegotiationDialog } from '../components/CreateNegotiationDialog.js';
 import { useNegotiationStates } from '../hooks/useNegotiationStates.js';
 import { useNegotiations } from '../hooks/useNegotiations.js';
-
-function formatDate(value: string | null): string {
-  if (!value) return '—';
-  return new Date(value).toLocaleDateString('es-EC', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  });
-}
 
 export default function NegotiationsPage() {
   const navigate = useNavigate();

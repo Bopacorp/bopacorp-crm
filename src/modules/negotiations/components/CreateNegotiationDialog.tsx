@@ -1,41 +1,33 @@
 import type { CreateNegotiationRequest } from '@bopacorp/shared/crm';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Loader2, Plus } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { toast } from 'sonner';
-import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import { Field, FieldGroup, FieldLabel } from '@/components/ui/field';
-import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { queryKeys } from '@/lib/query-keys.js';
-import { Can } from '@/modules/auth/components/Can.js';
 import { useAuth } from '@/modules/auth/context/AuthContext.js';
 import { CreateBusinessClientDialog } from '@/modules/clients/components/CreateBusinessClientDialog.js';
 import { useBusinessClients } from '@/modules/clients/hooks/useBusinessClients.js';
 import { getErrorMessage } from '@/shared/errors/index.js';
-import { FormAlert, SearchSelect } from '@/shared/ui';
+import { useUnsavedGuard } from '@/shared/hooks/useUnsavedGuard.js';
+import { DiscardChangesDialog } from '@/shared/ui';
 import { useNegotiationStates } from '../hooks/useNegotiationStates.js';
 import { createNegotiation } from '../negotiations.service.js';
+import type { NegotiationFormValues } from './NegotiationForm.js';
+import { NegotiationForm } from './NegotiationForm.js';
 
 interface CreateNegotiationDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess: () => void;
 }
+
+const EMPTY_VALUES: NegotiationFormValues = {
+  clientId: '',
+  stateId: '',
+  startDate: '',
+  estimatedCloseDate: '',
+  observations: '',
+};
 
 export function CreateNegotiationDialog({
   open,
@@ -47,13 +39,20 @@ export function CreateNegotiationDialog({
   const { states } = useNegotiationStates();
   const { clients } = useBusinessClients(1, {});
 
-  const [clientId, setClientId] = useState('');
-  const [createClientOpen, setCreateClientOpen] = useState(false);
-  const [stateId, setStateId] = useState('');
-  const [startDate, setStartDate] = useState('');
-  const [estimatedCloseDate, setEstimatedCloseDate] = useState('');
-  const [observations, setObservations] = useState('');
+  const [key, setKey] = useState(0);
   const [error, setError] = useState('');
+  const [createClientOpen, setCreateClientOpen] = useState(false);
+  const [preselectedClientId, setPreselectedClientId] = useState('');
+
+  const forceClose = useCallback(() => {
+    setKey((k) => k + 1);
+    setError('');
+    setPreselectedClientId('');
+    onOpenChange(false);
+  }, [onOpenChange]);
+
+  const { dirtyRef, showDiscard, handleDirtyChange, guardedAction, handleDiscard, cancelDiscard } =
+    useUnsavedGuard({ onClose: forceClose });
 
   const clientOptions = useMemo(
     () => clients.map((c) => ({ value: c.id, label: c.businessName })),
@@ -65,41 +64,39 @@ export function CreateNegotiationDialog({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.negotiations.all });
       toast.success('Negociación creada');
-      handleOpenChange(false);
+      dirtyRef.current = false;
+      forceClose();
       onSuccess();
     },
     onError: (err) => setError(getErrorMessage(err)),
   });
 
-  const resetForm = () => {
-    setClientId('');
-    setStateId('');
-    setStartDate('');
-    setEstimatedCloseDate('');
-    setObservations('');
-    setError('');
-  };
-
   const handleOpenChange = (value: boolean) => {
-    if (!value) resetForm();
-    onOpenChange(value);
+    if (!value) {
+      guardedAction('close');
+    } else {
+      onOpenChange(true);
+    }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!clientId || !stateId || !user) return;
+  const handleSubmit = (values: NegotiationFormValues) => {
+    if (!user) return;
     setError('');
 
     mutation.mutate({
-      clientId,
+      clientId: values.clientId,
       advisorId: user.id,
-      stateId,
-      startDate: startDate || undefined,
-      estimatedCloseDate: estimatedCloseDate || undefined,
-      observations: observations || undefined,
+      stateId: values.stateId,
+      startDate: values.startDate || undefined,
+      estimatedCloseDate: values.estimatedCloseDate || undefined,
+      observations: values.observations || undefined,
       isActive: true,
     });
   };
+
+  const defaultValues = preselectedClientId
+    ? { ...EMPTY_VALUES, clientId: preselectedClientId }
+    : EMPTY_VALUES;
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -107,88 +104,28 @@ export function CreateNegotiationDialog({
         <DialogHeader>
           <DialogTitle>Nueva negociación</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          {error && <FormAlert message={error} />}
-
-          <FieldGroup>
-            <Field>
-              <FieldLabel>Cliente</FieldLabel>
-              <SearchSelect
-                options={clientOptions}
-                value={clientId}
-                onValueChange={setClientId}
-                placeholder="Seleccionar cliente"
-                searchPlaceholder="Buscar cliente..."
-                emptyMessage="Sin clientes"
-              />
-              <Can permission="business_clients.create">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="mt-1"
-                  onClick={() => setCreateClientOpen(true)}
-                >
-                  <Plus data-icon="inline-start" />
-                  Nuevo cliente
-                </Button>
-              </Can>
-            </Field>
-
-            <Field>
-              <FieldLabel>Estado inicial</FieldLabel>
-              <Select value={stateId} onValueChange={setStateId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Seleccionar estado" />
-                </SelectTrigger>
-                <SelectContent>
-                  {states.map((state) => (
-                    <SelectItem key={state.id} value={state.id}>
-                      {state.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </Field>
-
-            <Field>
-              <FieldLabel>Fecha de inicio</FieldLabel>
-              <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
-            </Field>
-
-            <Field>
-              <FieldLabel>Cierre estimado</FieldLabel>
-              <Input
-                type="date"
-                value={estimatedCloseDate}
-                onChange={(e) => setEstimatedCloseDate(e.target.value)}
-              />
-            </Field>
-
-            <Field>
-              <FieldLabel>Observaciones</FieldLabel>
-              <Textarea
-                value={observations}
-                onChange={(e) => setObservations(e.target.value)}
-                placeholder="Notas adicionales..."
-              />
-            </Field>
-          </FieldGroup>
-
-          <DialogFooter>
-            <Button type="submit" disabled={mutation.isPending || !clientId || !stateId}>
-              {mutation.isPending && <Loader2 data-icon="inline-start" className="animate-spin" />}
-              Crear
-            </Button>
-          </DialogFooter>
-        </form>
+        <NegotiationForm
+          key={key}
+          defaultValues={defaultValues}
+          onSubmit={handleSubmit}
+          isPending={mutation.isPending}
+          error={error}
+          submitLabel="Crear"
+          onDirtyChange={handleDirtyChange}
+          clientOptions={clientOptions}
+          stateOptions={states}
+          showCreateClient
+          onCreateClient={() => setCreateClientOpen(true)}
+        />
       </DialogContent>
+
+      <DiscardChangesDialog open={showDiscard} onCancel={cancelDiscard} onDiscard={handleDiscard} />
 
       <CreateBusinessClientDialog
         open={createClientOpen}
         onOpenChange={setCreateClientOpen}
         onSuccess={(client) => {
-          setClientId(client.id);
+          setPreselectedClientId(client.id);
         }}
       />
     </Dialog>

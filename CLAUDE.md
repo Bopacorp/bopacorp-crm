@@ -43,7 +43,7 @@ Requires `.npmrc` with GitHub Packages auth for `@bopacorp` scope (see `.npmrc.e
 
 - Single quotes, semicolons, trailing commas, LF line endings, 100 char line width
 - `noUnusedVariables` and `noUnusedImports` are errors
-- `noExplicitAny` is off
+- `noExplicitAny` is error
 - Commits go through lint-staged (husky) running `biome check --write` on staged TS/TSX/JS/JSX files
 - Commit messages enforced by commitlint (Conventional Commits)
 

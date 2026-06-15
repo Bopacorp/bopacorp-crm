@@ -596,6 +596,31 @@ Each section renders a skeleton section header + `SkeletonRow` components (icon 
 
 ---
 
+## 14. Shared date formatting
+
+Use the shared formatting functions from `@/lib/format.js` instead of defining inline helpers. Both use `es-EC` locale.
+
+### 14.1 `formatDate` — date only
+
+```tsx
+import { formatDate } from '@/lib/format.js';
+
+formatDate('2025-03-15T10:30:00Z'); // '15/03/2025'
+formatDate(null);                    // '—'
+```
+
+### 14.2 `formatDateTime` — date + time
+
+```tsx
+import { formatDateTime } from '@/lib/format.js';
+
+formatDateTime('2025-03-15T10:30:00Z'); // '15/03/2025, 10:30'
+```
+
+**Never define `formatDate` or `formatDateTime` inline in components.** Import from the shared module.
+
+---
+
 ## Checklist
 
 Before considering a CRUD page complete, verify:
@@ -628,4 +653,6 @@ Before considering a CRUD page complete, verify:
 - [ ] Paginated list hook wraps `usePaginatedList`
 - [ ] Unsaved guard uses `useUnsavedGuard` hook (not inline refs)
 - [ ] Detail skeleton uses `SheetDetailSkeleton` (not inline skeleton)
+- [ ] Date formatting uses shared `formatDate`/`formatDateTime` (not inline)
+- [ ] Tab loading states use skeletons (not spinners)
 - [ ] `npm run check` passes

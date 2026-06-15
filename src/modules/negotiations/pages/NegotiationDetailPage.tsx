@@ -4,6 +4,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { formatDate } from '@/lib/format.js';
 import { Can } from '@/modules/auth/components/Can.js';
 import { useClientSheet } from '@/modules/clients/context/ClientSheetContext.js';
 import { DetailSkeleton, EmptyState, ErrorState, StateBadge } from '@/shared/ui';
@@ -11,15 +12,6 @@ import { ChangeStateDialog } from '../components/ChangeStateDialog.js';
 import { HistoryTab } from '../components/HistoryTab.js';
 import { VisitsTab } from '../components/VisitsTab.js';
 import { useNegotiation } from '../hooks/useNegotiation.js';
-
-function formatDate(value: string | null): string {
-  if (!value) return '—';
-  return new Date(value).toLocaleDateString('es-EC', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  });
-}
 
 function advisorName(advisor: {
   username: string;

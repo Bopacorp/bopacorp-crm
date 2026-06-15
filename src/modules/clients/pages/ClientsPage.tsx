@@ -2,6 +2,7 @@ import type { BusinessClientListItemResponse } from '@bopacorp/shared/crm';
 import { Plus } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { formatDate } from '@/lib/format.js';
 import { cn } from '@/lib/utils';
 import { Can } from '@/modules/auth/components/Can.js';
 import { useAuth } from '@/modules/auth/context/AuthContext.js';
@@ -21,14 +22,6 @@ import {
 import { CreateBusinessClientDialog } from '../components/CreateBusinessClientDialog.js';
 import { useClientSheet } from '../context/ClientSheetContext.js';
 import { useBusinessClients } from '../hooks/useBusinessClients.js';
-
-function formatDate(value: string): string {
-  return new Date(value).toLocaleDateString('es-EC', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  });
-}
 
 function employeeName(emp: {
   user: { firstName: string | null; lastName: string | null; username: string };

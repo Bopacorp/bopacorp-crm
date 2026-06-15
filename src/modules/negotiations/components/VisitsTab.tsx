@@ -1,17 +1,8 @@
 import type { VisitListItemResponse } from '@bopacorp/shared/crm';
-import { CheckCircle, Loader2 } from 'lucide-react';
-import { EmptyState, EntityTable, ErrorState } from '@/shared/ui';
+import { CheckCircle } from 'lucide-react';
+import { formatDateTime } from '@/lib/format.js';
+import { EmptyState, EntityTable, ErrorState, TableSkeleton } from '@/shared/ui';
 import { useVisits } from '../hooks/useVisits.js';
-
-function formatDateTime(value: string): string {
-  return new Date(value).toLocaleDateString('es-EC', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
 
 const columns = [
   {
@@ -34,7 +25,7 @@ const columns = [
     header: 'Verificada',
     accessor: (item: VisitListItemResponse) =>
       item.isVerified ? (
-        <CheckCircle className="size-4 text-green-600" />
+        <CheckCircle className="size-4 text-primary" />
       ) : (
         <span className="text-sm text-muted-foreground">—</span>
       ),
@@ -48,13 +39,7 @@ interface VisitsTabProps {
 export function VisitsTab({ clientId }: VisitsTabProps) {
   const { visits, loading, error, refetch } = useVisits(1, { clientId });
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="size-6 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
+  if (loading) return <TableSkeleton columns={4} rows={3} />;
 
   if (error) return <ErrorState error={error} onRetry={refetch} />;
 
