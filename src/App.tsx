@@ -13,6 +13,7 @@ import ClientsPage from '@/modules/clients/pages/ClientsPage';
 import DocumentationPage from '@/modules/documentation/pages/DocumentationPage';
 import ApplicantsPage from '@/modules/employability/pages/ApplicantsPage';
 import MessagesPage from '@/modules/employability/pages/MessagesPage';
+import VacanciesPage from '@/modules/employability/pages/VacanciesPage';
 import NegotiationDetailPage from '@/modules/negotiations/pages/NegotiationDetailPage';
 import NegotiationsPage from '@/modules/negotiations/pages/NegotiationsPage';
 import OverviewPage from '@/modules/overview/pages/OverviewPage';
@@ -141,6 +142,14 @@ export default function App() {
               />
 
               {/* Employability */}
+              <Route
+                path="/empleabilidad/vacantes"
+                element={
+                  <RequireAuth>
+                    <VacanciesPage />
+                  </RequireAuth>
+                }
+              />
               <Route
                 path="/empleabilidad/aplicantes"
                 element={

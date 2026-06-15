@@ -7,6 +7,7 @@ import {
   FileText,
   HandshakeIcon,
   Home,
+  Inbox,
   LogOut,
   Monitor,
   Moon,
@@ -63,8 +64,9 @@ const navigationBottom = [
 ];
 
 const employabilityChildren = [
-  { name: 'Aplicantes', href: '/empleabilidad/aplicantes', icon: Briefcase },
-  { name: 'Mensajes', href: '/empleabilidad/mensajes', icon: Users },
+  { name: 'Vacantes', href: '/empleabilidad/vacantes', icon: Briefcase },
+  { name: 'Aplicantes', href: '/empleabilidad/aplicantes', icon: Users },
+  { name: 'Mensajes', href: '/empleabilidad/mensajes', icon: Inbox },
 ];
 
 function getInitials(profile: { firstName: string; lastName: string } | null): string {

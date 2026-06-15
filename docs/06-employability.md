@@ -1,133 +1,180 @@
 # Phase 6 — Employability
 
-Job vacancy management, candidate/application tracking, and contact request inbox. Covers RF-EMP-001 through RF-EMP-006 (admin side) and contact request management.
+Job vacancy management, candidate/application tracking, and contact request inbox. Covers RF-EMP-001 through RF-EMP-006 (admin side).
 
-## 6.1 Service layer
+## 6.1 Shared package changes
 
-Create `src/modules/employability/employability.service.ts`:
+The CRM needs to know whether an application has a resume and to download it. `@bopacorp/shared@0.2.17` extends the employability response schemas.
 
-**Job Vacancies:**
-- `listJobVacancies(params)` → `GET /employability/vacancies` → paginated
-  - Params: isActive, isPublished, search
-- `getJobVacancy(id)` → `GET /employability/vacancies/:id`
-- `createJobVacancy(data)` → `POST /employability/vacancies`
-- `updateJobVacancy(id, data)` → `PATCH /employability/vacancies/:id`
-- `deleteJobVacancy(id)` → `DELETE /employability/vacancies/:id`
+### `@bopacorp/shared/src/employability/response.ts`
 
-**Candidates:**
-- `listCandidates(params)` → `GET /employability/candidates` → paginated
-- `getCandidate(id)` → `GET /employability/candidates/:id`
-- `updateCandidate(id, data)` → `PATCH /employability/candidates/:id`
+```typescript
+export const JobApplicationResumeSchema = z.object({
+  id: UuidSchema,
+  filename: z.string(),
+  mimeType: z.string(),
+  fileSizeMb: z.number(),
+});
+export type JobApplicationResume = z.infer<typeof JobApplicationResumeSchema>;
 
-**Job Applications:**
-- `listJobApplications(params)` → `GET /employability/job-applications` → paginated
-  - Params: vacancyId, candidateId, state
-- `getJobApplication(id)` → `GET /employability/job-applications/:id`
-- `updateJobApplication(id, data)` → `PATCH /employability/job-applications/:id`
-  - data: `{ state: ApplicationState, reviewNotes?: string }`
+export const JobApplicationResponseSchema = z
+  .object({
+    id: UuidSchema,
+    state: ApplicationStateSchema,
+    coverLetter: z.string().nullable(),
+    reviewNotes: z.string().nullable(),
+    reviewDate: z.string().datetime().nullable(),
+    appliedAt: z.string().datetime().nullable(),
+    vacancy: ApplicationVacancySchema,
+    candidate: ApplicationCandidateSchema,
+    reviewer: ApplicationReviewerSchema.nullable(),
+    resume: JobApplicationResumeSchema.nullable(),
+  })
+  .merge(TimestampsSchema);
 
-**Candidate Resumes:**
-- `listCandidateResumes(params)` → `GET /employability/candidate-resumes` → paginated
-  - Params: candidateId, applicationId
-- `downloadResume(id)` → `GET /employability/candidate-resumes/:id/download` → file blob
+export const JobApplicationListItemResponseSchema = z
+  .object({
+    id: UuidSchema,
+    state: ApplicationStateSchema,
+    appliedAt: z.string().datetime().nullable(),
+    hasResume: z.boolean(),
+    vacancy: ApplicationVacancySchema,
+    candidate: z.object({
+      id: UuidSchema,
+      firstName: z.string(),
+      lastName: z.string(),
+    }),
+  })
+  .merge(TimestampsSchema);
+```
 
-**Contact Requests:**
-- `listContactRequests(params)` → `GET /contact-requests` → paginated
-  - Params: isAttended, search
-- `getContactRequest(id)` → `GET /contact-requests/:id`
-- `attendContactRequest(id)` → `PATCH /contact-requests/:id`
+The backend (`bopacorp-api/src/modules/employability/employability.service.ts`) populates:
 
-## 6.2 Data hooks
+- `hasResume` in `listJobApplications` by looking for a `candidate_resumes` row linked to the application or candidate.
+- `resume` in `getJobApplicationById` with the same matching rule.
 
-**`useJobVacancies(page, filters)`** — paginated vacancy list.
+## 6.2 Service layer
 
-**`useJobApplications(page, filters)`** — paginated applications with state/vacancy filters.
+`src/modules/employability/employability.service.ts`
 
-**`useContactRequests(page, filters)`** — paginated contact messages with read/attended filter.
+```typescript
+export function listVacancies(query: ListJobVacanciesQuery) { ... }
+export function getVacancy(id: string) { ... }
+export function createVacancy(data: CreateJobVacancyRequest) { ... }
+export function updateVacancy(id: string, data: UpdateJobVacancyRequest) { ... }
+export function removeVacancy(id: string) { ... }
 
-**`useCandidateResumes(candidateId)`** — resumes for a specific candidate.
+export function listJobApplications(query: ListJobApplicationsQuery) { ... }
+export function getJobApplication(id: string) { ... }
+export function updateJobApplication(id: string, data: UpdateJobApplicationRequest) { ... }
 
-## 6.3 ApplicantsPage
+export async function downloadCandidateResume(resumeId: string, filename: string) {
+  const response = await api.get(`/employability/candidate-resumes/${resumeId}/download`, {
+    responseType: 'blob',
+  });
+  // triggers browser download via createObjectURL
+}
+```
 
-Replace current stub. Two-level view: vacancies + applications.
+## 6.3 Data hooks
 
-**Layout:**
-- SectionHeader: "Empleabilidad — Aplicantes" + "Nueva vacante" button
-- Tabs: Vacantes | Aplicaciones
+- `useVacancies(page, filters)` — paginated vacancy list.
+- `useVacancy(id)` — vacancy detail for the edit sheet.
+- `useJobApplications(page, filters)` — paginated applications with `vacancyId` and `state` filters.
+- `useJobApplication(id)` — application detail for the review sheet.
 
-### Tab: Vacantes
+## 6.4 State helpers
 
-- FilterBar: search, active/published filter
-- EntityTable columns:
-  - Título (title) — bold
-  - Estado: badge (Activa/Inactiva + Publicada/No publicada)
-  - Fecha publicación (publicationDate)
-  - Fecha cierre (closingDate)
-  - Creador (creator.username)
-  - Acciones: edit, delete
-- Row click → opens vacancy detail sheet
+`src/modules/employability/lib/state.ts`
 
-**Create/Edit vacancy dialog:**
-- Title, description (textarea), requirements (textarea)
-- isActive toggle, isPublished toggle
-- Publication date, closing date (date pickers)
-- Submit → create or update → toast → refetch
+```typescript
+export function applicationStateLabel(state: ApplicationState): string { ... }
+export function applicationStateVariant(state: ApplicationState): BadgeVariant { ... }
+```
 
-**Vacancy detail sheet:**
-- Full details: title, description, requirements
-- Dates and status
-- List of applications for this vacancy (filtered by vacancyId)
-- Application count badge
+## 6.5 Components
 
-### Tab: Aplicaciones
+### VacancyForm
 
-- FilterBar: search (candidate name), state filter (DRAFT/PENDING/ACCEPTED/REJECTED), vacancy filter
-- EntityTable columns:
-  - Candidato (candidate.firstName + lastName) — bold
-  - Vacante (vacancy.title)
-  - Estado (StateBadge with ApplicationState)
-  - Fecha aplicación (appliedAt)
-  - CV (download icon if resume exists)
-  - Acciones: review button
-- Row click → opens application review sheet
+Shared form for create/edit. Fields:
 
-**Application review sheet:**
-- Candidate info: name, email, phone, nationalId
-- Vacancy info: title
-- Cover letter display
-- Resume download button (if exists)
-- Current state as StateBadge
-- Review form:
-  - State selector: PENDING → ACCEPTED or REJECTED
-  - Review notes textarea
-  - Submit → updateJobApplication → toast → refetch
+- Título
+- Descripción (textarea)
+- Requisitos (textarea)
+- Fecha de publicación (datetime-local)
+- Fecha de cierre (datetime-local)
+- Activa (Switch)
+- Publicada (Switch, edit mode only)
 
-## 6.4 MessagesPage
+Validates `closingDate >= publicationDate` on submit.
 
-Replace current stub.
+### CreateVacancyDialog
 
-**Layout:**
-- SectionHeader: "Empleabilidad — Mensajes" + description "Mensajes de contacto recibidos desde bopacorp-web"
-- FilterBar:
-  - Search by name/email/subject
-  - Attended filter: Todos / Pendientes / Atendidos
-- EntityTable columns:
-  - Nombre (clientName) — bold if not attended
-  - Email (clientEmail)
-  - Mensaje (message preview, truncated)
-  - Producto (itemId link if exists)
-  - Fecha (createdAt)
-  - Estado: badge (Pendiente / Atendido)
-  - Acciones: "Atender" button (if not attended), "Ver" button
+Sheet wrapping `VacancyForm` with `useUnsavedGuard`. Creates via `POST /employability/vacancies`.
 
-**Message detail dialog:**
-- Full message content
-- Client info: name, email, phone
-- Related catalog item (if itemId present)
-- Attended status + attendedAt + attendedBy
-- "Marcar como atendido" button → attendContactRequest → toast → refetch
+### EditVacancySheet
 
-## 6.5 State machine — Applications
+Sheet that loads a vacancy, edits via `PATCH`, and includes a delete button. Uses `useUnsavedGuard`.
+
+### DeleteVacancyDialog
+
+Confirmation dialog. Calls `DELETE /employability/vacancies/:id`.
+
+### ApplicationDetailSheet
+
+Shows candidate info, vacancy title, application dates, reviewer, review notes, cover letter, and a CV download button. Exposes **Cambiar estado** when the user has `job_applications.update`.
+
+### ChangeApplicationStateDialog
+
+Dialog to pick a new state (`DRAFT | PENDING | ACCEPTED | REJECTED`) and optional review notes. Calls `PATCH /employability/job-applications/:id`.
+
+## 6.6 VacanciesPage
+
+`src/modules/employability/pages/VacanciesPage.tsx`
+
+- SectionHeader with **Nueva vacante** button (`job_vacancies.create`)
+- FilterBar: search, active/inactive, published/draft
+- EntityTable columns: título, creador, activa, publicada, publicación, cierre, ver aplicantes
+- Row click opens `EditVacancySheet`
+- PaginationFooter
+
+## 6.7 ApplicantsPage
+
+`src/modules/employability/pages/ApplicantsPage.tsx`
+
+- Reads `?vacancyId=` from URL to filter applications
+- FilterBar: search, state
+- EntityTable columns: candidato, vacante, fecha, estado, CV icon, ver detalle
+- Row click opens `ApplicationDetailSheet`
+- Back button when filtered by vacancy
+
+## 6.8 Routing and navigation
+
+`App.tsx` adds `/empleabilidad/vacantes` before `/empleabilidad/aplicantes`.
+
+`app/Sidebar.tsx` updates `employabilityChildren`:
+
+```typescript
+const employabilityChildren = [
+  { name: 'Vacantes', href: '/empleabilidad/vacantes', icon: Briefcase },
+  { name: 'Aplicantes', href: '/empleabilidad/aplicantes', icon: Users },
+  { name: 'Mensajes', href: '/empleabilidad/mensajes', icon: Inbox },
+];
+```
+
+## 6.9 Permission gating
+
+| Action | Permission |
+|--------|-----------|
+| View vacancies | `job_vacancies.read` |
+| Create vacancy | `job_vacancies.create` |
+| Edit vacancy | `job_vacancies.update` |
+| Delete vacancy | `job_vacancies.delete` |
+| View applications | `job_applications.read` |
+| Review applications | `job_applications.update` |
+| Download resumes | `candidate_resumes.read` |
+
+## 6.10 State machine — Applications
 
 ```
 DRAFT → PENDING (on submission from public site)
@@ -141,40 +188,16 @@ StateBadge mapping:
 - `ACCEPTED` → default, "Aceptado"
 - `REJECTED` → destructive, "Rechazado"
 
-## 6.6 Resume download
+## 6.11 Resume download
 
-For resume download:
-- Call `downloadResume(id)` → returns blob
-- Create temporary download link via `URL.createObjectURL(blob)`
-- Trigger download with `<a download>` pattern
-
-## 6.7 Permission gating
-
-| Action | Permission |
-|--------|-----------|
-| View vacancies | `job_vacancies.read` |
-| Create/edit vacancy | `job_vacancies.create`, `job_vacancies.update` |
-| Delete vacancy | `job_vacancies.delete` |
-| View candidates | `candidates.read` |
-| View applications | `job_applications.read` |
-| Review applications | `job_applications.update` |
-| View resumes | `candidate_resumes.read` |
-| View contact requests | `contact_requests.read` |
-| Attend contact requests | `contact_requests.update` |
-
-## 6.8 Types consumed
-
-From `@bopacorp/shared/employability`:
-- `JobVacancyResponse`, `JobVacancyListItemResponse`
-- `JobApplicationResponse`, `JobApplicationListItemResponse`
-- `CandidateResponse`, `CandidateListItemResponse`
-- `CandidateResumeResponse`
-- `ApplicationState` enum
-- All request types
-
-From `@bopacorp/shared/catalog`:
-- `ContactRequestResponse` (for messages)
+- Detail sheet checks `application.resume`
+- Calls `downloadCandidateResume(resumeId, filename)`
+- Uses `api.get(..., { responseType: 'blob' })` and triggers download via `URL.createObjectURL`
 
 ## Deliverable
 
-After this phase: vacancy management with publish control, application review with accept/reject, resume download, contact message inbox with attend workflow.
+After this phase:
+- CRUD of job vacancies with publish control.
+- Application review with accept/reject.
+- Resume download from application detail.
+- `ApplicantsPage` and `VacanciesPage` wired to the backend.

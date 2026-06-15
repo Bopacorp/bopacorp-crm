@@ -24,6 +24,7 @@ const stateVariants: Record<string, 'default' | 'secondary' | 'destructive' | 'o
   // Matrix states
   draft: 'secondary',
   inactive: 'outline',
+  published: 'default',
   // General
   active: 'default',
   completed: 'default',
