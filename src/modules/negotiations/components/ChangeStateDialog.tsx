@@ -101,14 +101,7 @@ export function ChangeStateDialog({
 
           <FieldGroup>
             <Field>
-              <FieldLabel>
-                Nuevo estado
-                {suggestedId && (
-                  <span className="ml-1 font-normal text-muted-foreground">
-                    — sugerido: siguiente etapa
-                  </span>
-                )}
-              </FieldLabel>
+              <FieldLabel>Nuevo estado</FieldLabel>
               <Select value={stateId} onValueChange={setStateId}>
                 <SelectTrigger>
                   <SelectValue placeholder="Seleccionar estado" />
