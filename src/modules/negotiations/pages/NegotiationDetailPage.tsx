@@ -50,7 +50,7 @@ export default function NegotiationDetailPage() {
     <div className="flex flex-col gap-6">
       <div className="flex items-center gap-3">
         <button type="button" onClick={() => openClientSheet(negotiation.client.id)}>
-          <h1 className="text-lg font-semibold text-primary hover:underline">
+          <h1 className="text-lg font-semibold text-foreground hover:underline">
             {negotiation.client.businessName}
           </h1>
         </button>

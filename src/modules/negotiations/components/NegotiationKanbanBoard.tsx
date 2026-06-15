@@ -146,7 +146,7 @@ function KanbanColumn({ state, filters, onCardClick, onClientClick }: KanbanColu
   const isFirstLoad = loading && items.length === 0;
 
   return (
-    <div className="flex w-72 shrink-0 flex-col rounded-lg bg-muted/50">
+    <div className="flex w-72 shrink-0 flex-col rounded-lg bg-muted/70">
       <div className="flex items-center gap-2 px-3 py-2.5">
         <StateBadge state={state.code} label={state.name} />
         <span className="text-xs text-muted-foreground">{totalItems}</span>
@@ -182,7 +182,7 @@ function KanbanColumn({ state, filters, onCardClick, onClientClick }: KanbanColu
                       <Card
                         size="sm"
                         className={cn(
-                          'cursor-grab gap-0 px-3 py-2.5 transition-colors hover:bg-accent/50',
+                          'cursor-grab gap-0 bg-popover px-3 py-2.5 shadow-sm ring-1 ring-border transition-colors hover:bg-accent/50',
                           !neg.isActive && 'opacity-60',
                           dragSnapshot.isDragging && 'rotate-2 shadow-lg',
                         )}
@@ -190,7 +190,7 @@ function KanbanColumn({ state, filters, onCardClick, onClientClick }: KanbanColu
                       >
                         <button
                           type="button"
-                          className="text-left text-sm font-medium text-primary hover:underline"
+                          className="text-left text-sm font-medium text-foreground hover:underline"
                           onClick={(e) => {
                             e.stopPropagation();
                             onClientClick(neg.client.id);

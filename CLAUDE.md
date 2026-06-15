@@ -53,6 +53,7 @@ Full spec in `DESIGN.md` (preset b0, shared with CMS). Key rules:
 
 - **Semantic tokens only** — `bg-primary`, `text-muted-foreground`. Never raw Tailwind colors (`bg-blue-500`)
 - **No `dark:` overrides** — tokens flip via `.dark` CSS variables
+- **Clickable text links** — `text-foreground font-medium hover:underline`, NOT `text-primary`. Blue `text-primary` is harsh in dark mode; reserve it for buttons and badges
 - **`gap-*`** not `space-y-*`. **`size-*`** not `w-X h-X`
 - **Forms**: `FieldGroup` + `Field` + `FieldLabel`, never raw `<div>` + `<Label>`
 - **Icons**: lucide-react, use `data-icon` attribute in buttons
@@ -60,6 +61,16 @@ Full spec in `DESIGN.md` (preset b0, shared with CMS). Key rules:
 - **`cn()`** for conditional classes, never string-interpolate ternaries
 - **`@bopacorp/shared`** for all API types and Zod schemas
 - **Spanish UI labels, English code** — component names, variables, functions in English
+- **View persistence** — save user view preferences (table/kanban) in localStorage
+
+## Kanban board patterns
+
+- **Per-column fetching** — each column makes independent `useNegotiations` call with its own state filter. Backend caps at limit 100; per-column pagination avoids hitting it
+- **Column styling** — `bg-muted/70 rounded-lg` for visible lanes in dark mode. Cards use `bg-popover ring-1 ring-border shadow-sm` for elevation
+- **Drag-and-drop** — `@hello-pangea/dnd` (react-beautiful-dnd fork). DragDropContext → Droppable (state.id) → Draggable (negotiation.id)
+- **State change on drop** — reuse `ChangeStateDialog` with locked `targetStateId` prop. When set, shows read-only target instead of dropdown
+- **Items accumulation** — page 1 replaces items, page 2+ appends. Use `prevPageRef` pattern to avoid duplicate appends on re-renders
+- **Relative time** — use `formatRelativeTime` from `@/lib/format.js` (date-fns `formatDistanceToNow` with `es` locale). Never define inline `timeAgo` helpers
 
 ## Docs
 

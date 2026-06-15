@@ -487,12 +487,14 @@ queryClient.invalidateQueries({ queryKey: queryKeys.negotiations.all });
 ## 12. Styling rules
 
 - Semantic tokens only (`bg-primary`, `text-muted-foreground`). No raw colors
+- **Clickable text links** use `text-foreground font-medium hover:underline` — never `text-primary` for inline text links (harsh in dark mode). Reserve `text-primary` for buttons, badges, and `tel:`/`mailto:` anchors in detail panels
 - `gap-*` not `space-y-*`
 - `size-*` not `w-X h-X`
 - `cn()` for conditional classes, never template literal ternaries
 - Icons from `lucide-react` with `data-icon` attribute in buttons
 - Overlays (`Dialog`, `Sheet`, `Drawer`) must have a `Title` — use `sr-only` if visually hidden
 - Spanish UI labels, English code (component names, variables, functions)
+- **View persistence** — save user view preferences (table/kanban toggle) in localStorage
 
 ---
 
@@ -617,7 +619,17 @@ import { formatDateTime } from '@/lib/format.js';
 formatDateTime('2025-03-15T10:30:00Z'); // '15/03/2025, 10:30'
 ```
 
-**Never define `formatDate` or `formatDateTime` inline in components.** Import from the shared module.
+### 14.3 `formatRelativeTime` — relative time (e.g. "hace 2 horas")
+
+```tsx
+import { formatRelativeTime } from '@/lib/format.js';
+
+formatRelativeTime('2025-03-15T10:30:00Z'); // 'hace alrededor de 6 horas'
+```
+
+Uses `date-fns` `formatDistanceToNow` with Spanish locale. Use for kanban cards, activity feeds, and "created X ago" labels.
+
+**Never define inline `timeAgo` or relative time helpers.** Import from the shared module.
 
 ---
 
@@ -653,6 +665,8 @@ Before considering a CRUD page complete, verify:
 - [ ] Paginated list hook wraps `usePaginatedList`
 - [ ] Unsaved guard uses `useUnsavedGuard` hook (not inline refs)
 - [ ] Detail skeleton uses `SheetDetailSkeleton` (not inline skeleton)
-- [ ] Date formatting uses shared `formatDate`/`formatDateTime` (not inline)
+- [ ] Date formatting uses shared `formatDate`/`formatDateTime`/`formatRelativeTime` (not inline)
+- [ ] Clickable text links use `text-foreground hover:underline` (not `text-primary`)
+- [ ] View toggles persist preference in localStorage
 - [ ] Tab loading states use skeletons (not spinners)
 - [ ] `npm run check` passes

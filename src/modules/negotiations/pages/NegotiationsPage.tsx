@@ -90,7 +90,7 @@ export default function NegotiationsPage() {
             openClientSheet(item.client.id);
           }}
         >
-          <span className="font-medium text-primary hover:underline">
+          <span className="font-medium text-foreground hover:underline">
             {item.client.businessName}
           </span>
         </button>
