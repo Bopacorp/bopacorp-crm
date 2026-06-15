@@ -38,6 +38,7 @@ import {
   updateSegment,
   updateTier,
 } from '../catalog.service.js';
+import { CategoryManager } from '../components/CategoryManager.js';
 import type { LookupTableConfig } from '../components/LookupTableManager.js';
 import { LookupTableManager } from '../components/LookupTableManager.js';
 
@@ -156,14 +157,18 @@ export default function CatalogSettingsPage() {
         title="Configuración del catálogo"
         description="Tablas de referencia y categorías"
       />
-      <Tabs defaultValue="itemTypes">
+      <Tabs defaultValue="categories">
         <TabsList variant="line">
+          <TabsTrigger value="categories">Categorías</TabsTrigger>
           {CONFIGS.map((c) => (
             <TabsTrigger key={c.key} value={c.key}>
               {c.label}
             </TabsTrigger>
           ))}
         </TabsList>
+        <TabsContent value="categories">
+          <CategoryManager />
+        </TabsContent>
         {CONFIGS.map((c) => (
           <TabsContent key={c.key} value={c.key}>
             <LookupTableManager config={c.config} />
