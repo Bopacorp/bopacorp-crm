@@ -11,6 +11,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Field, FieldGroup, FieldLabel } from '@/components/ui/field';
+import { Input } from '@/components/ui/input';
 import {
   Select,
   SelectContent,
@@ -30,6 +31,7 @@ interface ChangeStateDialogProps {
   onOpenChange: (open: boolean) => void;
   negotiationId: string;
   currentStateId: string;
+  targetStateId?: string;
   onSuccess: () => void;
 }
 
@@ -38,6 +40,7 @@ export function ChangeStateDialog({
   onOpenChange,
   negotiationId,
   currentStateId,
+  targetStateId,
   onSuccess,
 }: ChangeStateDialogProps) {
   const { states } = useNegotiationStates();
@@ -49,15 +52,19 @@ export function ChangeStateDialog({
     return states.find((s) => s.position === (current?.position ?? 0) + 1)?.id ?? '';
   }, [states, currentStateId]);
 
-  const [stateId, setStateId] = useState(suggestedId);
+  const effectiveStateId = targetStateId ?? suggestedId;
+  const isLocked = !!targetStateId;
+  const targetStateName = states.find((s) => s.id === targetStateId)?.name;
+
+  const [stateId, setStateId] = useState(effectiveStateId);
   const [notes, setNotes] = useState('');
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (open && suggestedId) {
-      setStateId(suggestedId);
+    if (open && effectiveStateId) {
+      setStateId(effectiveStateId);
     }
-  }, [open, suggestedId]);
+  }, [open, effectiveStateId]);
 
   const mutation = useMutation({
     mutationFn: (data: { stateId: string; notes?: string }) =>
@@ -72,7 +79,7 @@ export function ChangeStateDialog({
   });
 
   const resetForm = () => {
-    setStateId(suggestedId);
+    setStateId(effectiveStateId);
     setNotes('');
     setError('');
   };
@@ -94,7 +101,7 @@ export function ChangeStateDialog({
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Cambiar estado</DialogTitle>
+          <DialogTitle>{isLocked ? 'Confirmar cambio de estado' : 'Cambiar estado'}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           {error && <FormAlert message={error} />}
@@ -102,18 +109,22 @@ export function ChangeStateDialog({
           <FieldGroup>
             <Field>
               <FieldLabel>Nuevo estado</FieldLabel>
-              <Select value={stateId} onValueChange={setStateId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Seleccionar estado" />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableStates.map((state) => (
-                    <SelectItem key={state.id} value={state.id}>
-                      {state.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {isLocked ? (
+                <Input value={targetStateName ?? ''} readOnly className="bg-muted" />
+              ) : (
+                <Select value={stateId} onValueChange={setStateId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleccionar estado" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableStates.map((state) => (
+                      <SelectItem key={state.id} value={state.id}>
+                        {state.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </Field>
 
             <Field>
@@ -132,7 +143,7 @@ export function ChangeStateDialog({
             </Button>
             <Button type="submit" disabled={mutation.isPending || !stateId}>
               {mutation.isPending && <Loader2 data-icon="inline-start" className="animate-spin" />}
-              Cambiar
+              {isLocked ? 'Confirmar' : 'Cambiar'}
             </Button>
           </DialogFooter>
         </form>

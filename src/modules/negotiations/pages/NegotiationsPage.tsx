@@ -1,5 +1,5 @@
 import type { NegotiationListItemResponse } from '@bopacorp/shared/crm';
-import { Plus } from 'lucide-react';
+import { Columns3, List, Plus } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -22,6 +22,7 @@ import {
   TableSkeleton,
 } from '@/shared/ui';
 import { CreateNegotiationDialog } from '../components/CreateNegotiationDialog.js';
+import { NegotiationKanbanBoard } from '../components/NegotiationKanbanBoard.js';
 import { useNegotiationStates } from '../hooks/useNegotiationStates.js';
 import { useNegotiations } from '../hooks/useNegotiations.js';
 
@@ -45,6 +46,15 @@ export default function NegotiationsPage() {
   const [sortBy, setSortBy] = useState<string | undefined>();
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [pageSize, setPageSize] = useState(10);
+  const [view, setView] = useState<'table' | 'kanban'>(() => {
+    const saved = localStorage.getItem('negotiations-view');
+    return saved === 'kanban' ? 'kanban' : 'table';
+  });
+
+  const handleViewChange = (v: 'table' | 'kanban') => {
+    setView(v);
+    localStorage.setItem('negotiations-view', v);
+  };
   const [createOpen, setCreateOpen] = useState(false);
   const { hasPermission } = usePermission();
 
@@ -130,7 +140,7 @@ export default function NegotiationsPage() {
   return (
     <div
       className={cn(
-        'flex flex-col gap-6',
+        'flex min-w-0 flex-col gap-6',
         fetching && 'opacity-60 pointer-events-none transition-opacity',
       )}
     >
@@ -138,12 +148,30 @@ export default function NegotiationsPage() {
         title="Negociaciones"
         description="Gestión de cuentas, contratos y visitas comerciales"
         actions={
-          <Can permission="negotiations.create">
-            <Button onClick={() => setCreateOpen(true)}>
-              <Plus data-icon="inline-start" />
-              Nueva negociación
-            </Button>
-          </Can>
+          <div className="flex items-center gap-2">
+            <div className="flex rounded-md border">
+              <Button
+                variant={view === 'table' ? 'secondary' : 'ghost'}
+                size="icon-sm"
+                onClick={() => handleViewChange('table')}
+              >
+                <List className="size-4" />
+              </Button>
+              <Button
+                variant={view === 'kanban' ? 'secondary' : 'ghost'}
+                size="icon-sm"
+                onClick={() => handleViewChange('kanban')}
+              >
+                <Columns3 className="size-4" />
+              </Button>
+            </div>
+            <Can permission="negotiations.create">
+              <Button onClick={() => setCreateOpen(true)}>
+                <Plus data-icon="inline-start" />
+                Nueva negociación
+              </Button>
+            </Can>
+          </div>
         }
       />
 
@@ -152,14 +180,18 @@ export default function NegotiationsPage() {
         onSearchChange={setSearch}
         searchPlaceholder="Buscar por empresa..."
         filters={[
-          {
-            id: 'state',
-            label: 'Estado',
-            placeholder: 'Estado',
-            options: stateOptions,
-            value: stateId ?? 'all',
-            onChange: (value) => setStateId(value === 'all' ? undefined : value),
-          },
+          ...(view === 'table'
+            ? [
+                {
+                  id: 'state',
+                  label: 'Estado',
+                  placeholder: 'Estado',
+                  options: stateOptions,
+                  value: stateId ?? 'all',
+                  onChange: (value: string) => setStateId(value === 'all' ? undefined : value),
+                },
+              ]
+            : []),
           ...(!isAdvisor
             ? [
                 {
@@ -176,7 +208,7 @@ export default function NegotiationsPage() {
         ]}
       />
 
-      {negotiations.length === 0 ? (
+      {negotiations.length === 0 && view === 'table' ? (
         search || stateId || advisorId ? (
           <EmptyState
             title="Sin resultados"
@@ -193,6 +225,13 @@ export default function NegotiationsPage() {
             }
           />
         )
+      ) : view === 'kanban' ? (
+        <NegotiationKanbanBoard
+          states={states}
+          filters={{ search, advisorId: effectiveAdvisorId }}
+          onCardClick={(id) => navigate(`/negociaciones/${id}`)}
+          onClientClick={(clientId) => openClientSheet(clientId)}
+        />
       ) : (
         <>
           <EntityTable
