@@ -1,5 +1,13 @@
 import type { LucideIcon } from 'lucide-react';
-import { Calendar, CalendarClock, MessageSquare, RefreshCw, User, UserCheck } from 'lucide-react';
+import {
+  Calendar,
+  CalendarClock,
+  MessageSquare,
+  Pencil,
+  RefreshCw,
+  User,
+  UserCheck,
+} from 'lucide-react';
 import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useBreadcrumbTitle } from '@/app/BreadcrumbTitleContext.js';
@@ -11,6 +19,7 @@ import { Can } from '@/modules/auth/components/Can.js';
 import { useClientSheet } from '@/modules/clients/context/ClientSheetContext.js';
 import { DetailSkeleton, EmptyState, ErrorState, StateBadge } from '@/shared/ui';
 import { ChangeStateDialog } from '../components/ChangeStateDialog.js';
+import { EditNegotiationSheet } from '../components/EditNegotiationSheet.js';
 import { HistoryTab } from '../components/HistoryTab.js';
 import { VisitsTab } from '../components/VisitsTab.js';
 import { useNegotiation } from '../hooks/useNegotiation.js';
@@ -28,6 +37,7 @@ export default function NegotiationDetailPage() {
   const { negotiation, loading, error, refetch } = useNegotiation(id);
   const { openClientSheet } = useClientSheet();
   const [changeStateOpen, setChangeStateOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
 
   useBreadcrumbTitle(negotiation?.client.businessName ?? null);
 
@@ -43,19 +53,27 @@ export default function NegotiationDetailPage() {
           </h1>
         </button>
         <StateBadge state={negotiation.state.code} label={negotiation.state.name} />
-      </div>
-
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <span className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-            Detalles
-          </span>
+        <div className="ml-auto flex items-center gap-2">
+          <Can permission="negotiations.update">
+            <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
+              <Pencil data-icon="inline-start" />
+              Editar
+            </Button>
+          </Can>
           <Can permission="negotiations.change_state">
             <Button variant="outline" size="sm" onClick={() => setChangeStateOpen(true)}>
               <RefreshCw data-icon="inline-start" />
               Cambiar estado
             </Button>
           </Can>
+        </div>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <span className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+            Detalles
+          </span>
         </CardHeader>
         <CardContent>
           <div className="grid gap-1 md:grid-cols-2">
@@ -102,6 +120,13 @@ export default function NegotiationDetailPage() {
           <EmptyState title="Sin matrices" description="Matrices disponibles próximamente" />
         </TabsContent>
       </Tabs>
+
+      <EditNegotiationSheet
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        negotiation={negotiation}
+        onSuccess={refetch}
+      />
 
       <ChangeStateDialog
         open={changeStateOpen}

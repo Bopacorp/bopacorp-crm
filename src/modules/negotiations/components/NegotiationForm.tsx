@@ -11,6 +11,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { SheetFooter } from '@/components/ui/sheet';
+import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { Can } from '@/modules/auth/components/Can.js';
 import { FormAlert, SearchSelect } from '@/shared/ui';
@@ -18,9 +19,11 @@ import { FormAlert, SearchSelect } from '@/shared/ui';
 export interface NegotiationFormValues {
   clientId: string;
   stateId: string;
+  advisorId: string;
   startDate: string;
   estimatedCloseDate: string;
   observations: string;
+  isActive: boolean;
 }
 
 interface NegotiationFormProps {
@@ -30,10 +33,16 @@ interface NegotiationFormProps {
   error?: string;
   submitLabel: string;
   onDirtyChange?: (dirty: boolean) => void;
-  clientOptions: { value: string; label: string }[];
+  clientOptions?: { value: string; label: string }[];
   stateOptions: { id: string; name: string }[];
   onCreateClient?: () => void;
   showCreateClient?: boolean;
+  clientReadOnly?: boolean;
+  clientName?: string;
+  advisorOptions?: { value: string; label: string }[];
+  showAdvisorField?: boolean;
+  showIsActive?: boolean;
+  stateLabel?: string;
 }
 
 export function NegotiationForm({
@@ -47,19 +56,29 @@ export function NegotiationForm({
   stateOptions,
   onCreateClient,
   showCreateClient,
+  clientReadOnly,
+  clientName,
+  advisorOptions,
+  showAdvisorField,
+  showIsActive,
+  stateLabel,
 }: NegotiationFormProps) {
   const [clientId, setClientId] = useState(defaultValues.clientId);
   const [stateId, setStateId] = useState(defaultValues.stateId);
+  const [advisorId, setAdvisorId] = useState(defaultValues.advisorId);
   const [startDate, setStartDate] = useState(defaultValues.startDate);
   const [estimatedCloseDate, setEstimatedCloseDate] = useState(defaultValues.estimatedCloseDate);
   const [observations, setObservations] = useState(defaultValues.observations);
+  const [isActive, setIsActive] = useState(defaultValues.isActive);
 
   const isDirty =
     clientId !== defaultValues.clientId ||
     stateId !== defaultValues.stateId ||
+    advisorId !== defaultValues.advisorId ||
     startDate !== defaultValues.startDate ||
     estimatedCloseDate !== defaultValues.estimatedCloseDate ||
-    observations !== defaultValues.observations;
+    observations !== defaultValues.observations ||
+    isActive !== defaultValues.isActive;
 
   useEffect(() => {
     onDirtyChange?.(isDirty);
@@ -68,7 +87,15 @@ export function NegotiationForm({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!clientId || !stateId) return;
-    onSubmit({ clientId, stateId, startDate, estimatedCloseDate, observations });
+    onSubmit({
+      clientId,
+      stateId,
+      advisorId,
+      startDate,
+      estimatedCloseDate,
+      observations,
+      isActive,
+    });
   };
 
   return (
@@ -79,32 +106,38 @@ export function NegotiationForm({
         <FieldGroup>
           <Field>
             <FieldLabel>Cliente</FieldLabel>
-            <SearchSelect
-              options={clientOptions}
-              value={clientId}
-              onValueChange={setClientId}
-              placeholder="Seleccionar cliente"
-              searchPlaceholder="Buscar cliente..."
-              emptyMessage="Sin clientes"
-            />
-            {showCreateClient && (
-              <Can permission="business_clients.create">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="mt-1"
-                  onClick={onCreateClient}
-                >
-                  <Plus data-icon="inline-start" />
-                  Nuevo cliente
-                </Button>
-              </Can>
+            {clientReadOnly ? (
+              <Input value={clientName} readOnly className="bg-muted" />
+            ) : (
+              <>
+                <SearchSelect
+                  options={clientOptions ?? []}
+                  value={clientId}
+                  onValueChange={setClientId}
+                  placeholder="Seleccionar cliente"
+                  searchPlaceholder="Buscar cliente..."
+                  emptyMessage="Sin clientes"
+                />
+                {showCreateClient && (
+                  <Can permission="business_clients.create">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="mt-1"
+                      onClick={onCreateClient}
+                    >
+                      <Plus data-icon="inline-start" />
+                      Nuevo cliente
+                    </Button>
+                  </Can>
+                )}
+              </>
             )}
           </Field>
 
           <Field>
-            <FieldLabel>Estado inicial</FieldLabel>
+            <FieldLabel>{stateLabel ?? 'Estado inicial'}</FieldLabel>
             <Select value={stateId} onValueChange={setStateId}>
               <SelectTrigger>
                 <SelectValue placeholder="Seleccionar estado" />
@@ -141,6 +174,29 @@ export function NegotiationForm({
               placeholder="Notas adicionales..."
             />
           </Field>
+
+          {showAdvisorField && advisorOptions && (
+            <Field>
+              <FieldLabel>Asesor</FieldLabel>
+              <SearchSelect
+                options={advisorOptions}
+                value={advisorId}
+                onValueChange={setAdvisorId}
+                placeholder="Seleccionar asesor"
+                searchPlaceholder="Buscar asesor..."
+                emptyMessage="Sin asesores"
+              />
+            </Field>
+          )}
+
+          {showIsActive && (
+            <Field>
+              <div className="flex items-center justify-between">
+                <FieldLabel>Activa</FieldLabel>
+                <Switch checked={isActive} onCheckedChange={setIsActive} />
+              </div>
+            </Field>
+          )}
         </FieldGroup>
       </div>
 
