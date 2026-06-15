@@ -33,7 +33,9 @@ import {
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Skeleton } from '@/components/ui/skeleton';
 import { queryKeys } from '@/lib/query-keys.js';
+import { cn } from '@/lib/utils.js';
 import { Can } from '@/modules/auth/components/Can.js';
 import { getErrorMessage } from '@/shared/errors/index.js';
 import { DiscardChangesDialog, ErrorState, StateBadge } from '@/shared/ui';
@@ -94,6 +96,44 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
     <span className="px-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
       {children}
     </span>
+  );
+}
+
+function SkeletonRow({ width = 'w-32' }: { width?: string }) {
+  return (
+    <div className="flex items-center gap-3 px-2 py-1.5">
+      <Skeleton className="size-4 rounded" />
+      <Skeleton className="h-4 w-24" />
+      <Skeleton className={cn('h-4', width)} />
+    </div>
+  );
+}
+
+function SheetDetailSkeleton() {
+  return (
+    <div className="flex-1 overflow-y-auto p-4">
+      <div className="flex flex-col gap-5">
+        <div className="flex flex-col gap-1">
+          <Skeleton className="mx-2 h-3 w-20" />
+          <SkeletonRow width="w-28" />
+          <SkeletonRow width="w-40" />
+          <SkeletonRow width="w-16" />
+        </div>
+        <div className="flex flex-col gap-1">
+          <Skeleton className="mx-2 h-3 w-16" />
+          <SkeletonRow width="w-36" />
+          <SkeletonRow width="w-24" />
+          <SkeletonRow width="w-44" />
+          <SkeletonRow width="w-48" />
+        </div>
+        <div className="flex flex-col gap-1">
+          <Skeleton className="mx-2 h-3 w-16" />
+          <SkeletonRow width="w-12" />
+          <SkeletonRow width="w-20" />
+          <SkeletonRow width="w-36" />
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -174,7 +214,10 @@ export function BusinessClientSheet({ open, onOpenChange, clientId }: BusinessCl
                   <ArrowLeft />
                 </Button>
               )}
-              {!showViewHeader && <SheetTitle>{editing ? 'Editar cliente' : 'Cliente'}</SheetTitle>}
+              {loading && <SheetTitle className="sr-only">Cliente</SheetTitle>}
+              {!showViewHeader && !loading && (
+                <SheetTitle>{editing ? 'Editar cliente' : 'Cliente'}</SheetTitle>
+              )}
             </div>
             <div className="flex items-center gap-1">
               {showViewHeader && (
@@ -196,6 +239,15 @@ export function BusinessClientSheet({ open, onOpenChange, clientId }: BusinessCl
               </Button>
             </div>
           </div>
+          {loading && (
+            <div className="flex items-center gap-3">
+              <Skeleton className="size-10 rounded-full" />
+              <div className="flex flex-col gap-1.5">
+                <Skeleton className="h-5 w-40" />
+                <Skeleton className="h-3 w-24" />
+              </div>
+            </div>
+          )}
           {showViewHeader && (
             <div className="flex items-center gap-3">
               <Avatar size="lg" className="after:content-none">
@@ -216,9 +268,7 @@ export function BusinessClientSheet({ open, onOpenChange, clientId }: BusinessCl
         </SheetHeader>
 
         {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="size-6 animate-spin text-muted-foreground" />
-          </div>
+          <SheetDetailSkeleton />
         ) : error || !client ? (
           <ErrorState error={error} onRetry={refetch} />
         ) : editing ? (

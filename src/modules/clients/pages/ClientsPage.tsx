@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/pagination';
 import { cn } from '@/lib/utils';
 import { Can } from '@/modules/auth/components/Can.js';
+import { useAuth } from '@/modules/auth/context/AuthContext.js';
 import { usePermission } from '@/modules/auth/hooks/usePermission.js';
 import { useAdvisors } from '@/modules/org/hooks/useAdvisors.js';
 import {
@@ -48,6 +49,8 @@ function employeeName(emp: {
 
 export default function ClientsPage() {
   const { openClientSheet } = useClientSheet();
+  const { user, hasRole } = useAuth();
+  const isAdvisor = hasRole('advisor');
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [isActive, setIsActive] = useState<boolean | undefined>();
@@ -59,10 +62,12 @@ export default function ClientsPage() {
   const { hasPermission } = usePermission();
   const { advisors } = useAdvisors();
 
+  const effectiveAdvisorId = isAdvisor ? user?.id : advisorId;
+
   const { clients, meta, loading, fetching, error, refetch } = useBusinessClients(page, {
     search,
     isActive,
-    advisorId,
+    advisorId: effectiveAdvisorId,
     sortBy,
     sortOrder,
     limit: pageSize,
@@ -118,15 +123,19 @@ export default function ClientsPage() {
       accessor: (item: BusinessClientListItemResponse) => item.contactName,
       sortable: true,
     },
-    {
-      id: 'advisor',
-      header: 'Asesor',
-      accessor: (item: BusinessClientListItemResponse) => {
-        const a = item.advisor;
-        if (!a) return '—';
-        return a.profile ? `${a.profile.firstName} ${a.profile.lastName}` : a.username;
-      },
-    },
+    ...(!isAdvisor
+      ? [
+          {
+            id: 'advisor',
+            header: 'Asesor',
+            accessor: (item: BusinessClientListItemResponse) => {
+              const a = item.advisor;
+              if (!a) return '—';
+              return a.profile ? `${a.profile.firstName} ${a.profile.lastName}` : a.username;
+            },
+          },
+        ]
+      : []),
     {
       id: 'status',
       header: 'Estado',
@@ -151,7 +160,7 @@ export default function ClientsPage() {
     { value: 'false', label: 'Inactivo' },
   ];
 
-  if (loading) return <TableSkeleton columns={6} />;
+  if (loading) return <TableSkeleton columns={isAdvisor ? 5 : 6} />;
   if (error) return <ErrorState error={error} onRetry={refetch} />;
 
   return (
@@ -187,20 +196,24 @@ export default function ClientsPage() {
             value: isActive === undefined ? 'all' : String(isActive),
             onChange: (value) => setIsActive(value === 'all' ? undefined : value === 'true'),
           },
-          {
-            id: 'advisor',
-            label: 'Asesor',
-            placeholder: 'Seleccionar asesor',
-            searchable: true,
-            options: [{ value: 'all', label: 'Todos' }, ...advisorOptions],
-            value: advisorId ?? 'all',
-            onChange: (value) => setAdvisorId(value === 'all' ? undefined : value),
-          },
+          ...(!isAdvisor
+            ? [
+                {
+                  id: 'advisor',
+                  label: 'Asesor',
+                  placeholder: 'Seleccionar asesor',
+                  searchable: true,
+                  options: [{ value: 'all', label: 'Todos' }, ...advisorOptions],
+                  value: advisorId ?? 'all',
+                  onChange: (value: string) => setAdvisorId(value === 'all' ? undefined : value),
+                },
+              ]
+            : []),
         ]}
       />
 
       {clients.length === 0 ? (
-        search || isActive !== undefined || advisorId ? (
+        search || isActive !== undefined || (!isAdvisor && advisorId) ? (
           <EmptyState
             title="Sin resultados"
             description="No se encontraron clientes con los filtros aplicados"
