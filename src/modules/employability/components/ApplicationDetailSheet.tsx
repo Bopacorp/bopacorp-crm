@@ -45,7 +45,7 @@ export function ApplicationDetailSheet({
   return (
     <>
       <Sheet open={open} onOpenChange={onOpenChange}>
-        <SheetContent>
+        <SheetContent className="sm:max-w-xl">
           <SheetHeader>
             <SheetTitle>Detalle de aplicación</SheetTitle>
           </SheetHeader>
@@ -55,7 +55,7 @@ export function ApplicationDetailSheet({
           ) : error || !application ? (
             <ErrorState error={error} onRetry={refetch} />
           ) : (
-            <div className="flex flex-col gap-6 overflow-y-auto p-4">
+            <div className="flex flex-1 flex-col gap-6 overflow-y-auto min-h-0 p-4">
               <div className="flex items-center justify-between">
                 <StateBadge
                   state={application.state}
@@ -112,10 +112,12 @@ export function ApplicationDetailSheet({
                     {application.reviewDate ? formatDateTime(application.reviewDate) : '—'}
                   </DetailRow>
                   {application.reviewNotes && (
-                    <DetailRow label="Notas de revisión">{application.reviewNotes}</DetailRow>
+                    <DetailBlock label="Notas de revisión">{application.reviewNotes}</DetailBlock>
                   )}
                   {application.coverLetter && (
-                    <DetailRow label="Carta de presentación">{application.coverLetter}</DetailRow>
+                    <DetailBlock label="Carta de presentación">
+                      {application.coverLetter}
+                    </DetailBlock>
                   )}
                 </CardContent>
               </Card>
@@ -179,7 +181,16 @@ function DetailRow({ label, children }: { label: string; children: React.ReactNo
   return (
     <div className="flex items-start gap-3 px-2 py-1.5">
       <span className="w-32 shrink-0 text-sm text-muted-foreground">{label}</span>
-      <span className="min-w-0 text-sm text-foreground">{children}</span>
+      <span className="min-w-0 break-words text-sm text-foreground">{children}</span>
+    </div>
+  );
+}
+
+function DetailBlock({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex flex-col gap-1 px-2 py-1.5">
+      <span className="text-sm text-muted-foreground">{label}</span>
+      <span className="break-words whitespace-pre-wrap text-sm text-foreground">{children}</span>
     </div>
   );
 }
