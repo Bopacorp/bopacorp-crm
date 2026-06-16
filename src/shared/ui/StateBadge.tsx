@@ -19,6 +19,9 @@ const stateVariants: Record<string, 'default' | 'secondary' | 'destructive' | 'o
   presentation: 'default',
   follow_up: 'secondary',
   // Document states
+  PENDING_APPROVAL: 'secondary',
+  ACCEPTED: 'default',
+  REJECTED: 'destructive',
   approved: 'default',
   rejected: 'destructive',
   // Matrix states

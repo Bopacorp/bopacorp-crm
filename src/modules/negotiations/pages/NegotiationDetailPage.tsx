@@ -17,6 +17,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { formatDate } from '@/lib/format.js';
 import { Can } from '@/modules/auth/components/Can.js';
 import { useClientSheet } from '@/modules/clients/context/ClientSheetContext.js';
+import { NegotiationDocumentsTab } from '@/modules/documentation/components/NegotiationDocumentsTab.js';
 import { DetailSkeleton, EmptyState, ErrorState, StateBadge } from '@/shared/ui';
 import { ChangeStateDialog } from '../components/ChangeStateDialog.js';
 import { EditNegotiationSheet } from '../components/EditNegotiationSheet.js';
@@ -122,7 +123,7 @@ export default function NegotiationDetailPage() {
           <VisitsTab clientId={negotiation.client.id} />
         </TabsContent>
         <TabsContent value="documents" className="mt-4">
-          <EmptyState title="Sin documentos" description="Documentos disponibles próximamente" />
+          <NegotiationDocumentsTab negotiationId={id} />
         </TabsContent>
         <TabsContent value="matrices" className="mt-4">
           <EmptyState title="Sin matrices" description="Matrices disponibles próximamente" />

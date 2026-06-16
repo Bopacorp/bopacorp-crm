@@ -2,36 +2,20 @@ import type { NegotiationDocumentListItemResponse } from '@bopacorp/shared/docum
 import { CheckCircle, Download, FileUp, XCircle } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import {
-  EmptyState,
-  EntityTable,
-  FilterBar,
-  PaginationFooter,
-  SectionHeader,
-  StateBadge,
-} from '@/shared/ui';
-import { DocumentStateDialog } from '../components/DocumentStateDialog.js';
-import { DocumentUploadDialog } from '../components/DocumentUploadDialog.js';
+import { EmptyState, EntityTable, StateBadge } from '@/shared/ui';
 import { downloadDocument } from '../documentation.service.js';
 import { useChangeDocumentState } from '../hooks/useChangeDocumentState.js';
 import { useDocuments } from '../hooks/useDocuments.js';
 import { documentStateLabel } from '../lib/state.js';
+import { DocumentStateDialog } from './DocumentStateDialog.js';
+import { DocumentUploadDialog } from './DocumentUploadDialog.js';
 
-interface DocumentFilters {
-  search: string;
-  state: string;
+interface NegotiationDocumentsTabProps {
+  negotiationId: string;
 }
 
-const STATE_OPTIONS = [
-  { value: 'all', label: 'Todos' },
-  { value: 'PENDING_APPROVAL', label: 'Pendientes' },
-  { value: 'ACCEPTED', label: 'Aceptados' },
-  { value: 'REJECTED', label: 'Rechazados' },
-];
-
-export default function DocumentationPage() {
+export function NegotiationDocumentsTab({ negotiationId }: NegotiationDocumentsTabProps) {
   const [page, setPage] = useState(1);
-  const [filters, setFilters] = useState<DocumentFilters>({ search: '', state: 'all' });
   const [uploadOpen, setUploadOpen] = useState(false);
   const [stateDialog, setStateDialog] = useState<{
     open: boolean;
@@ -39,7 +23,9 @@ export default function DocumentationPage() {
     currentState: NegotiationDocumentListItemResponse['state'];
   }>({ open: false, documentId: '', currentState: 'PENDING_APPROVAL' });
 
-  const { documents, meta, loading, refetch } = useDocuments(page, filters);
+  const { documents, meta, loading, refetch } = useDocuments(page, {
+    negotiationId,
+  });
   const changeState = useChangeDocumentState();
 
   const handleDownload = (doc: NegotiationDocumentListItemResponse) => {
@@ -47,13 +33,6 @@ export default function DocumentationPage() {
   };
 
   const columns = [
-    {
-      id: 'company',
-      header: 'Empresa',
-      accessor: (item: NegotiationDocumentListItemResponse) => (
-        <span className="font-medium">{item.negotiation.client.businessName}</span>
-      ),
-    },
     {
       id: 'type',
       header: 'Tipo de documento',
@@ -141,48 +120,39 @@ export default function DocumentationPage() {
   ];
 
   return (
-    <div className="flex flex-col gap-6">
-      <SectionHeader
-        title="Documentación"
-        description="Gestión de documentos comerciales y flujo de aprobación"
-        actions={
-          <Button onClick={() => setUploadOpen(true)}>
-            <FileUp data-icon="inline-start" />
-            Subir documento
-          </Button>
-        }
-      />
-
-      <FilterBar
-        searchValue={filters.search}
-        onSearchChange={(search) => setFilters((f) => ({ ...f, search }))}
-        searchPlaceholder="Buscar por empresa..."
-        filters={[
-          {
-            id: 'state',
-            placeholder: 'Estado',
-            value: filters.state,
-            onChange: (state) => setFilters((f) => ({ ...f, state })),
-            options: STATE_OPTIONS,
-          },
-        ]}
-      />
+    <div className="flex flex-col gap-4">
+      <div className="flex justify-end">
+        <Button size="sm" onClick={() => setUploadOpen(true)}>
+          <FileUp data-icon="inline-start" className="size-4" />
+          Subir documento
+        </Button>
+      </div>
 
       {documents.length === 0 && !loading ? (
-        <EmptyState
-          title="No hay documentos"
-          description="Los documentos pendientes de aprobación aparecerán aquí"
-        />
+        <EmptyState title="Sin documentos" description="Aún no se han cargado documentos" />
       ) : (
         <>
           <EntityTable data={documents} columns={columns} keyExtractor={(item) => item.id} />
-          <PaginationFooter
-            page={page}
-            onPageChange={setPage}
-            pageSize={10}
-            onPageSizeChange={() => {}}
-            meta={meta ? { totalItems: meta.totalItems, totalPages: meta.totalPages } : null}
-          />
+          {meta && meta.totalPages > 1 && (
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={page === 1}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+              >
+                Anterior
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={page === meta.totalPages}
+                onClick={() => setPage((p) => Math.min(meta.totalPages, p + 1))}
+              >
+                Siguiente
+              </Button>
+            </div>
+          )}
         </>
       )}
 
@@ -190,6 +160,7 @@ export default function DocumentationPage() {
         open={uploadOpen}
         onOpenChange={setUploadOpen}
         onSuccess={() => refetch()}
+        negotiationId={negotiationId}
       />
 
       <DocumentStateDialog
