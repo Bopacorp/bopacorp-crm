@@ -1,10 +1,10 @@
 import type { UpdateJobVacancyRequest } from '@bopacorp/shared/employability';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Trash2 } from 'lucide-react';
+import { Trash2, XIcon } from 'lucide-react';
 import { useCallback, useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { queryKeys } from '@/lib/query-keys.js';
 import { Can } from '@/modules/auth/components/Can.js';
 import { getErrorMessage } from '@/shared/errors/index.js';
@@ -106,16 +106,26 @@ export function EditVacancySheet({
   return (
     <>
       <Sheet open={open} onOpenChange={handleOpenChange}>
-        <SheetContent>
-          <SheetHeader className="flex flex-row items-center justify-between">
-            <SheetTitle>{vacancy ? vacancy.title : 'Editar vacante'}</SheetTitle>
-            {vacancy && (
-              <Can permission="job_vacancies.delete">
-                <Button variant="ghost" size="icon-sm" onClick={() => setDeleteOpen(true)}>
-                  <Trash2 className="size-4 text-destructive" />
+        <SheetContent showCloseButton={false}>
+          <SheetHeader className="flex flex-row items-center justify-between gap-4">
+            <SheetTitle className="flex-1 truncate">
+              {vacancy ? vacancy.title : 'Editar vacante'}
+            </SheetTitle>
+            <div className="flex items-center gap-2">
+              {vacancy && (
+                <Can permission="job_vacancies.delete">
+                  <Button variant="ghost" size="icon-sm" onClick={() => setDeleteOpen(true)}>
+                    <Trash2 className="size-4 text-destructive" />
+                  </Button>
+                </Can>
+              )}
+              <SheetClose asChild>
+                <Button variant="ghost" size="icon-sm">
+                  <XIcon className="size-4" />
+                  <span className="sr-only">Cerrar</span>
                 </Button>
-              </Can>
-            )}
+              </SheetClose>
+            </div>
           </SheetHeader>
 
           {loading ? (
