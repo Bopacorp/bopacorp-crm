@@ -1,15 +1,16 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { Button } from '@/components/ui/button';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { queryKeys } from '@/lib/query-keys.js';
 import { getErrorMessage } from '@/shared/errors/index.js';
 import { removeVacancy } from '../employability.service.js';
@@ -43,30 +44,35 @@ export function DeleteVacancyDialog({
   });
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Eliminar vacante</DialogTitle>
-        </DialogHeader>
-        <DialogDescription>
-          ¿Eliminar la vacante <span className="font-medium text-foreground">{vacancyTitle}</span>?
-          Esta acción no se puede deshacer.
-        </DialogDescription>
-        <DialogFooter>
-          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-            Cancelar
-          </Button>
-          <Button
-            type="button"
+    <AlertDialog open={open} onOpenChange={(v) => !v && onOpenChange(false)}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>¿Eliminar vacante?</AlertDialogTitle>
+          <AlertDialogDescription>
+            Se eliminará {vacancyTitle}. Esta acción no se puede deshacer.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={mutation.isPending}>Cancelar</AlertDialogCancel>
+          <AlertDialogAction
             variant="destructive"
-            onClick={() => mutation.mutate()}
+            onClick={(e) => {
+              e.preventDefault();
+              mutation.mutate();
+            }}
             disabled={mutation.isPending}
           >
-            {mutation.isPending && <Loader2 data-icon="inline-start" className="animate-spin" />}
-            Eliminar
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+            {mutation.isPending ? (
+              <>
+                <Loader2 className="animate-spin" />
+                Eliminando…
+              </>
+            ) : (
+              'Eliminar'
+            )}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }

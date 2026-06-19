@@ -148,6 +148,7 @@ export default function VacanciesPage() {
         filters={[
           {
             id: 'isActive',
+            label: 'Estado',
             placeholder: 'Estado',
             options: STATUS_OPTIONS,
             value: isActiveFilter,
@@ -155,6 +156,7 @@ export default function VacanciesPage() {
           },
           {
             id: 'isPublished',
+            label: 'Publicación',
             placeholder: 'Publicación',
             options: PUBLISHED_OPTIONS,
             value: isPublishedFilter,

@@ -118,7 +118,7 @@ export default function ApplicantsPage() {
             setSearchParams(searchParams);
           }}
         >
-          <ArrowLeft className="mr-2 size-4" />
+          <ArrowLeft data-icon="inline-start" />
           Volver a vacantes
         </Button>
       )}
@@ -139,6 +139,7 @@ export default function ApplicantsPage() {
         filters={[
           {
             id: 'state',
+            label: 'Estado',
             placeholder: 'Estado',
             options: STATE_OPTIONS,
             value: stateFilter,

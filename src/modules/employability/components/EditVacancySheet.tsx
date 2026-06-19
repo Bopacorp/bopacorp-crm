@@ -4,7 +4,7 @@ import { Trash2, XIcon } from 'lucide-react';
 import { useCallback, useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { queryKeys } from '@/lib/query-keys.js';
 import { Can } from '@/modules/auth/components/Can.js';
 import { getErrorMessage } from '@/shared/errors/index.js';
@@ -119,12 +119,9 @@ export function EditVacancySheet({
                   </Button>
                 </Can>
               )}
-              <SheetClose asChild>
-                <Button variant="ghost" size="icon-sm">
-                  <XIcon className="size-4" />
-                  <span className="sr-only">Cerrar</span>
-                </Button>
-              </SheetClose>
+              <Button variant="ghost" size="icon-sm" onClick={() => guardedAction('close')}>
+                <XIcon />
+              </Button>
             </div>
           </SheetHeader>
 
