@@ -219,9 +219,11 @@ function ViewMode({
           <DetailField icon={Tag} label="Nombre">
             {entity.name}
           </DetailField>
-          <DetailField icon={FileText} label="Descripción">
-            {entity.description || '—'}
-          </DetailField>
+          {entity.description && (
+            <DetailField icon={FileText} label="Descripción">
+              {entity.description}
+            </DetailField>
+          )}
           <DetailField icon={Settings} label="Estado">
             <StateBadge
               state={entity.isActive ? 'active' : 'inactive'}
