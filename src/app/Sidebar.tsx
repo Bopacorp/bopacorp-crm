@@ -9,6 +9,7 @@ import {
   Home,
   Inbox,
   LogOut,
+  MessageCircle,
   Monitor,
   Moon,
   Package,
@@ -194,6 +195,14 @@ export function AppSidebar() {
                       <Link to="/catalogo/configuracion">
                         <Settings />
                         <span>Configuración</span>
+                      </Link>
+                    </SidebarMenuSubButton>
+                  </SidebarMenuSubItem>
+                  <SidebarMenuSubItem>
+                    <SidebarMenuSubButton asChild isActive={isActive('/catalogo/solicitudes')}>
+                      <Link to="/catalogo/solicitudes">
+                        <MessageCircle />
+                        <span>Solicitudes</span>
                       </Link>
                     </SidebarMenuSubButton>
                   </SidebarMenuSubItem>
