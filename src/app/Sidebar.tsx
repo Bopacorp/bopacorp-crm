@@ -48,7 +48,12 @@ import { useAuth } from '@/modules/auth/context/AuthContext.js';
 import { usePermission } from '@/modules/auth/hooks/usePermission.js';
 
 const navigationTop = [
-  { name: 'Overview', href: '/overview', icon: Home },
+  {
+    name: 'Overview',
+    href: '/overview',
+    icon: Home,
+    roles: ['admin', 'manager', 'supervisor', 'coordinator'],
+  },
   { name: 'Clientes', href: '/clientes', icon: Building2, permission: 'business_clients.read' },
   {
     name: 'Negociaciones',
@@ -102,9 +107,11 @@ export function AppSidebar() {
   const location = useLocation();
   const navigate = useNavigate();
   const { state } = useSidebar();
-  const { user, logout } = useAuth();
+  const { user, logout, hasRole } = useAuth();
   const { hasPermission } = usePermission();
   const isCollapsed = state === 'collapsed';
+
+  const hasAnyRole = (roles?: string[]) => !roles || roles.some((role) => hasRole(role));
 
   const isActive = (href: string) => {
     if (href === '/overview') {
@@ -149,7 +156,10 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {navigationTop
-                .filter((item) => !item.permission || hasPermission(item.permission))
+                .filter(
+                  (item) =>
+                    hasAnyRole(item.roles) && (!item.permission || hasPermission(item.permission)),
+                )
                 .map((item) => (
                   <SidebarMenuItem key={item.href}>
                     <SidebarMenuButton asChild isActive={isActive(item.href)} tooltip={item.name}>
