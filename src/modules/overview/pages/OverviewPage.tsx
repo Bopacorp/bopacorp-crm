@@ -1,10 +1,11 @@
 import type { AdvisorMetricResponse } from '@bopacorp/shared/reports';
-import { format } from 'date-fns';
-import { Briefcase, CalendarCheck, Users } from 'lucide-react';
+import { Briefcase, CalendarCheck, Users, XIcon } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button.js';
+import { Field, FieldLabel } from '@/components/ui/field.js';
 import { Input } from '@/components/ui/input.js';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet.js';
+import { cn } from '@/lib/utils';
 import { useAdvisorMetrics } from '@/modules/reports/hooks/useAdvisorMetrics.js';
 import {
   EmptyState,
@@ -25,7 +26,7 @@ function formatCurrency(value: number) {
 }
 
 export default function OverviewPage() {
-  const today = format(new Date(), 'yyyy-MM-dd');
+  const today = new Date().toISOString().split('T')[0];
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [selectedAdvisor, setSelectedAdvisor] = useState<AdvisorMetricResponse | null>(null);
@@ -33,6 +34,7 @@ export default function OverviewPage() {
   const {
     data: metrics,
     isLoading: loading,
+    isFetching: fetching,
     error,
     refetch,
   } = useAdvisorMetrics({
@@ -54,17 +56,7 @@ export default function OverviewPage() {
       id: 'advisor',
       header: 'Asesor',
       accessor: (item: AdvisorMetricResponse) => (
-        <div className="flex items-center gap-2">
-          <span className="font-medium">{advisorName(item)}</span>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-auto px-0 text-foreground hover:underline"
-            onClick={() => setSelectedAdvisor(item)}
-          >
-            Ver detalles
-          </Button>
-        </div>
+        <span className="font-medium text-foreground hover:underline">{advisorName(item)}</span>
       ),
     },
     {
@@ -108,9 +100,14 @@ export default function OverviewPage() {
   if (error) return <ErrorState error={error} onRetry={refetch} />;
 
   return (
-    <div className="flex flex-col gap-6">
+    <div
+      className={cn(
+        'flex min-w-0 flex-col gap-6',
+        fetching && 'pointer-events-none opacity-60 transition-opacity',
+      )}
+    >
       <SectionHeader
-        title="Overview"
+        title="Resumen"
         description="Resumen operativo del día y métricas clave de negocio"
       />
 
@@ -137,30 +134,24 @@ export default function OverviewPage() {
 
       <div className="flex flex-col gap-4">
         <div className="flex flex-wrap items-end gap-4">
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="date-from" className="text-sm font-medium">
-              Desde
-            </label>
+          <Field className="w-auto">
+            <FieldLabel>Desde</FieldLabel>
             <Input
-              id="date-from"
               type="date"
               value={dateFrom}
               onChange={(e) => setDateFrom(e.target.value)}
               max={today}
             />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="date-to" className="text-sm font-medium">
-              Hasta
-            </label>
+          </Field>
+          <Field className="w-auto">
+            <FieldLabel>Hasta</FieldLabel>
             <Input
-              id="date-to"
               type="date"
               value={dateTo}
               onChange={(e) => setDateTo(e.target.value)}
               max={today}
             />
-          </div>
+          </Field>
           <Button
             variant="outline"
             onClick={() => {
@@ -182,18 +173,24 @@ export default function OverviewPage() {
             data={metrics ?? []}
             columns={columns}
             keyExtractor={(item) => item.advisor.id}
+            onRowClick={(item) => setSelectedAdvisor(item)}
           />
         )}
       </div>
 
       <Sheet open={!!selectedAdvisor} onOpenChange={() => setSelectedAdvisor(null)}>
-        <SheetContent>
+        <SheetContent showCloseButton={false}>
           <SheetHeader>
-            <SheetTitle>{selectedAdvisor ? advisorName(selectedAdvisor) : 'Detalle'}</SheetTitle>
+            <div className="flex items-center justify-between">
+              <SheetTitle>{selectedAdvisor ? advisorName(selectedAdvisor) : 'Detalle'}</SheetTitle>
+              <Button variant="ghost" size="icon-sm" onClick={() => setSelectedAdvisor(null)}>
+                <XIcon />
+              </Button>
+            </div>
           </SheetHeader>
 
           {selectedAdvisor && (
-            <div className="flex flex-col gap-6 py-6">
+            <div className="flex flex-col gap-6 p-4">
               <div className="grid gap-4 sm:grid-cols-2">
                 <KpiCard
                   title="Contactados"

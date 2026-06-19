@@ -44,13 +44,15 @@ export function ChangeApplicationStateDialog({
   onSuccess,
 }: ChangeApplicationStateDialogProps) {
   const queryClient = useQueryClient();
-  const [state, setState] = useState<ApplicationState>(currentState);
+  const availableStates = STATES.filter((s) => s !== currentState);
+  const [state, setState] = useState<ApplicationState>(availableStates[0]);
   const [reviewNotes, setReviewNotes] = useState('');
   const [error, setError] = useState('');
 
   useEffect(() => {
     if (open) {
-      setState(currentState);
+      const firstAvailable = STATES.filter((s) => s !== currentState)[0];
+      setState(firstAvailable);
       setReviewNotes('');
       setError('');
     }
@@ -94,7 +96,7 @@ export function ChangeApplicationStateDialog({
                   <SelectValue placeholder="Seleccionar estado" />
                 </SelectTrigger>
                 <SelectContent>
-                  {STATES.filter((s) => s !== currentState).map((s) => (
+                  {availableStates.map((s) => (
                     <SelectItem key={s} value={s}>
                       {applicationStateLabel(s)}
                     </SelectItem>

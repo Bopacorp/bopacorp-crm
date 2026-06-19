@@ -1,0 +1,128 @@
+import type { JobApplicationListItemResponse } from '@bopacorp/shared/employability';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { CheckCircle, Eye, Loader2, MoreHorizontal, XCircle } from 'lucide-react';
+import { useState } from 'react';
+import { toast } from 'sonner';
+import { Button } from '@/components/ui/button.js';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu.js';
+import { queryKeys } from '@/lib/query-keys.js';
+import { Can } from '@/modules/auth/components/Can.js';
+import { getErrorMessage } from '@/shared/errors/index.js';
+import { updateJobApplication } from '../employability.service.js';
+import { RejectApplicationDialog } from './RejectApplicationDialog.js';
+
+interface ApplicationActionsProps {
+  application: JobApplicationListItemResponse;
+  onDetailClick: (id: string) => void;
+  onSuccess?: () => void;
+}
+
+type AcceptState = 'idle' | 'loading' | 'success';
+
+export function ApplicationActions({
+  application,
+  onDetailClick,
+  onSuccess,
+}: ApplicationActionsProps) {
+  const queryClient = useQueryClient();
+  const [acceptState, setAcceptState] = useState<AcceptState>('idle');
+  const [rejectOpen, setRejectOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  const mutation = useMutation({
+    mutationFn: () => updateJobApplication(application.id, { state: 'ACCEPTED' }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.employability.applications.all });
+      setAcceptState('success');
+      setTimeout(() => setAcceptState('idle'), 1500);
+      onSuccess?.();
+    },
+    onError: (err) => {
+      setAcceptState('idle');
+      toast.error(getErrorMessage(err));
+    },
+  });
+
+  const handleAccept = () => {
+    setAcceptState('loading');
+    setMenuOpen(false);
+    mutation.mutate();
+  };
+
+  const handleRejectClick = () => {
+    setMenuOpen(false);
+    setRejectOpen(true);
+  };
+
+  const handleDetailClick = () => {
+    setMenuOpen(false);
+    onDetailClick(application.id);
+  };
+
+  const canAcceptOrReject = application.state === 'PENDING';
+  const isAcceptDisabled = acceptState !== 'idle' || mutation.isPending;
+
+  return (
+    <>
+      {acceptState === 'loading' || acceptState === 'success' ? (
+        <Button size="sm" variant="outline" disabled>
+          {acceptState === 'loading' && (
+            <Loader2 data-icon="inline-start" className="size-4 animate-spin" />
+          )}
+          {acceptState === 'success' && (
+            <CheckCircle data-icon="inline-start" className="size-4 text-green-600" />
+          )}
+          {acceptState === 'success' ? 'Aceptado' : 'Aceptando'}
+        </Button>
+      ) : (
+        <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
+          <DropdownMenuTrigger asChild>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={(e: React.MouseEvent<HTMLButtonElement>) => e.stopPropagation()}
+            >
+              <MoreHorizontal data-icon="inline-start" className="size-4" />
+              Acciones
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={handleDetailClick}>
+              <Eye className="size-4" />
+              Ver detalle
+            </DropdownMenuItem>
+
+            {canAcceptOrReject && (
+              <Can permission="job_applications.update">
+                <DropdownMenuItem onClick={handleAccept} disabled={isAcceptDisabled}>
+                  <CheckCircle className="size-4" />
+                  Aceptar
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={handleRejectClick}
+                  disabled={mutation.isPending}
+                  variant="destructive"
+                >
+                  <XCircle className="size-4" />
+                  Rechazar
+                </DropdownMenuItem>
+              </Can>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
+
+      <RejectApplicationDialog
+        open={rejectOpen}
+        onOpenChange={setRejectOpen}
+        applicationId={application.id}
+        onSuccess={onSuccess}
+      />
+    </>
+  );
+}
