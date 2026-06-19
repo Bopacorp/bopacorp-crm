@@ -73,6 +73,15 @@ export const queryKeys = {
       detail: (id: string) => ['employability', 'applications', 'detail', id] as const,
     },
   },
+  matrices: {
+    all: ['matrices'] as const,
+    list: (page: number, filters: Record<string, unknown>) =>
+      ['matrices', 'list', page, filters] as const,
+    detail: (id: string) => ['matrices', 'detail', id] as const,
+    lineItems: (matrixId: string) => ['matrices', 'line-items', matrixId] as const,
+    attachments: (matrixId: string) => ['matrices', 'attachments', matrixId] as const,
+    history: (matrixId: string) => ['matrices', 'history', matrixId] as const,
+  },
   catalog: {
     all: ['catalog'] as const,
     itemTypes: {

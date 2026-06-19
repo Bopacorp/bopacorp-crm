@@ -10,13 +10,13 @@ import CatalogItemCreatePage from '@/modules/catalog/pages/CatalogItemCreatePage
 import CatalogItemDetailPage from '@/modules/catalog/pages/CatalogItemDetailPage';
 import CatalogPage from '@/modules/catalog/pages/CatalogPage';
 import CatalogSettingsPage from '@/modules/catalog/pages/CatalogSettingsPage';
-import MatrixDetailPage from '@/modules/catalog/pages/MatrixDetailPage';
 import { ClientSheetProvider } from '@/modules/clients/context/ClientSheetContext';
 import ClientsPage from '@/modules/clients/pages/ClientsPage';
 import DocumentationPage from '@/modules/documentation/pages/DocumentationPage';
 import ApplicantsPage from '@/modules/employability/pages/ApplicantsPage';
 import MessagesPage from '@/modules/employability/pages/MessagesPage';
 import VacanciesPage from '@/modules/employability/pages/VacanciesPage';
+import MatrixDetailPage from '@/modules/matrices/pages/MatrixDetailPage';
 import NegotiationDetailPage from '@/modules/negotiations/pages/NegotiationDetailPage';
 import NegotiationsPage from '@/modules/negotiations/pages/NegotiationsPage';
 import OrgSettingsPage from '@/modules/org/pages/OrgSettingsPage';
@@ -128,7 +128,7 @@ export default function App() {
                 }
               />
               <Route
-                path="/catalogo/matrices/:id"
+                path="/negociaciones/matrices/:id"
                 element={
                   <RequireAuth>
                     <MatrixDetailPage />

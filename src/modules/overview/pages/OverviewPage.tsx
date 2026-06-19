@@ -44,12 +44,12 @@ export default function OverviewPage() {
 
   const totals = metrics?.reduce(
     (acc, item) => ({
-      activeAccounts: acc.activeAccounts + item.clientsContacted,
-      visitsToday: acc.visitsToday + item.clientsVisited,
-      closedDeals: acc.closedDeals + item.clientsClosed,
+      contacted: acc.contacted + item.clientsContacted,
+      visited: acc.visited + item.clientsVisited,
+      closed: acc.closed + item.clientsClosed,
     }),
-    { activeAccounts: 0, visitsToday: 0, closedDeals: 0 },
-  ) ?? { activeAccounts: 0, visitsToday: 0, closedDeals: 0 };
+    { contacted: 0, visited: 0, closed: 0 },
+  ) ?? { contacted: 0, visited: 0, closed: 0 };
 
   const columns = [
     {
@@ -106,28 +106,25 @@ export default function OverviewPage() {
         fetching && 'pointer-events-none opacity-60 transition-opacity',
       )}
     >
-      <SectionHeader
-        title="Resumen"
-        description="Resumen operativo del día y métricas clave de negocio"
-      />
+      <SectionHeader title="Resumen" description="Resumen operativo y métricas clave de negocio" />
 
       <div className="grid gap-4 md:grid-cols-3">
         <KpiCard
-          title="Cuentas activas"
-          value={totals.activeAccounts}
-          subtitle="Total de cuentas contactadas"
+          title="Contacto inicial"
+          value={totals.contacted}
+          subtitle="Negociaciones en primera etapa"
           icon={Briefcase}
         />
         <KpiCard
-          title="Visitas"
-          value={totals.visitsToday}
-          subtitle="Clientes visitados en el período"
+          title="Clientes visitados"
+          value={totals.visited}
+          subtitle="Clientes distintos visitados"
           icon={CalendarCheck}
         />
         <KpiCard
-          title="Negocios cerrados"
-          value={totals.closedDeals}
-          subtitle="Cierres exitosos"
+          title="En cierre"
+          value={totals.closed}
+          subtitle="Negociaciones en etapa de cierre"
           icon={Users}
         />
       </div>

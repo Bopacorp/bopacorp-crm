@@ -1,5 +1,4 @@
 import {
-  BarChart3,
   BookOpen,
   Briefcase,
   Building2,
@@ -60,10 +59,7 @@ const navigationTop = [
   },
 ];
 
-const navigationBottom = [
-  { name: 'Documentación', href: '/documentacion', icon: FileText },
-  { name: 'Reportes', href: '/reportes', icon: BarChart3 },
-];
+const navigationBottom = [{ name: 'Documentación', href: '/documentacion', icon: FileText }];
 
 const employabilityChildren = [
   { name: 'Vacantes', href: '/empleabilidad/vacantes', icon: Briefcase },

@@ -18,13 +18,14 @@ const stateVariants: Record<string, 'default' | 'secondary' | 'destructive' | 'o
   // Visit types (prospecting, closing, post_sale shared with negotiation states)
   presentation: 'default',
   follow_up: 'secondary',
-  // Document states
+  // Document + Matrix states
   PENDING_APPROVAL: 'secondary',
   ACCEPTED: 'default',
   REJECTED: 'destructive',
+  DRAFT: 'secondary',
+  APPROVED: 'default',
   approved: 'default',
   rejected: 'destructive',
-  // Matrix states
   draft: 'secondary',
   inactive: 'outline',
   published: 'default',
