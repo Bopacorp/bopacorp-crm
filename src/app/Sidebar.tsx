@@ -1,5 +1,4 @@
 import {
-  BarChart3,
   BookOpen,
   Briefcase,
   Building2,
@@ -12,6 +11,7 @@ import {
   MessageCircle,
   Monitor,
   Moon,
+  Network,
   Package,
   Settings,
   Sun,
@@ -60,15 +60,22 @@ const navigationTop = [
   },
 ];
 
-const navigationBottom = [
-  { name: 'Documentación', href: '/documentacion', icon: FileText },
-  { name: 'Reportes', href: '/reportes', icon: BarChart3 },
-];
+const navigationBottom = [{ name: 'Documentación', href: '/documentacion', icon: FileText }];
 
 const employabilityChildren = [
   { name: 'Vacantes', href: '/empleabilidad/vacantes', icon: Briefcase },
   { name: 'Aplicantes', href: '/empleabilidad/aplicantes', icon: Users },
-  { name: 'Mensajes', href: '/empleabilidad/mensajes', icon: Inbox },
+  { name: 'Solicitudes', href: '/empleabilidad/mensajes', icon: Inbox },
+];
+
+const orgChildren = [
+  { name: 'Equipo', href: '/organizacion/equipo', icon: Users, permission: 'employees.read' },
+  {
+    name: 'Configuración',
+    href: '/organizacion/configuracion',
+    icon: Settings,
+    permission: 'departments.read',
+  },
 ];
 
 function getInitials(profile: { firstName: string; lastName: string } | null): string {
@@ -130,7 +137,7 @@ export function AppSidebar() {
                 BOPACORP
               </span>
               <span className="text-[10px] font-bold text-primary tracking-widest uppercase mt-1 leading-none">
-                Partner Tigo
+                Distribuidor Tigo
               </span>
             </div>
           </div>
@@ -221,9 +228,15 @@ export function AppSidebar() {
               ))}
 
               <SidebarMenuItem>
-                <SidebarMenuButton isActive={isActive('/empleabilidad')} tooltip="Empleabilidad">
-                  <Briefcase />
-                  <span>Empleabilidad</span>
+                <SidebarMenuButton
+                  asChild
+                  isActive={isActive('/empleabilidad')}
+                  tooltip="Empleabilidad"
+                >
+                  <Link to="/empleabilidad/vacantes">
+                    <Briefcase />
+                    <span>Empleabilidad</span>
+                  </Link>
                 </SidebarMenuButton>
                 <SidebarMenuSub>
                   {employabilityChildren.map((child) => (
@@ -238,6 +251,35 @@ export function AppSidebar() {
                   ))}
                 </SidebarMenuSub>
               </SidebarMenuItem>
+
+              {orgChildren.some((c) => hasPermission(c.permission)) && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={isActive('/organizacion')}
+                    tooltip="Organización"
+                  >
+                    <Link to="/organizacion/equipo">
+                      <Network />
+                      <span>Organización</span>
+                    </Link>
+                  </SidebarMenuButton>
+                  <SidebarMenuSub>
+                    {orgChildren
+                      .filter((child) => hasPermission(child.permission))
+                      .map((child) => (
+                        <SidebarMenuSubItem key={child.href}>
+                          <SidebarMenuSubButton asChild isActive={isActive(child.href)}>
+                            <Link to={child.href}>
+                              <child.icon />
+                              <span>{child.name}</span>
+                            </Link>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                      ))}
+                  </SidebarMenuSub>
+                </SidebarMenuItem>
+              )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

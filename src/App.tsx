@@ -11,15 +11,17 @@ import CatalogItemDetailPage from '@/modules/catalog/pages/CatalogItemDetailPage
 import CatalogPage from '@/modules/catalog/pages/CatalogPage';
 import CatalogSettingsPage from '@/modules/catalog/pages/CatalogSettingsPage';
 import ContactRequestsPage from '@/modules/catalog/pages/ContactRequestsPage';
-import MatrixDetailPage from '@/modules/catalog/pages/MatrixDetailPage';
 import { ClientSheetProvider } from '@/modules/clients/context/ClientSheetContext';
 import ClientsPage from '@/modules/clients/pages/ClientsPage';
 import DocumentationPage from '@/modules/documentation/pages/DocumentationPage';
 import ApplicantsPage from '@/modules/employability/pages/ApplicantsPage';
 import MessagesPage from '@/modules/employability/pages/MessagesPage';
 import VacanciesPage from '@/modules/employability/pages/VacanciesPage';
+import MatrixDetailPage from '@/modules/matrices/pages/MatrixDetailPage';
 import NegotiationDetailPage from '@/modules/negotiations/pages/NegotiationDetailPage';
 import NegotiationsPage from '@/modules/negotiations/pages/NegotiationsPage';
+import OrgSettingsPage from '@/modules/org/pages/OrgSettingsPage';
+import TeamPage from '@/modules/org/pages/TeamPage';
 import OverviewPage from '@/modules/overview/pages/OverviewPage';
 import ReportsPage from '@/modules/reports/pages/ReportsPage';
 import { ErrorBoundary } from '@/shared/ui/ErrorBoundary';
@@ -135,7 +137,7 @@ export default function App() {
                 }
               />
               <Route
-                path="/catalogo/matrices/:id"
+                path="/negociaciones/matrices/:id"
                 element={
                   <RequireAuth>
                     <MatrixDetailPage />
@@ -155,6 +157,24 @@ export default function App() {
                 element={
                   <RequireAuth>
                     <CatalogItemDetailPage />
+                  </RequireAuth>
+                }
+              />
+
+              {/* Organization */}
+              <Route
+                path="/organizacion/equipo"
+                element={
+                  <RequireAuth>
+                    <TeamPage />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/organizacion/configuracion"
+                element={
+                  <RequireAuth>
+                    <OrgSettingsPage />
                   </RequireAuth>
                 }
               />

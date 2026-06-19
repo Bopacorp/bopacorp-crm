@@ -1,9 +1,11 @@
 import type { PaginationMeta } from '@bopacorp/shared/common';
+import type { OrgRoleListItemResponse } from '@bopacorp/shared/core';
 import { useQuery } from '@tanstack/react-query';
 import { Plus } from 'lucide-react';
 import { useState } from 'react';
 import { useDebounce } from 'use-debounce';
 import { Button } from '@/components/ui/button';
+import { queryKeys } from '@/lib/query-keys.js';
 import { cn } from '@/lib/utils';
 import { usePageReset } from '@/shared/hooks/usePageReset.js';
 import {
@@ -16,54 +18,8 @@ import {
   StateBadge,
   TableSkeleton,
 } from '@/shared/ui';
-import { LookupTableSheet } from './LookupTableSheet.js';
-
-export interface LookupListItem {
-  id: string;
-  code: string;
-  name: string;
-  isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface LookupCreateData {
-  code: string;
-  name: string;
-  isActive: boolean;
-  description?: string;
-}
-
-export interface LookupUpdateData {
-  name?: string;
-  description?: string;
-  isActive?: boolean;
-}
-
-export interface LookupListQuery {
-  page: number;
-  limit: number;
-  sortOrder: 'asc' | 'desc';
-  sortBy?: string;
-  search?: string;
-  isActive?: boolean;
-}
-
-export interface LookupTableConfig {
-  entityName: string;
-  entityNamePlural: string;
-  permissionPrefix: string;
-  queryKey: readonly unknown[];
-  listFn: (query: LookupListQuery) => Promise<{ data: LookupListItem[]; meta: PaginationMeta }>;
-  getFn: (id: string) => Promise<LookupListItem & { description: string | null }>;
-  createFn: (data: LookupCreateData) => Promise<unknown>;
-  updateFn: (id: string, data: LookupUpdateData) => Promise<unknown>;
-  disableFn: (id: string) => Promise<unknown>;
-}
-
-interface LookupTableManagerProps {
-  config: LookupTableConfig;
-}
+import { listDepartments, listOrgRoles } from '../org.service.js';
+import { OrgRoleSheet } from './OrgRoleSheet.js';
 
 const STATUS_OPTIONS = [
   { value: 'all', label: 'Todos' },
@@ -71,10 +27,11 @@ const STATUS_OPTIONS = [
   { value: 'false', label: 'Inactivos' },
 ];
 
-export function LookupTableManager({ config }: LookupTableManagerProps) {
+export function OrgRoleManager() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [isActiveFilter, setIsActiveFilter] = useState<string>('all');
+  const [departmentFilter, setDepartmentFilter] = useState<string>('all');
   const [pageSize, setPageSize] = useState(10);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
@@ -82,39 +39,66 @@ export function LookupTableManager({ config }: LookupTableManagerProps) {
   const [debouncedSearch] = useDebounce(search, 400);
 
   const isActive = isActiveFilter === 'all' ? undefined : isActiveFilter === 'true';
+  const departmentId = departmentFilter === 'all' ? undefined : departmentFilter;
 
-  usePageReset([debouncedSearch, isActiveFilter, pageSize], setPage);
+  usePageReset([debouncedSearch, isActiveFilter, departmentFilter, pageSize], setPage);
+
+  const { data: deptData } = useQuery({
+    queryKey: [...queryKeys.departments.all, 'filter-options'],
+    queryFn: () => listDepartments({ page: 1, limit: 100, sortOrder: 'asc', isActive: true }),
+    staleTime: 5 * 60_000,
+  });
+
+  const departmentOptions = [
+    { value: 'all', label: 'Todos' },
+    ...(deptData?.data.map((d) => ({ value: d.id, label: d.name })) ?? []),
+  ];
 
   const { data, isLoading, isFetching, error, refetch } = useQuery({
-    queryKey: [...config.queryKey, 'list', page, { search: debouncedSearch, isActive, pageSize }],
+    queryKey: [
+      ...queryKeys.orgRoles.all,
+      'list',
+      page,
+      { search: debouncedSearch, isActive, departmentId, pageSize },
+    ],
     queryFn: () =>
-      config.listFn({
+      listOrgRoles({
         page,
         limit: pageSize,
         search: debouncedSearch || undefined,
         isActive,
+        departmentId,
         sortOrder: 'asc',
       }),
   });
 
   const items = data?.data ?? [];
-  const meta = data?.meta ?? null;
+  const meta: PaginationMeta | null = data?.meta ?? null;
 
   const columns = [
     {
       id: 'code',
       header: 'Código',
-      accessor: (item: LookupListItem) => <span className="font-mono text-xs">{item.code}</span>,
+      accessor: (item: OrgRoleListItemResponse) => (
+        <span className="font-mono text-xs">{item.code}</span>
+      ),
     },
     {
       id: 'name',
       header: 'Nombre',
-      accessor: (item: LookupListItem) => item.name,
+      accessor: (item: OrgRoleListItemResponse) => item.name,
+    },
+    {
+      id: 'department',
+      header: 'Departamento',
+      accessor: (item: OrgRoleListItemResponse) => (
+        <span className="text-muted-foreground">{item.department?.name ?? '—'}</span>
+      ),
     },
     {
       id: 'state',
       header: 'Estado',
-      accessor: (item: LookupListItem) => (
+      accessor: (item: OrgRoleListItemResponse) => (
         <StateBadge
           state={item.isActive ? 'active' : 'inactive'}
           label={item.isActive ? 'Activo' : 'Inactivo'}
@@ -123,7 +107,7 @@ export function LookupTableManager({ config }: LookupTableManagerProps) {
     },
   ];
 
-  if (isLoading) return <TableSkeleton columns={3} />;
+  if (isLoading) return <TableSkeleton columns={4} />;
   if (error) return <ErrorState error={error} onRetry={refetch} />;
 
   return (
@@ -136,8 +120,16 @@ export function LookupTableManager({ config }: LookupTableManagerProps) {
       <FilterBar
         searchValue={search}
         onSearchChange={setSearch}
-        searchPlaceholder={`Buscar ${config.entityNamePlural.toLowerCase()}...`}
+        searchPlaceholder="Buscar roles organizacionales..."
         filters={[
+          {
+            id: 'department',
+            label: 'Departamento',
+            placeholder: 'Departamento',
+            options: departmentOptions,
+            value: departmentFilter,
+            onChange: setDepartmentFilter,
+          },
           {
             id: 'isActive',
             label: 'Estado',
@@ -148,25 +140,25 @@ export function LookupTableManager({ config }: LookupTableManagerProps) {
           },
         ]}
         actions={
-          <Can permission={`${config.permissionPrefix}.create`}>
+          <Can permission="org_roles.create">
             <Button onClick={() => setCreateOpen(true)}>
               <Plus data-icon="inline-start" />
-              {`Nuevo ${config.entityName.toLowerCase()}`}
+              Nuevo rol
             </Button>
           </Can>
         }
       />
 
       {items.length === 0 ? (
-        debouncedSearch || isActive !== undefined ? (
+        debouncedSearch || isActive !== undefined || departmentId ? (
           <EmptyState
             title="Sin resultados"
-            description={`No se encontraron ${config.entityNamePlural.toLowerCase()} con los filtros aplicados`}
+            description="No se encontraron roles organizacionales con los filtros aplicados"
           />
         ) : (
           <EmptyState
-            title={`No hay ${config.entityNamePlural.toLowerCase()}`}
-            description={`Crea tu primer ${config.entityName.toLowerCase()} para comenzar`}
+            title="No hay roles organizacionales"
+            description="Crea tu primer rol organizacional para comenzar"
           />
         )
       ) : (
@@ -187,23 +179,16 @@ export function LookupTableManager({ config }: LookupTableManagerProps) {
         </>
       )}
 
-      <LookupTableSheet
+      <OrgRoleSheet
         open={!!selectedId}
         onOpenChange={(open) => {
           if (!open) setSelectedId(null);
         }}
         entityId={selectedId}
-        config={config}
         mode="view"
       />
 
-      <LookupTableSheet
-        open={createOpen}
-        onOpenChange={setCreateOpen}
-        entityId={null}
-        config={config}
-        mode="create"
-      />
+      <OrgRoleSheet open={createOpen} onOpenChange={setCreateOpen} entityId={null} mode="create" />
     </div>
   );
 }

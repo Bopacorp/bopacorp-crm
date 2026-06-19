@@ -1,4 +1,4 @@
-import type { ApplicationState, UpdateJobApplicationRequest } from '@bopacorp/shared/employability';
+import type { MatrixState } from '@bopacorp/shared/matrices';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -23,45 +23,49 @@ import { Textarea } from '@/components/ui/textarea';
 import { queryKeys } from '@/lib/query-keys.js';
 import { getErrorMessage } from '@/shared/errors/index.js';
 import { FormAlert } from '@/shared/ui';
-import { updateJobApplication } from '../employability.service.js';
-import { applicationStateLabel } from '../lib/state.js';
+import { getValidTransitions, matrixStateLabel } from '../lib/state.js';
+import { changeMatrixState } from '../matrices.service.js';
 
-interface ChangeApplicationStateDialogProps {
+interface ChangeMatrixStateDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  applicationId: string;
-  currentState: ApplicationState;
+  matrixId: string;
+  currentState: MatrixState;
   onSuccess: () => void;
 }
 
-const STATES: ApplicationState[] = ['DRAFT', 'PENDING', 'ACCEPTED', 'REJECTED'];
-
-export function ChangeApplicationStateDialog({
+export function ChangeMatrixStateDialog({
   open,
   onOpenChange,
-  applicationId,
+  matrixId,
   currentState,
   onSuccess,
-}: ChangeApplicationStateDialogProps) {
+}: ChangeMatrixStateDialogProps) {
   const queryClient = useQueryClient();
-  const availableStates = STATES.filter((s) => s !== currentState);
-  const [state, setState] = useState<ApplicationState>(availableStates[0]);
-  const [reviewNotes, setReviewNotes] = useState('');
+  const validTransitions = getValidTransitions(currentState);
+  const [targetState, setTargetState] = useState<MatrixState>(validTransitions[0]);
+  const [message, setMessage] = useState('');
   const [error, setError] = useState('');
 
   useEffect(() => {
     if (open) {
-      const firstAvailable = STATES.filter((s) => s !== currentState)[0];
-      setState(firstAvailable);
-      setReviewNotes('');
+      const transitions = getValidTransitions(currentState);
+      setTargetState(transitions[0]);
+      setMessage('');
       setError('');
     }
   }, [open, currentState]);
 
   const mutation = useMutation({
-    mutationFn: (data: UpdateJobApplicationRequest) => updateJobApplication(applicationId, data),
+    mutationFn: () =>
+      changeMatrixState(matrixId, {
+        state: targetState,
+        supervisorMessage: message || undefined,
+      }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.employability.applications.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.matrices.detail(matrixId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.matrices.history(matrixId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.matrices.all });
       toast.success('Estado actualizado');
       onOpenChange(false);
       onSuccess();
@@ -71,13 +75,12 @@ export function ChangeApplicationStateDialog({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (state === currentState) return;
+    if (!targetState) return;
     setError('');
-    mutation.mutate({
-      state,
-      reviewNotes: reviewNotes || undefined,
-    });
+    mutation.mutate();
   };
+
+  if (validTransitions.length === 0) return null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -91,14 +94,14 @@ export function ChangeApplicationStateDialog({
           <FieldGroup>
             <Field>
               <FieldLabel>Nuevo estado</FieldLabel>
-              <Select value={state} onValueChange={(value) => setState(value as ApplicationState)}>
+              <Select value={targetState} onValueChange={(v) => setTargetState(v as MatrixState)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Seleccionar estado" />
                 </SelectTrigger>
                 <SelectContent>
-                  {availableStates.map((s) => (
+                  {validTransitions.map((s) => (
                     <SelectItem key={s} value={s}>
-                      {applicationStateLabel(s)}
+                      {matrixStateLabel(s)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -106,10 +109,10 @@ export function ChangeApplicationStateDialog({
             </Field>
 
             <Field>
-              <FieldLabel>Notas de revisión (opcional)</FieldLabel>
+              <FieldLabel>Mensaje (opcional)</FieldLabel>
               <Textarea
-                value={reviewNotes}
-                onChange={(e) => setReviewNotes(e.target.value)}
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
                 placeholder="Motivo del cambio..."
               />
             </Field>
@@ -119,7 +122,7 @@ export function ChangeApplicationStateDialog({
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancelar
             </Button>
-            <Button type="submit" disabled={mutation.isPending || state === currentState}>
+            <Button type="submit" disabled={mutation.isPending || !targetState}>
               {mutation.isPending && <Loader2 data-icon="inline-start" className="animate-spin" />}
               Guardar
             </Button>

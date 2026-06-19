@@ -1,6 +1,6 @@
 import type { CategoryTreeResponse } from '@bopacorp/shared/catalog';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Loader2, Pencil } from 'lucide-react';
+import { Calendar, FileText, GitBranch, Hash, Loader2, Pencil, Settings, Tag } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -22,7 +22,7 @@ import { Can } from '@/modules/auth/components/Can.js';
 import { getErrorMessage } from '@/shared/errors/index.js';
 import { useUnsavedGuard } from '@/shared/hooks/useUnsavedGuard.js';
 import { DiscardChangesDialog, ErrorState, StateBadge } from '@/shared/ui';
-import { disableCategory, getCategory, updateCategory } from '../catalog.service.js';
+import { getCategory, updateCategory } from '../catalog.service.js';
 import { useCategoryOptions } from '../hooks/useCategoryOptions.js';
 
 interface CategoryDetailPanelProps {
@@ -107,16 +107,6 @@ export function CategoryDetailPanel({
     queryClient.invalidateQueries({ queryKey: queryKeys.catalog.categories.all });
   };
 
-  const disableMutation = useMutation({
-    mutationFn: () => disableCategory(categoryId),
-    onSuccess: () => {
-      toast.success(entity?.isActive ? 'Categoría desactivada' : 'Categoría activada');
-      invalidate();
-      onUpdated();
-    },
-    onError: (err) => toast.error(getErrorMessage(err)),
-  });
-
   if (isLoading) {
     return (
       <div className="flex flex-col gap-4 p-4">
@@ -177,44 +167,70 @@ export function CategoryDetailPanel({
         </Can>
       </div>
 
-      <div className="flex flex-col gap-3">
-        <DetailRow label="Nombre">{entity.name}</DetailRow>
-        <DetailRow label="Categoría padre">{parentName ?? '— (raíz)'}</DetailRow>
-        <DetailRow label="Descripción">{entity.description || '—'}</DetailRow>
-        <DetailRow label="Orden">{entity.sortOrder}</DetailRow>
-        <DetailRow label="Estado">
-          <StateBadge
-            state={entity.isActive ? 'active' : 'inactive'}
-            label={entity.isActive ? 'Activo' : 'Inactivo'}
-          />
-        </DetailRow>
-        <DetailRow label="Creado">{formatRelativeTime(entity.createdAt)}</DetailRow>
-        <DetailRow label="Actualizado">{formatRelativeTime(entity.updatedAt)}</DetailRow>
-      </div>
-
-      <Can permission="categories.delete">
-        <div className="pt-2">
-          <Button
-            variant={entity.isActive ? 'destructive' : 'secondary'}
-            size="sm"
-            onClick={() => disableMutation.mutate()}
-            disabled={disableMutation.isPending}
-          >
-            {disableMutation.isPending && <Loader2 className="animate-spin" />}
-            {entity.isActive ? 'Desactivar' : 'Activar'}
-          </Button>
+      <div className="flex flex-col gap-5">
+        <div className="flex flex-col gap-1">
+          <SectionLabel>Información</SectionLabel>
+          <DetailField icon={Tag} label="Nombre">
+            {entity.name}
+          </DetailField>
+          {parentName && (
+            <DetailField icon={GitBranch} label="Categoría padre">
+              {parentName}
+            </DetailField>
+          )}
+          {entity.description && (
+            <DetailField icon={FileText} label="Descripción">
+              {entity.description}
+            </DetailField>
+          )}
+          <DetailField icon={Hash} label="Orden">
+            {entity.sortOrder}
+          </DetailField>
+          <DetailField icon={Settings} label="Estado">
+            <StateBadge
+              state={entity.isActive ? 'active' : 'inactive'}
+              label={entity.isActive ? 'Activo' : 'Inactivo'}
+            />
+          </DetailField>
         </div>
-      </Can>
+
+        <div className="flex flex-col gap-1">
+          <SectionLabel>Fechas</SectionLabel>
+          <DetailField icon={Calendar} label="Creado">
+            {formatRelativeTime(entity.createdAt)}
+          </DetailField>
+          <DetailField icon={Calendar} label="Actualizado">
+            {formatRelativeTime(entity.updatedAt)}
+          </DetailField>
+        </div>
+      </div>
     </div>
   );
 }
 
-function DetailRow({ label, children }: { label: string; children: React.ReactNode }) {
+function DetailField({
+  icon: Icon,
+  label,
+  children,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  children: React.ReactNode;
+}) {
   return (
-    <div className="flex items-start gap-3 px-2 py-1.5">
-      <span className="w-32 shrink-0 text-sm text-muted-foreground">{label}</span>
-      <span className="min-w-0 text-sm text-foreground">{children}</span>
+    <div className="flex items-start gap-3 rounded-md px-2 py-1.5">
+      <Icon className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+      <span className="w-28 shrink-0 text-sm text-muted-foreground">{label}</span>
+      <span className="min-w-0 text-sm text-foreground">{children ?? '—'}</span>
     </div>
+  );
+}
+
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="px-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+      {children}
+    </span>
   );
 }
 

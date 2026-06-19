@@ -1,9 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   ArrowLeft,
+  Building2,
   Calendar,
   Code,
-  FileText,
   Loader2,
   Pencil,
   Settings,
@@ -15,33 +15,54 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Field, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Switch } from '@/components/ui/switch';
-import { Textarea } from '@/components/ui/textarea';
 import { formatRelativeTime } from '@/lib/format.js';
+import { queryKeys } from '@/lib/query-keys.js';
 import { Can } from '@/modules/auth/components/Can.js';
 import { getErrorMessage } from '@/shared/errors/index.js';
 import { useUnsavedGuard } from '@/shared/hooks/useUnsavedGuard.js';
-import { DiscardChangesDialog, ErrorState, SheetDetailSkeleton, StateBadge } from '@/shared/ui';
-import type { LookupTableConfig } from './LookupTableManager.js';
+import {
+  DiscardChangesDialog,
+  ErrorState,
+  FormAlert,
+  SheetDetailSkeleton,
+  StateBadge,
+} from '@/shared/ui';
+import { createOrgRole, getOrgRole, listDepartments, updateOrgRole } from '../org.service.js';
 
-interface LookupTableSheetProps {
+interface OrgRoleSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   entityId: string | null;
-  config: LookupTableConfig;
   mode: 'create' | 'view';
 }
 
-const SKELETON_SECTIONS = [{ rows: ['w-24', 'w-40', 'w-56', 'w-16', 'w-28'] }];
+const SKELETON_SECTIONS = [{ rows: ['w-24', 'w-40', 'w-56', 'w-32', 'w-16', 'w-28'] }];
+const NONE_VALUE = '__none__';
 
-export function LookupTableSheet({
+function useDepartmentOptions() {
+  const { data } = useQuery({
+    queryKey: [...queryKeys.departments.all, 'select-options'],
+    queryFn: () => listDepartments({ page: 1, limit: 100, sortOrder: 'asc', isActive: true }),
+    staleTime: 5 * 60_000,
+  });
+  return data?.data ?? [];
+}
+
+export function OrgRoleSheet({
   open,
   onOpenChange,
   entityId,
-  config,
   mode: initialMode,
-}: LookupTableSheetProps) {
+}: OrgRoleSheetProps) {
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState(false);
   const [formKey, setFormKey] = useState(0);
@@ -59,8 +80,8 @@ export function LookupTableSheet({
     error,
     refetch,
   } = useQuery({
-    queryKey: [...config.queryKey, 'detail', entityId],
-    queryFn: () => config.getFn(entityId as string),
+    queryKey: [...queryKeys.orgRoles.all, 'detail', entityId],
+    queryFn: () => getOrgRole(entityId as string),
     enabled: !!entityId && open,
   });
 
@@ -81,7 +102,7 @@ export function LookupTableSheet({
   };
 
   const invalidate = () => {
-    queryClient.invalidateQueries({ queryKey: config.queryKey });
+    queryClient.invalidateQueries({ queryKey: queryKeys.orgRoles.all });
   };
 
   const showViewHeader = !isCreate && !isLoading && !error && entity && !editing;
@@ -99,17 +120,17 @@ export function LookupTableSheet({
               )}
               <SheetTitle>
                 {isCreate
-                  ? `Nuevo ${config.entityName.toLowerCase()}`
+                  ? 'Nuevo rol organizacional'
                   : editing
-                    ? `Editar ${config.entityName.toLowerCase()}`
+                    ? 'Editar rol organizacional'
                     : isLoading
-                      ? config.entityName
-                      : (entity?.name ?? config.entityName)}
+                      ? 'Rol organizacional'
+                      : (entity?.name ?? 'Rol organizacional')}
               </SheetTitle>
             </div>
             <div className="flex items-center gap-1">
               {showViewHeader && (
-                <Can permission={`${config.permissionPrefix}.update`}>
+                <Can permission="org_roles.update">
                   <Button variant="ghost" size="icon-sm" onClick={() => setEditing(true)}>
                     <Pencil />
                   </Button>
@@ -125,7 +146,6 @@ export function LookupTableSheet({
         {isCreate ? (
           <CreateForm
             key={formKey}
-            config={config}
             onSuccess={() => {
               dirtyRef.current = false;
               invalidate();
@@ -140,7 +160,6 @@ export function LookupTableSheet({
         ) : editing ? (
           <EditForm
             entity={entity}
-            config={config}
             onSaved={() => {
               setEditing(false);
               invalidate();
@@ -148,7 +167,7 @@ export function LookupTableSheet({
             onDirtyChange={handleDirtyChange}
           />
         ) : (
-          <ViewMode entity={entity} config={config} />
+          <ViewMode entity={entity} />
         )}
       </SheetContent>
 
@@ -159,53 +178,14 @@ export function LookupTableSheet({
 
 // ─── View Mode ───────────────────────────────────────────────────────────────
 
-interface ViewEntity {
+interface OrgRoleEntity {
   id: string;
   code: string;
   name: string;
-  description: string | null;
+  department: { id: string; code: string; name: string } | null;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
-}
-
-function ViewMode({ entity }: { entity: ViewEntity; config: LookupTableConfig }) {
-  return (
-    <div className="flex-1 overflow-y-auto p-4">
-      <div className="flex flex-col gap-5">
-        <div className="flex flex-col gap-1">
-          <SectionLabel>Información</SectionLabel>
-          <DetailField icon={Code} label="Código">
-            <span className="font-mono text-xs">{entity.code}</span>
-          </DetailField>
-          <DetailField icon={Tag} label="Nombre">
-            {entity.name}
-          </DetailField>
-          {entity.description && (
-            <DetailField icon={FileText} label="Descripción">
-              {entity.description}
-            </DetailField>
-          )}
-          <DetailField icon={Settings} label="Estado">
-            <StateBadge
-              state={entity.isActive ? 'active' : 'inactive'}
-              label={entity.isActive ? 'Activo' : 'Inactivo'}
-            />
-          </DetailField>
-        </div>
-
-        <div className="flex flex-col gap-1">
-          <SectionLabel>Fechas</SectionLabel>
-          <DetailField icon={Calendar} label="Creado">
-            {formatRelativeTime(entity.createdAt)}
-          </DetailField>
-          <DetailField icon={Calendar} label="Actualizado">
-            {formatRelativeTime(entity.updatedAt)}
-          </DetailField>
-        </div>
-      </div>
-    </div>
-  );
 }
 
 function DetailField({
@@ -234,23 +214,59 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
+function ViewMode({ entity }: { entity: OrgRoleEntity }) {
+  return (
+    <div className="flex-1 overflow-y-auto p-4">
+      <div className="flex flex-col gap-5">
+        <div className="flex flex-col gap-1">
+          <SectionLabel>Información</SectionLabel>
+          <DetailField icon={Code} label="Código">
+            <span className="font-mono text-xs">{entity.code}</span>
+          </DetailField>
+          <DetailField icon={Tag} label="Nombre">
+            {entity.name}
+          </DetailField>
+          <DetailField icon={Building2} label="Departamento">
+            {entity.department?.name ?? '—'}
+          </DetailField>
+          <DetailField icon={Settings} label="Estado">
+            <StateBadge
+              state={entity.isActive ? 'active' : 'inactive'}
+              label={entity.isActive ? 'Activo' : 'Inactivo'}
+            />
+          </DetailField>
+        </div>
+
+        <div className="flex flex-col gap-1">
+          <SectionLabel>Fechas</SectionLabel>
+          <DetailField icon={Calendar} label="Creado">
+            {formatRelativeTime(entity.createdAt)}
+          </DetailField>
+          <DetailField icon={Calendar} label="Actualizado">
+            {formatRelativeTime(entity.updatedAt)}
+          </DetailField>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Create Form ─────────────────────────────────────────────────────────────
 
 function CreateForm({
-  config,
   onSuccess,
   onDirtyChange,
 }: {
-  config: LookupTableConfig;
   onSuccess: () => void;
   onDirtyChange: (dirty: boolean) => void;
 }) {
+  const departments = useDepartmentOptions();
   const [code, setCode] = useState('');
   const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
+  const [departmentId, setDepartmentId] = useState<string>(NONE_VALUE);
   const [formError, setFormError] = useState('');
 
-  const isDirty = code !== '' || name !== '' || description !== '';
+  const isDirty = code !== '' || name !== '' || departmentId !== NONE_VALUE;
 
   useEffect(() => {
     onDirtyChange(isDirty);
@@ -258,9 +274,14 @@ function CreateForm({
 
   const mutation = useMutation({
     mutationFn: () =>
-      config.createFn({ code, name, isActive: true, description: description || undefined }),
+      createOrgRole({
+        code,
+        name,
+        isActive: true,
+        departmentId: departmentId === NONE_VALUE ? undefined : departmentId,
+      }),
     onSuccess: () => {
-      toast.success(`${config.entityName} creado`);
+      toast.success('Rol organizacional creado');
       onSuccess();
     },
     onError: (err) => setFormError(getErrorMessage(err)),
@@ -272,11 +293,7 @@ function CreateForm({
     <>
       <div className="flex-1 overflow-y-auto p-4">
         <FieldGroup>
-          {formError && (
-            <div className="rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
-              {formError}
-            </div>
-          )}
+          {formError && <FormAlert message={formError} />}
           <Field>
             <FieldLabel>Código</FieldLabel>
             <Input
@@ -291,19 +308,25 @@ function CreateForm({
             <Input
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Nombre del registro"
+              placeholder="Nombre del rol"
               maxLength={100}
             />
           </Field>
           <Field>
-            <FieldLabel>Descripción</FieldLabel>
-            <Textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Descripción opcional"
-              maxLength={255}
-              rows={3}
-            />
+            <FieldLabel>Departamento</FieldLabel>
+            <Select value={departmentId} onValueChange={setDepartmentId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Sin departamento" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={NONE_VALUE}>Sin departamento</SelectItem>
+                {departments.map((d) => (
+                  <SelectItem key={d.id} value={d.id}>
+                    {d.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </Field>
         </FieldGroup>
       </div>
@@ -325,23 +348,22 @@ function CreateForm({
 
 function EditForm({
   entity,
-  config,
   onSaved,
   onDirtyChange,
 }: {
-  entity: ViewEntity;
-  config: LookupTableConfig;
+  entity: OrgRoleEntity;
   onSaved: () => void;
   onDirtyChange: (dirty: boolean) => void;
 }) {
+  const departments = useDepartmentOptions();
   const [name, setName] = useState(entity.name);
-  const [description, setDescription] = useState(entity.description ?? '');
+  const [departmentId, setDepartmentId] = useState<string>(entity.department?.id ?? NONE_VALUE);
   const [isActive, setIsActive] = useState(entity.isActive);
   const [formError, setFormError] = useState('');
 
   const isDirty =
     name !== entity.name ||
-    description !== (entity.description ?? '') ||
+    departmentId !== (entity.department?.id ?? NONE_VALUE) ||
     isActive !== entity.isActive;
 
   useEffect(() => {
@@ -350,13 +372,13 @@ function EditForm({
 
   const mutation = useMutation({
     mutationFn: () =>
-      config.updateFn(entity.id, {
+      updateOrgRole(entity.id, {
         name,
-        description: description || undefined,
+        departmentId: departmentId === NONE_VALUE ? null : departmentId,
         isActive,
       }),
     onSuccess: () => {
-      toast.success(`${config.entityName} actualizado`);
+      toast.success('Rol organizacional actualizado');
       onSaved();
     },
     onError: (err) => setFormError(getErrorMessage(err)),
@@ -368,11 +390,7 @@ function EditForm({
     <>
       <div className="flex-1 overflow-y-auto p-4">
         <FieldGroup>
-          {formError && (
-            <div className="rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
-              {formError}
-            </div>
-          )}
+          {formError && <FormAlert message={formError} />}
           <Field>
             <FieldLabel>Código</FieldLabel>
             <Input value={entity.code} disabled className="font-mono" />
@@ -382,13 +400,20 @@ function EditForm({
             <Input value={name} onChange={(e) => setName(e.target.value)} maxLength={100} />
           </Field>
           <Field>
-            <FieldLabel>Descripción</FieldLabel>
-            <Textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              maxLength={255}
-              rows={3}
-            />
+            <FieldLabel>Departamento</FieldLabel>
+            <Select value={departmentId} onValueChange={setDepartmentId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Sin departamento" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={NONE_VALUE}>Sin departamento</SelectItem>
+                {departments.map((d) => (
+                  <SelectItem key={d.id} value={d.id}>
+                    {d.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </Field>
           <Field orientation="horizontal">
             <FieldLabel>Activo</FieldLabel>

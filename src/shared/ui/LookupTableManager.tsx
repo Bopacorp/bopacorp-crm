@@ -16,7 +16,7 @@ import {
   StateBadge,
   TableSkeleton,
 } from '@/shared/ui';
-import { LookupTableSheet } from './LookupTableSheet.js';
+import { LookupTableSheet } from './LookupTableSheet';
 
 export interface LookupListItem {
   id: string;

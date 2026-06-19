@@ -22,8 +22,14 @@ import { formatRelativeTime } from '@/lib/format.js';
 import { Can } from '@/modules/auth/components/Can.js';
 import { getErrorMessage } from '@/shared/errors/index.js';
 import { useUnsavedGuard } from '@/shared/hooks/useUnsavedGuard.js';
-import { DiscardChangesDialog, ErrorState, SheetDetailSkeleton, StateBadge } from '@/shared/ui';
-import type { LookupTableConfig } from './LookupTableManager.js';
+import {
+  DiscardChangesDialog,
+  ErrorState,
+  FormAlert,
+  SheetDetailSkeleton,
+  StateBadge,
+} from '@/shared/ui';
+import type { LookupTableConfig } from './LookupTableManager';
 
 interface LookupTableSheetProps {
   open: boolean;
@@ -148,7 +154,7 @@ export function LookupTableSheet({
             onDirtyChange={handleDirtyChange}
           />
         ) : (
-          <ViewMode entity={entity} config={config} />
+          <ViewMode entity={entity} config={config} onDisabled={invalidate} />
         )}
       </SheetContent>
 
@@ -169,7 +175,39 @@ interface ViewEntity {
   updatedAt: string;
 }
 
-function ViewMode({ entity }: { entity: ViewEntity; config: LookupTableConfig }) {
+function DetailField({
+  icon: Icon,
+  label,
+  children,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-start gap-3 rounded-md px-2 py-1.5">
+      <Icon className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+      <span className="w-24 shrink-0 text-sm text-muted-foreground">{label}</span>
+      <span className="min-w-0 text-sm text-foreground">{children ?? '—'}</span>
+    </div>
+  );
+}
+
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="px-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+      {children}
+    </span>
+  );
+}
+
+function ViewMode({
+  entity,
+}: {
+  entity: ViewEntity;
+  config: LookupTableConfig;
+  onDisabled: () => void;
+}) {
   return (
     <div className="flex-1 overflow-y-auto p-4">
       <div className="flex flex-col gap-5">
@@ -205,32 +243,6 @@ function ViewMode({ entity }: { entity: ViewEntity; config: LookupTableConfig })
         </div>
       </div>
     </div>
-  );
-}
-
-function DetailField({
-  icon: Icon,
-  label,
-  children,
-}: {
-  icon: React.ComponentType<{ className?: string }>;
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="flex items-start gap-3 rounded-md px-2 py-1.5">
-      <Icon className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
-      <span className="w-24 shrink-0 text-sm text-muted-foreground">{label}</span>
-      <span className="min-w-0 text-sm text-foreground">{children ?? '—'}</span>
-    </div>
-  );
-}
-
-function SectionLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="px-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-      {children}
-    </span>
   );
 }
 
@@ -272,11 +284,7 @@ function CreateForm({
     <>
       <div className="flex-1 overflow-y-auto p-4">
         <FieldGroup>
-          {formError && (
-            <div className="rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
-              {formError}
-            </div>
-          )}
+          {formError && <FormAlert message={formError} />}
           <Field>
             <FieldLabel>Código</FieldLabel>
             <Input
@@ -368,11 +376,7 @@ function EditForm({
     <>
       <div className="flex-1 overflow-y-auto p-4">
         <FieldGroup>
-          {formError && (
-            <div className="rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
-              {formError}
-            </div>
-          )}
+          {formError && <FormAlert message={formError} />}
           <Field>
             <FieldLabel>Código</FieldLabel>
             <Input value={entity.code} disabled className="font-mono" />

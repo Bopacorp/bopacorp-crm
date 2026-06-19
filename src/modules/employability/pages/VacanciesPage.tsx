@@ -18,7 +18,7 @@ import {
   TableSkeleton,
 } from '@/shared/ui';
 import { CreateVacancyDialog } from '../components/CreateVacancyDialog.js';
-import { EditVacancySheet } from '../components/EditVacancySheet.js';
+import { VacancySheet } from '../components/VacancySheet.js';
 import { useVacancies } from '../hooks/useVacancies.js';
 
 const STATUS_OPTIONS = [
@@ -148,6 +148,7 @@ export default function VacanciesPage() {
         filters={[
           {
             id: 'isActive',
+            label: 'Estado',
             placeholder: 'Estado',
             options: STATUS_OPTIONS,
             value: isActiveFilter,
@@ -155,6 +156,7 @@ export default function VacanciesPage() {
           },
           {
             id: 'isPublished',
+            label: 'Publicación',
             placeholder: 'Publicación',
             options: PUBLISHED_OPTIONS,
             value: isPublishedFilter,
@@ -193,7 +195,7 @@ export default function VacanciesPage() {
 
       <CreateVacancyDialog open={createOpen} onOpenChange={setCreateOpen} onSuccess={refetch} />
 
-      <EditVacancySheet
+      <VacancySheet
         open={!!editId}
         onOpenChange={(open) => {
           if (!open) setEditId(null);

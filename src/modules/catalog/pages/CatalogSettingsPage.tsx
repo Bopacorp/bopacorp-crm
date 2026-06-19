@@ -1,6 +1,7 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { queryKeys } from '@/lib/query-keys.js';
-import { SectionHeader } from '@/shared/ui';
+import type { LookupTableConfig } from '@/shared/ui';
+import { LookupTableManager, SectionHeader } from '@/shared/ui';
 import {
   createBenefitType,
   createContentType,
@@ -39,8 +40,6 @@ import {
   updateTier,
 } from '../catalog.service.js';
 import { CategoryManager } from '../components/CategoryManager.js';
-import type { LookupTableConfig } from '../components/LookupTableManager.js';
-import { LookupTableManager } from '../components/LookupTableManager.js';
 
 const CONFIGS: Array<{ key: string; label: string; config: LookupTableConfig }> = [
   {

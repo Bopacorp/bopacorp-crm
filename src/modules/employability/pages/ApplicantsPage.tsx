@@ -1,5 +1,5 @@
 import type { JobApplicationListItemResponse } from '@bopacorp/shared/employability';
-import { ArrowLeft, Eye, FileText } from 'lucide-react';
+import { ArrowLeft, FileText } from 'lucide-react';
 import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -16,6 +16,7 @@ import {
   StateBadge,
   TableSkeleton,
 } from '@/shared/ui';
+import { ApplicationActions } from '../components/ApplicationActions.js';
 import { ApplicationDetailSheet } from '../components/ApplicationDetailSheet.js';
 import { useJobApplications } from '../hooks/useJobApplications.js';
 import { applicationStateLabel, applicationStateVariant } from '../lib/state.js';
@@ -90,10 +91,11 @@ export default function ApplicantsPage() {
       id: 'actions',
       header: 'Acciones',
       accessor: (item: JobApplicationListItemResponse) => (
-        <Button size="sm" variant="outline" onClick={() => setDetailId(item.id)}>
-          <Eye data-icon="inline-start" className="size-4" />
-          Ver detalle
-        </Button>
+        <ApplicationActions
+          application={item}
+          onDetailClick={(id) => setDetailId(id)}
+          onSuccess={refetch}
+        />
       ),
     },
   ];
@@ -118,7 +120,7 @@ export default function ApplicantsPage() {
             setSearchParams(searchParams);
           }}
         >
-          <ArrowLeft className="mr-2 size-4" />
+          <ArrowLeft data-icon="inline-start" />
           Volver a vacantes
         </Button>
       )}
@@ -139,6 +141,7 @@ export default function ApplicantsPage() {
         filters={[
           {
             id: 'state',
+            label: 'Estado',
             placeholder: 'Estado',
             options: STATE_OPTIONS,
             value: stateFilter,

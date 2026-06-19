@@ -1,7 +1,9 @@
 import type { CatalogItemResponse } from '@bopacorp/shared/catalog';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { XIcon } from 'lucide-react';
 import { useCallback, useState } from 'react';
 import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
 import {
   Sheet,
   SheetContent,
@@ -68,9 +70,14 @@ export function CatalogItemEditSheet({
   return (
     <>
       <Sheet open={open} onOpenChange={handleOpenChange}>
-        <SheetContent className="sm:max-w-2xl overflow-y-auto">
+        <SheetContent showCloseButton={false} className="sm:max-w-2xl overflow-y-auto">
           <SheetHeader>
-            <SheetTitle>Editar producto</SheetTitle>
+            <div className="flex items-center justify-between">
+              <SheetTitle>Editar producto</SheetTitle>
+              <Button variant="ghost" size="icon-sm" onClick={() => handleOpenChange(false)}>
+                <XIcon />
+              </Button>
+            </div>
             <SheetDescription className="sr-only">
               Formulario de edición de producto
             </SheetDescription>

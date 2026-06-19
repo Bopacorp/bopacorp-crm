@@ -10,6 +10,15 @@ export { ErrorState } from './ErrorState';
 export { FilterBar } from './FilterBar';
 export { FormAlert } from './FormAlert';
 export { KpiCard } from './KpiCard';
+export type {
+  LookupCreateData,
+  LookupListItem,
+  LookupListQuery,
+  LookupTableConfig,
+  LookupUpdateData,
+} from './LookupTableManager';
+export { LookupTableManager } from './LookupTableManager';
+export { LookupTableSheet } from './LookupTableSheet';
 export { ModeToggle } from './ModeToggle';
 export { PageLoader } from './PageLoader';
 export { PageSizeSelect } from './PageSizeSelect';

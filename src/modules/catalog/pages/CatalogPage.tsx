@@ -182,7 +182,7 @@ export default function CatalogPage() {
   return (
     <div
       className={cn(
-        'flex flex-col gap-6',
+        'flex min-w-0 flex-col gap-6',
         fetching && 'opacity-60 pointer-events-none transition-opacity',
       )}
     >

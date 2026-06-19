@@ -18,10 +18,11 @@ import { formatDate } from '@/lib/format.js';
 import { Can } from '@/modules/auth/components/Can.js';
 import { useClientSheet } from '@/modules/clients/context/ClientSheetContext.js';
 import { NegotiationDocumentsTab } from '@/modules/documentation/components/NegotiationDocumentsTab.js';
-import { DetailSkeleton, EmptyState, ErrorState, StateBadge } from '@/shared/ui';
+import { DetailSkeleton, ErrorState, StateBadge } from '@/shared/ui';
 import { ChangeStateDialog } from '../components/ChangeStateDialog.js';
 import { EditNegotiationSheet } from '../components/EditNegotiationSheet.js';
 import { HistoryTab } from '../components/HistoryTab.js';
+import { MatricesTab } from '../components/MatricesTab.js';
 import { VisitsTab } from '../components/VisitsTab.js';
 import { useNegotiation } from '../hooks/useNegotiation.js';
 import { useNegotiationStates } from '../hooks/useNegotiationStates.js';
@@ -126,7 +127,7 @@ export default function NegotiationDetailPage() {
           <NegotiationDocumentsTab negotiationId={id} />
         </TabsContent>
         <TabsContent value="matrices" className="mt-4">
-          <EmptyState title="Sin matrices" description="Matrices disponibles próximamente" />
+          <MatricesTab negotiationId={id} />
         </TabsContent>
       </Tabs>
 
