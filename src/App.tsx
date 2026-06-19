@@ -10,6 +10,7 @@ import CatalogItemCreatePage from '@/modules/catalog/pages/CatalogItemCreatePage
 import CatalogItemDetailPage from '@/modules/catalog/pages/CatalogItemDetailPage';
 import CatalogPage from '@/modules/catalog/pages/CatalogPage';
 import CatalogSettingsPage from '@/modules/catalog/pages/CatalogSettingsPage';
+import ContactRequestsPage from '@/modules/catalog/pages/ContactRequestsPage';
 import { ClientSheetProvider } from '@/modules/clients/context/ClientSheetContext';
 import ClientsPage from '@/modules/clients/pages/ClientsPage';
 import DocumentationPage from '@/modules/documentation/pages/DocumentationPage';
@@ -124,6 +125,14 @@ export default function App() {
                 element={
                   <RequireAuth>
                     <CatalogSettingsPage />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/catalogo/solicitudes"
+                element={
+                  <RequireAuth>
+                    <ContactRequestsPage />
                   </RequireAuth>
                 }
               />
