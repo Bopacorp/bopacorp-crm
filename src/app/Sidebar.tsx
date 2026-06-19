@@ -67,7 +67,7 @@ const navigationBottom = [
 const employabilityChildren = [
   { name: 'Vacantes', href: '/empleabilidad/vacantes', icon: Briefcase },
   { name: 'Aplicantes', href: '/empleabilidad/aplicantes', icon: Users },
-  { name: 'Mensajes', href: '/empleabilidad/mensajes', icon: Inbox },
+  { name: 'Solicitudes', href: '/empleabilidad/mensajes', icon: Inbox },
 ];
 
 const orgChildren = [
