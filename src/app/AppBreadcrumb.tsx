@@ -27,6 +27,8 @@ const routeLabels: Record<string, string> = {
   aplicantes: 'Aplicantes',
   mensajes: 'Mensajes',
   matrices: 'Matrices',
+  organizacion: 'Organización',
+  equipo: 'Equipo',
 };
 
 function isUuid(segment: string): boolean {

@@ -16,6 +16,8 @@ import MessagesPage from '@/modules/employability/pages/MessagesPage';
 import VacanciesPage from '@/modules/employability/pages/VacanciesPage';
 import NegotiationDetailPage from '@/modules/negotiations/pages/NegotiationDetailPage';
 import NegotiationsPage from '@/modules/negotiations/pages/NegotiationsPage';
+import OrgSettingsPage from '@/modules/org/pages/OrgSettingsPage';
+import TeamPage from '@/modules/org/pages/TeamPage';
 import OverviewPage from '@/modules/overview/pages/OverviewPage';
 import ReportsPage from '@/modules/reports/pages/ReportsPage';
 import { ErrorBoundary } from '@/shared/ui/ErrorBoundary';
@@ -127,6 +129,24 @@ export default function App() {
                 element={
                   <RequireAuth>
                     <CatalogItemDetailPage />
+                  </RequireAuth>
+                }
+              />
+
+              {/* Organization */}
+              <Route
+                path="/organizacion/equipo"
+                element={
+                  <RequireAuth>
+                    <TeamPage />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/organizacion/configuracion"
+                element={
+                  <RequireAuth>
+                    <OrgSettingsPage />
                   </RequireAuth>
                 }
               />

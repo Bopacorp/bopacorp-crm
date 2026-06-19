@@ -26,6 +26,27 @@ export const queryKeys = {
   employees: {
     all: ['employees'] as const,
     list: (filters: Record<string, unknown>) => ['employees', 'list', filters] as const,
+    paginated: (page: number, filters: Record<string, unknown>) =>
+      ['employees', 'paginated', page, filters] as const,
+    detail: (userId: string) => ['employees', 'detail', userId] as const,
+    supervisors: (userId: string) => ['employees', 'supervisors', userId] as const,
+    advisors: (userId: string) => ['employees', 'advisors', userId] as const,
+  },
+  departments: {
+    all: ['departments'] as const,
+    list: (page: number, filters: Record<string, unknown>) =>
+      ['departments', 'list', page, filters] as const,
+  },
+  orgRoles: {
+    all: ['org-roles'] as const,
+    list: (page: number, filters: Record<string, unknown>) =>
+      ['org-roles', 'list', page, filters] as const,
+  },
+  users: {
+    all: ['users'] as const,
+    list: (page: number, filters: Record<string, unknown>) =>
+      ['users', 'list', page, filters] as const,
+    detail: (id: string) => ['users', 'detail', id] as const,
   },
   documents: {
     all: ['documents'] as const,
