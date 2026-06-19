@@ -27,6 +27,10 @@ export const queryKeys = {
     all: ['employees'] as const,
     list: (filters: Record<string, unknown>) => ['employees', 'list', filters] as const,
   },
+  reports: {
+    advisorMetrics: (filters: Record<string, unknown>) =>
+      ['reports', 'advisor-metrics', filters] as const,
+  },
   documents: {
     all: ['documents'] as const,
     list: (page: number, filters: Record<string, unknown>) =>
