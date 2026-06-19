@@ -10,6 +10,7 @@ export interface DocumentFilters {
   search?: string;
   state?: string;
   negotiationId?: string;
+  advisorId?: string;
 }
 
 export function useDocuments(page: number, filters: DocumentFilters) {
@@ -22,6 +23,7 @@ export function useDocuments(page: number, filters: DocumentFilters) {
       search: debouncedSearch || undefined,
       state: f.state === 'all' ? undefined : f.state,
       negotiationId: f.negotiationId,
+      advisorId: f.advisorId,
       limit: 10,
     }),
   });
