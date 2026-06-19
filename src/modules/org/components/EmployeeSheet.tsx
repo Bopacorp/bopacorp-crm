@@ -46,7 +46,13 @@ import { queryKeys } from '@/lib/query-keys.js';
 import { Can } from '@/modules/auth/components/Can.js';
 import { getErrorMessage } from '@/shared/errors/index.js';
 import { useUnsavedGuard } from '@/shared/hooks/useUnsavedGuard.js';
-import { DiscardChangesDialog, ErrorState, SheetDetailSkeleton, StateBadge } from '@/shared/ui';
+import {
+  DiscardChangesDialog,
+  ErrorState,
+  FormAlert,
+  SheetDetailSkeleton,
+  StateBadge,
+} from '@/shared/ui';
 import { useOrgRoleOptions } from '../hooks/useOrgRoleOptions.js';
 import {
   getEmployee,
@@ -340,7 +346,9 @@ function ViewMode({
             {employee.user.username}
           </DetailField>
           <DetailField icon={Mail} label="Email">
-            {employee.user.email}
+            <a href={`mailto:${employee.user.email}`} className="text-primary hover:underline">
+              {employee.user.email}
+            </a>
           </DetailField>
           <DetailField icon={Settings} label="Estado">
             <StateBadge
@@ -453,11 +461,7 @@ function EditForm({
     <>
       <div className="flex-1 overflow-y-auto p-4">
         <FieldGroup>
-          {formError && (
-            <div className="rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
-              {formError}
-            </div>
-          )}
+          {formError && <FormAlert message={formError} />}
           <Field>
             <FieldLabel>Rol organizacional</FieldLabel>
             <Select value={orgRoleId} onValueChange={setOrgRoleId}>

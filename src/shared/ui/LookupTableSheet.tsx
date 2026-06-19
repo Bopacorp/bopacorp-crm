@@ -1,5 +1,15 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Loader2, Pencil, XIcon } from 'lucide-react';
+import {
+  ArrowLeft,
+  Calendar,
+  Code,
+  FileText,
+  Loader2,
+  Pencil,
+  Settings,
+  Tag,
+  XIcon,
+} from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -12,7 +22,13 @@ import { formatRelativeTime } from '@/lib/format.js';
 import { Can } from '@/modules/auth/components/Can.js';
 import { getErrorMessage } from '@/shared/errors/index.js';
 import { useUnsavedGuard } from '@/shared/hooks/useUnsavedGuard.js';
-import { DiscardChangesDialog, ErrorState, SheetDetailSkeleton, StateBadge } from '@/shared/ui';
+import {
+  DiscardChangesDialog,
+  ErrorState,
+  FormAlert,
+  SheetDetailSkeleton,
+  StateBadge,
+} from '@/shared/ui';
 import type { LookupTableConfig } from './LookupTableManager';
 
 interface LookupTableSheetProps {
@@ -159,64 +175,71 @@ interface ViewEntity {
   updatedAt: string;
 }
 
+function DetailField({
+  icon: Icon,
+  label,
+  children,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-start gap-3 rounded-md px-2 py-1.5">
+      <Icon className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+      <span className="w-24 shrink-0 text-sm text-muted-foreground">{label}</span>
+      <span className="min-w-0 text-sm text-foreground">{children ?? '—'}</span>
+    </div>
+  );
+}
+
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="px-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+      {children}
+    </span>
+  );
+}
+
 function ViewMode({
   entity,
-  config,
-  onDisabled,
 }: {
   entity: ViewEntity;
   config: LookupTableConfig;
   onDisabled: () => void;
 }) {
-  const disableMutation = useMutation({
-    mutationFn: () => config.disableFn(entity.id),
-    onSuccess: () => {
-      toast.success(entity.isActive ? 'Registro desactivado' : 'Registro activado');
-      onDisabled();
-    },
-    onError: (err) => toast.error(getErrorMessage(err)),
-  });
-
   return (
     <div className="flex-1 overflow-y-auto p-4">
-      <div className="flex flex-col gap-4">
-        <DetailRow label="Código">
-          <span className="font-mono text-xs">{entity.code}</span>
-        </DetailRow>
-        <DetailRow label="Nombre">{entity.name}</DetailRow>
-        <DetailRow label="Descripción">{entity.description || '—'}</DetailRow>
-        <DetailRow label="Estado">
-          <StateBadge
-            state={entity.isActive ? 'active' : 'inactive'}
-            label={entity.isActive ? 'Activo' : 'Inactivo'}
-          />
-        </DetailRow>
-        <DetailRow label="Creado">{formatRelativeTime(entity.createdAt)}</DetailRow>
-        <DetailRow label="Actualizado">{formatRelativeTime(entity.updatedAt)}</DetailRow>
+      <div className="flex flex-col gap-5">
+        <div className="flex flex-col gap-1">
+          <SectionLabel>Información</SectionLabel>
+          <DetailField icon={Code} label="Código">
+            <span className="font-mono text-xs">{entity.code}</span>
+          </DetailField>
+          <DetailField icon={Tag} label="Nombre">
+            {entity.name}
+          </DetailField>
+          <DetailField icon={FileText} label="Descripción">
+            {entity.description || '—'}
+          </DetailField>
+          <DetailField icon={Settings} label="Estado">
+            <StateBadge
+              state={entity.isActive ? 'active' : 'inactive'}
+              label={entity.isActive ? 'Activo' : 'Inactivo'}
+            />
+          </DetailField>
+        </div>
 
-        <Can permission={`${config.permissionPrefix}.delete`}>
-          <div className="pt-2">
-            <Button
-              variant={entity.isActive ? 'destructive' : 'secondary'}
-              size="sm"
-              onClick={() => disableMutation.mutate()}
-              disabled={disableMutation.isPending}
-            >
-              {disableMutation.isPending && <Loader2 className="animate-spin" />}
-              {entity.isActive ? 'Desactivar' : 'Activar'}
-            </Button>
-          </div>
-        </Can>
+        <div className="flex flex-col gap-1">
+          <SectionLabel>Fechas</SectionLabel>
+          <DetailField icon={Calendar} label="Creado">
+            {formatRelativeTime(entity.createdAt)}
+          </DetailField>
+          <DetailField icon={Calendar} label="Actualizado">
+            {formatRelativeTime(entity.updatedAt)}
+          </DetailField>
+        </div>
       </div>
-    </div>
-  );
-}
-
-function DetailRow({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="flex items-start gap-3 px-2 py-1.5">
-      <span className="w-28 shrink-0 text-sm text-muted-foreground">{label}</span>
-      <span className="min-w-0 text-sm text-foreground">{children}</span>
     </div>
   );
 }
@@ -259,11 +282,7 @@ function CreateForm({
     <>
       <div className="flex-1 overflow-y-auto p-4">
         <FieldGroup>
-          {formError && (
-            <div className="rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
-              {formError}
-            </div>
-          )}
+          {formError && <FormAlert message={formError} />}
           <Field>
             <FieldLabel>Código</FieldLabel>
             <Input
@@ -355,11 +374,7 @@ function EditForm({
     <>
       <div className="flex-1 overflow-y-auto p-4">
         <FieldGroup>
-          {formError && (
-            <div className="rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
-              {formError}
-            </div>
-          )}
+          {formError && <FormAlert message={formError} />}
           <Field>
             <FieldLabel>Código</FieldLabel>
             <Input value={entity.code} disabled className="font-mono" />

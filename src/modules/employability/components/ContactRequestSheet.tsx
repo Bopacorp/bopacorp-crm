@@ -1,5 +1,15 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { CheckCircle, Loader2, XIcon } from 'lucide-react';
+import {
+  Calendar,
+  CheckCircle,
+  Loader2,
+  Mail,
+  MessageSquare,
+  Phone,
+  Settings,
+  User,
+  XIcon,
+} from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet';
@@ -17,14 +27,34 @@ interface ContactRequestSheetProps {
   requestId: string | null;
 }
 
-const SKELETON_SECTIONS = [{ rows: ['w-28', 'w-40', 'w-24', 'w-56', 'w-16', 'w-28'] }];
+const SKELETON_SECTIONS = [
+  { rows: ['w-28', 'w-40', 'w-24', 'w-56'] },
+  { rows: ['w-16', 'w-28', 'w-24'] },
+];
 
-function DetailRow({ label, children }: { label: string; children: React.ReactNode }) {
+function DetailField({
+  icon: Icon,
+  label,
+  children,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  children: React.ReactNode;
+}) {
   return (
-    <div className="flex items-start gap-3 px-2 py-1.5">
-      <span className="w-28 shrink-0 text-sm text-muted-foreground">{label}</span>
-      <span className="min-w-0 text-sm text-foreground">{children}</span>
+    <div className="flex items-start gap-3 rounded-md px-2 py-1.5">
+      <Icon className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+      <span className="w-24 shrink-0 text-sm text-muted-foreground">{label}</span>
+      <span className="min-w-0 text-sm text-foreground">{children ?? '—'}</span>
     </div>
+  );
+}
+
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="px-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+      {children}
+    </span>
   );
 }
 
@@ -67,49 +97,58 @@ export function ContactRequestSheet({ open, onOpenChange, requestId }: ContactRe
         ) : (
           <>
             <div className="flex-1 overflow-y-auto p-4">
-              <div className="flex flex-col gap-4">
-                <DetailRow label="Nombre">{contactRequest.clientName}</DetailRow>
-                <DetailRow label="Email">
-                  <a
-                    href={`mailto:${contactRequest.clientEmail}`}
-                    className="font-medium text-foreground hover:underline"
-                  >
-                    {contactRequest.clientEmail}
-                  </a>
-                </DetailRow>
-                <DetailRow label="Teléfono">
-                  {contactRequest.clientPhone ? (
+              <div className="flex flex-col gap-5">
+                <div className="flex flex-col gap-1">
+                  <SectionLabel>Contacto</SectionLabel>
+                  <DetailField icon={User} label="Nombre">
+                    {contactRequest.clientName}
+                  </DetailField>
+                  <DetailField icon={Mail} label="Email">
                     <a
-                      href={`tel:${contactRequest.clientPhone}`}
-                      className="font-medium text-foreground hover:underline"
+                      href={`mailto:${contactRequest.clientEmail}`}
+                      className="text-primary hover:underline"
                     >
-                      {contactRequest.clientPhone}
+                      {contactRequest.clientEmail}
                     </a>
-                  ) : (
-                    '—'
+                  </DetailField>
+                  <DetailField icon={Phone} label="Teléfono">
+                    {contactRequest.clientPhone ? (
+                      <a
+                        href={`tel:${contactRequest.clientPhone}`}
+                        className="text-primary hover:underline"
+                      >
+                        {contactRequest.clientPhone}
+                      </a>
+                    ) : (
+                      '—'
+                    )}
+                  </DetailField>
+                  <DetailField icon={MessageSquare} label="Mensaje">
+                    {contactRequest.message ? (
+                      <p className="whitespace-pre-wrap">{contactRequest.message}</p>
+                    ) : (
+                      '—'
+                    )}
+                  </DetailField>
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <SectionLabel>Estado</SectionLabel>
+                  <DetailField icon={Settings} label="Estado">
+                    <StateBadge
+                      state={contactRequest.isAttended ? 'active' : 'pending'}
+                      label={contactRequest.isAttended ? 'Atendido' : 'Pendiente'}
+                    />
+                  </DetailField>
+                  <DetailField icon={Calendar} label="Recibido">
+                    {formatRelativeTime(contactRequest.createdAt)}
+                  </DetailField>
+                  {contactRequest.attendedAt && (
+                    <DetailField icon={Calendar} label="Atendido">
+                      {formatRelativeTime(contactRequest.attendedAt)}
+                    </DetailField>
                   )}
-                </DetailRow>
-                <DetailRow label="Mensaje">
-                  {contactRequest.message ? (
-                    <p className="whitespace-pre-wrap">{contactRequest.message}</p>
-                  ) : (
-                    '—'
-                  )}
-                </DetailRow>
-                <DetailRow label="Estado">
-                  <StateBadge
-                    state={contactRequest.isAttended ? 'active' : 'pending'}
-                    label={contactRequest.isAttended ? 'Atendido' : 'Pendiente'}
-                  />
-                </DetailRow>
-                <DetailRow label="Recibido">
-                  {formatRelativeTime(contactRequest.createdAt)}
-                </DetailRow>
-                {contactRequest.attendedAt && (
-                  <DetailRow label="Atendido">
-                    {formatRelativeTime(contactRequest.attendedAt)}
-                  </DetailRow>
-                )}
+                </div>
               </div>
             </div>
 

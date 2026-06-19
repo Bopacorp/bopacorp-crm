@@ -140,6 +140,7 @@ export function LookupTableManager({ config }: LookupTableManagerProps) {
         filters={[
           {
             id: 'isActive',
+            label: 'Estado',
             placeholder: 'Estado',
             options: STATUS_OPTIONS,
             value: isActiveFilter,

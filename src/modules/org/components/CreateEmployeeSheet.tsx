@@ -18,7 +18,7 @@ import { Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle } from '@/com
 import { queryKeys } from '@/lib/query-keys.js';
 import { getErrorMessage } from '@/shared/errors/index.js';
 import { useUnsavedGuard } from '@/shared/hooks/useUnsavedGuard.js';
-import { DiscardChangesDialog, SearchSelect } from '@/shared/ui';
+import { DiscardChangesDialog, FormAlert, SearchSelect } from '@/shared/ui';
 import { useRoles } from '../hooks/useRoles.js';
 import { assignSupervisors, createEmployee, listEmployees, listOrgRoles } from '../org.service.js';
 import { createUser } from '../users.service.js';
@@ -221,11 +221,7 @@ function CreateForm({
     <>
       <div className="flex-1 overflow-y-auto p-4">
         <div className="flex flex-col gap-6">
-          {formError && (
-            <div className="rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
-              {formError}
-            </div>
-          )}
+          {formError && <FormAlert message={formError} />}
 
           <div className="flex flex-col gap-3">
             <span className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
