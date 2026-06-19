@@ -44,16 +44,12 @@ import {
   Sidebar as SidebarPrimitive,
   useSidebar,
 } from '@/components/ui/sidebar';
+import { Can } from '@/modules/auth/components/Can.js';
+import { MANAGEMENT_ROLES } from '@/modules/auth/constants.js';
 import { useAuth } from '@/modules/auth/context/AuthContext.js';
 import { usePermission } from '@/modules/auth/hooks/usePermission.js';
 
 const navigationTop = [
-  {
-    name: 'Overview',
-    href: '/overview',
-    icon: Home,
-    roles: ['admin', 'manager', 'supervisor', 'coordinator'],
-  },
   { name: 'Clientes', href: '/clientes', icon: Building2, permission: 'business_clients.read' },
   {
     name: 'Negociaciones',
@@ -107,11 +103,9 @@ export function AppSidebar() {
   const location = useLocation();
   const navigate = useNavigate();
   const { state } = useSidebar();
-  const { user, logout, hasRole } = useAuth();
+  const { user, logout } = useAuth();
   const { hasPermission } = usePermission();
   const isCollapsed = state === 'collapsed';
-
-  const hasAnyRole = (roles?: string[]) => !roles || roles.some((role) => hasRole(role));
 
   const isActive = (href: string) => {
     if (href === '/overview') {
@@ -155,11 +149,19 @@ export function AppSidebar() {
           <SidebarGroupLabel>Menú</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
+              <Can roles={MANAGEMENT_ROLES}>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={isActive('/overview')} tooltip="Overview">
+                    <Link to="/overview">
+                      <Home />
+                      <span>Overview</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </Can>
+
               {navigationTop
-                .filter(
-                  (item) =>
-                    hasAnyRole(item.roles) && (!item.permission || hasPermission(item.permission)),
-                )
+                .filter((item) => !item.permission || hasPermission(item.permission))
                 .map((item) => (
                   <SidebarMenuItem key={item.href}>
                     <SidebarMenuButton asChild isActive={isActive(item.href)} tooltip={item.name}>

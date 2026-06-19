@@ -1,7 +1,10 @@
+import type { ReactNode } from 'react';
 import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router-dom';
 import MainLayout from '@/app/MainLayout.js';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import RequireAuth from '@/modules/auth/components/RequireAuth.js';
+import { MANAGEMENT_ROLES } from '@/modules/auth/constants.js';
+import { useAuth } from '@/modules/auth/context/AuthContext.js';
 import LoginPage from '@/modules/auth/pages/LoginPage';
 import CatalogItemCreatePage from '@/modules/catalog/pages/CatalogItemCreatePage';
 import CatalogItemDetailPage from '@/modules/catalog/pages/CatalogItemDetailPage';
@@ -20,6 +23,18 @@ import OverviewPage from '@/modules/overview/pages/OverviewPage';
 import ReportsPage from '@/modules/reports/pages/ReportsPage';
 import { ErrorBoundary } from '@/shared/ui/ErrorBoundary';
 
+function HomeRedirect() {
+  const { hasRole } = useAuth();
+  const isManagement = MANAGEMENT_ROLES.some((role) => hasRole(role));
+  return <Navigate to={isManagement ? '/overview' : '/clientes'} replace />;
+}
+
+function ManagementOnly({ children }: { children: ReactNode }) {
+  const { hasRole } = useAuth();
+  const isManagement = MANAGEMENT_ROLES.some((role) => hasRole(role));
+  return isManagement ? children : <Navigate to="/clientes" replace />;
+}
+
 export default function App() {
   return (
     <BrowserRouter>
@@ -27,20 +42,24 @@ export default function App() {
         <ErrorBoundary>
           <Routes>
             <Route element={<MainLayout />}>
-              {/* Overview */}
+              {/* Home redirect */}
               <Route
                 path="/"
                 element={
                   <RequireAuth>
-                    <OverviewPage />
+                    <HomeRedirect />
                   </RequireAuth>
                 }
               />
+
+              {/* Overview */}
               <Route
                 path="/overview"
                 element={
                   <RequireAuth>
-                    <OverviewPage />
+                    <ManagementOnly>
+                      <OverviewPage />
+                    </ManagementOnly>
                   </RequireAuth>
                 }
               />

@@ -4,6 +4,7 @@ import { Briefcase, CalendarCheck, Users } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button.js';
 import { Input } from '@/components/ui/input.js';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet.js';
 import { useAdvisorMetrics } from '@/modules/reports/hooks/useAdvisorMetrics.js';
 import {
   EmptyState,
@@ -19,10 +20,15 @@ function advisorName(item: AdvisorMetricResponse) {
   return profile ? `${profile.firstName} ${profile.lastName}` : item.advisor.username;
 }
 
+function formatCurrency(value: number) {
+  return `$${value.toLocaleString('es-EC', { minimumFractionDigits: 2 })}`;
+}
+
 export default function OverviewPage() {
   const today = format(new Date(), 'yyyy-MM-dd');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
+  const [selectedAdvisor, setSelectedAdvisor] = useState<AdvisorMetricResponse | null>(null);
 
   const {
     data: metrics,
@@ -48,7 +54,17 @@ export default function OverviewPage() {
       id: 'advisor',
       header: 'Asesor',
       accessor: (item: AdvisorMetricResponse) => (
-        <span className="font-medium">{advisorName(item)}</span>
+        <div className="flex items-center gap-2">
+          <span className="font-medium">{advisorName(item)}</span>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-auto px-0 text-foreground hover:underline"
+            onClick={() => setSelectedAdvisor(item)}
+          >
+            Ver detalles
+          </Button>
+        </div>
       ),
     },
     {
@@ -79,14 +95,12 @@ export default function OverviewPage() {
     {
       id: 'billed',
       header: 'Facturado',
-      accessor: (item: AdvisorMetricResponse) =>
-        `$${item.totalBilledAmount.toLocaleString('es-EC', { minimumFractionDigits: 2 })}`,
+      accessor: (item: AdvisorMetricResponse) => formatCurrency(item.totalBilledAmount),
     },
     {
       id: 'avgPerService',
       header: 'Prom. por servicio',
-      accessor: (item: AdvisorMetricResponse) =>
-        `$${item.averageBillingPerService.toLocaleString('es-EC', { minimumFractionDigits: 2 })}`,
+      accessor: (item: AdvisorMetricResponse) => formatCurrency(item.averageBillingPerService),
     },
   ];
 
@@ -171,6 +185,66 @@ export default function OverviewPage() {
           />
         )}
       </div>
+
+      <Sheet open={!!selectedAdvisor} onOpenChange={() => setSelectedAdvisor(null)}>
+        <SheetContent>
+          <SheetHeader>
+            <SheetTitle>{selectedAdvisor ? advisorName(selectedAdvisor) : 'Detalle'}</SheetTitle>
+          </SheetHeader>
+
+          {selectedAdvisor && (
+            <div className="flex flex-col gap-6 py-6">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <KpiCard
+                  title="Contactados"
+                  value={selectedAdvisor.clientsContacted}
+                  subtitle="Cuentas en contacto inicial"
+                  icon={Briefcase}
+                />
+                <KpiCard
+                  title="Visitados"
+                  value={selectedAdvisor.clientsVisited}
+                  subtitle="Clientes visitados"
+                  icon={CalendarCheck}
+                />
+                <KpiCard
+                  title="En negociación"
+                  value={selectedAdvisor.clientsInNegotiation}
+                  subtitle="Negociaciones activas"
+                  icon={Users}
+                />
+                <KpiCard
+                  title="Cerrados"
+                  value={selectedAdvisor.clientsClosed}
+                  subtitle="Negocios cerrados"
+                  icon={Briefcase}
+                />
+                <KpiCard
+                  title="Post-venta"
+                  value={selectedAdvisor.clientsPostSale}
+                  subtitle="Clientes en post-venta"
+                  icon={CalendarCheck}
+                />
+              </div>
+
+              <div className="flex flex-col gap-4 rounded-lg border border-border bg-muted/50 p-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Facturado</span>
+                  <span className="text-lg font-semibold">
+                    {formatCurrency(selectedAdvisor.totalBilledAmount)}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Promedio por servicio</span>
+                  <span className="text-lg font-semibold">
+                    {formatCurrency(selectedAdvisor.averageBillingPerService)}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
