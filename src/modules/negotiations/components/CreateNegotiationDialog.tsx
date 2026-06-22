@@ -39,7 +39,15 @@ export function CreateNegotiationDialog({
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const { states } = useNegotiationStates();
-  const { clients } = useBusinessClients(1, {});
+
+  const [clientSearch, setClientSearch] = useState('');
+  const [clientPage, setClientPage] = useState(1);
+  const { clients, meta, fetching } = useBusinessClients(clientPage, {
+    search: clientSearch,
+    sortBy: 'updatedAt',
+    sortOrder: 'desc',
+    limit: 10,
+  });
 
   const [key, setKey] = useState(0);
   const [error, setError] = useState('');
@@ -50,6 +58,8 @@ export function CreateNegotiationDialog({
     setKey((k) => k + 1);
     setError('');
     setPreselectedClientId('');
+    setClientSearch('');
+    setClientPage(1);
     onOpenChange(false);
   }, [onOpenChange]);
 
@@ -60,6 +70,8 @@ export function CreateNegotiationDialog({
     () => clients.map((c) => ({ value: c.id, label: c.businessName })),
     [clients],
   );
+
+  const hasMore = meta ? meta.page < meta.totalPages : false;
 
   const mutation = useMutation({
     mutationFn: (data: CreateNegotiationRequest) => createNegotiation(data),
@@ -115,6 +127,14 @@ export function CreateNegotiationDialog({
           submitLabel="Crear"
           onDirtyChange={handleDirtyChange}
           clientOptions={clientOptions}
+          clientSearchValue={clientSearch}
+          onClientSearchChange={(v) => {
+            setClientSearch(v);
+            setClientPage(1);
+          }}
+          clientLoading={fetching}
+          clientHasMore={hasMore}
+          onClientLoadMore={() => setClientPage((p) => p + 1)}
           stateOptions={states}
           showCreateClient
           onCreateClient={() => setCreateClientOpen(true)}
