@@ -1,7 +1,11 @@
+import { CreateMatrixLineItemRequestSchema } from '@bopacorp/shared/matrices';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo } from 'react';
+import { Controller, useForm } from 'react-hook-form';
 import { toast } from 'sonner';
+import type { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -10,14 +14,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Field, FieldGroup, FieldLabel } from '@/components/ui/field';
+import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { formatCurrency } from '@/lib/format.js';
 import { queryKeys } from '@/lib/query-keys.js';
 import { listCatalogItems } from '@/modules/catalog/catalog.service.js';
+import { ApiError } from '@/services/api.js';
 import { getErrorMessage } from '@/shared/errors/index.js';
 import { FormAlert, SearchSelect } from '@/shared/ui';
 import { createLineItem } from '../matrices.service.js';
+
+type FormValues = z.input<typeof CreateMatrixLineItemRequestSchema>;
 
 interface AddLineItemDialogProps {
   open: boolean;
@@ -27,10 +34,23 @@ interface AddLineItemDialogProps {
 
 export function AddLineItemDialog({ open, onOpenChange, matrixId }: AddLineItemDialogProps) {
   const queryClient = useQueryClient();
-  const [itemId, setItemId] = useState('');
-  const [quantity, setQuantity] = useState(1);
-  const [unitPrice, setUnitPrice] = useState(0);
-  const [error, setError] = useState('');
+
+  const form = useForm<FormValues>({
+    resolver: zodResolver(CreateMatrixLineItemRequestSchema),
+    defaultValues: { matrixId, itemId: '', quantity: 1, unitPrice: 0, total: 0 },
+    mode: 'onTouched',
+  });
+
+  const {
+    register,
+    control,
+    handleSubmit,
+    reset,
+    setValue,
+    watch,
+    setError,
+    formState: { errors },
+  } = form;
 
   const { data: catalogData } = useQuery({
     queryKey: queryKeys.catalog.items.list(1, { isActive: true, limit: 100 }),
@@ -49,51 +69,47 @@ export function AddLineItemDialog({ open, onOpenChange, matrixId }: AddLineItemD
     [items],
   );
 
-  const selectedItem = items.find((i) => i.id === itemId);
-
-  const total = quantity * unitPrice;
+  const watchedItemId = watch('itemId');
+  const watchedQuantity = watch('quantity');
+  const watchedUnitPrice = watch('unitPrice');
+  const total = watchedQuantity * watchedUnitPrice;
+  const selectedItem = items.find((i) => i.id === watchedItemId);
 
   useEffect(() => {
     if (open) {
-      setItemId('');
-      setQuantity(1);
-      setUnitPrice(0);
-      setError('');
+      reset({ matrixId, itemId: '', quantity: 1, unitPrice: 0, total: 0 });
     }
-  }, [open]);
+  }, [open, matrixId, reset]);
 
   const handleItemChange = (id: string) => {
-    setItemId(id);
+    setValue('itemId', id, { shouldValidate: true });
     const item = items.find((i) => i.id === id);
-    if (item) setUnitPrice(item.price);
+    if (item) setValue('unitPrice', item.price);
   };
 
   const mutation = useMutation({
-    mutationFn: () =>
-      createLineItem(matrixId, {
-        matrixId,
-        itemId,
-        quantity,
-        unitPrice,
-        total,
-      }),
+    mutationFn: (data: FormValues) =>
+      createLineItem(matrixId, { ...data, total: data.quantity * data.unitPrice }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.matrices.lineItems(matrixId) });
       queryClient.invalidateQueries({ queryKey: queryKeys.matrices.detail(matrixId) });
       toast.success('Línea agregada');
       onOpenChange(false);
     },
-    onError: (err) => setError(getErrorMessage(err)),
+    onError: (err) => {
+      if (err instanceof ApiError && err.details?.length) {
+        for (const d of err.details) {
+          setError(d.field as keyof FormValues, { type: 'server', message: d.message });
+        }
+        return;
+      }
+      setError('root', { type: 'server', message: getErrorMessage(err) });
+    },
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!itemId) return;
-    setError('');
-    mutation.mutate();
+  const onSubmit = (data: FormValues) => {
+    mutation.mutate(data);
   };
-
-  const canSubmit = itemId && quantity >= 1 && unitPrice >= 0;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -101,42 +117,49 @@ export function AddLineItemDialog({ open, onOpenChange, matrixId }: AddLineItemD
         <DialogHeader>
           <DialogTitle>Agregar línea de oferta</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          {error && <FormAlert message={error} />}
+        <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">
+          {errors.root && <FormAlert message={errors.root.message ?? ''} />}
 
           <FieldGroup>
-            <Field>
+            <Field data-invalid={errors.itemId ? true : undefined}>
               <FieldLabel>Producto</FieldLabel>
-              <SearchSelect
-                options={itemOptions}
-                value={itemId}
-                onValueChange={handleItemChange}
-                placeholder="Seleccionar producto"
-                searchPlaceholder="Buscar producto..."
-                emptyMessage="Sin productos"
+              <Controller
+                control={control}
+                name="itemId"
+                render={({ field }) => (
+                  <SearchSelect
+                    options={itemOptions}
+                    value={field.value}
+                    onValueChange={handleItemChange}
+                    placeholder="Seleccionar producto"
+                    searchPlaceholder="Buscar producto..."
+                    emptyMessage="Sin productos"
+                  />
+                )}
               />
+              <FieldError>{errors.itemId?.message}</FieldError>
             </Field>
 
             <div className="grid grid-cols-2 gap-4">
-              <Field>
+              <Field data-invalid={errors.quantity ? true : undefined}>
                 <FieldLabel>Cantidad</FieldLabel>
                 <Input
                   type="number"
                   min={1}
                   step={1}
-                  value={quantity}
-                  onChange={(e) => setQuantity(Number.parseInt(e.target.value, 10) || 1)}
+                  {...register('quantity', { valueAsNumber: true })}
                 />
+                <FieldError>{errors.quantity?.message}</FieldError>
               </Field>
-              <Field>
+              <Field data-invalid={errors.unitPrice ? true : undefined}>
                 <FieldLabel>Precio unitario</FieldLabel>
                 <Input
                   type="number"
                   min={0}
                   step={0.01}
-                  value={unitPrice}
-                  onChange={(e) => setUnitPrice(Number.parseFloat(e.target.value) || 0)}
+                  {...register('unitPrice', { valueAsNumber: true })}
                 />
+                <FieldError>{errors.unitPrice?.message}</FieldError>
               </Field>
             </div>
 
@@ -152,7 +175,7 @@ export function AddLineItemDialog({ open, onOpenChange, matrixId }: AddLineItemD
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancelar
             </Button>
-            <Button type="submit" disabled={mutation.isPending || !canSubmit}>
+            <Button type="submit" disabled={mutation.isPending}>
               {mutation.isPending && <Loader2 data-icon="inline-start" className="animate-spin" />}
               Agregar
             </Button>

@@ -1,7 +1,10 @@
+import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2 } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo } from 'react';
+import { Controller, useForm } from 'react-hook-form';
+import { z } from 'zod';
 import { Button } from '@/components/ui/button';
-import { Field, FieldGroup, FieldLabel } from '@/components/ui/field';
+import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { SheetFooter } from '@/components/ui/sheet';
 import { Switch } from '@/components/ui/switch';
@@ -10,16 +13,20 @@ import { useAuth } from '@/modules/auth/context/AuthContext.js';
 import { useAdvisors } from '@/modules/org/hooks/useAdvisors.js';
 import { FormAlert, SearchSelect } from '@/shared/ui';
 
-export interface BusinessClientFormValues {
-  ruc: string;
-  businessName: string;
-  contactName: string;
-  contactPhone: string;
-  contactEmail: string;
-  address: string;
-  advisorId: string;
-  isActive: boolean;
-}
+const BusinessClientFormSchema = z.object({
+  ruc: z.string().min(1, 'Requerido'),
+  businessName: z.string().min(1, 'Requerido'),
+  contactName: z.string().min(1, 'Requerido'),
+  contactPhone: z.string(),
+  contactEmail: z.string().email('Email inválido').or(z.literal('')),
+  address: z.string(),
+  advisorId: z.string(),
+  isActive: z.boolean(),
+});
+
+type FormValues = z.input<typeof BusinessClientFormSchema>;
+
+export type BusinessClientFormValues = FormValues;
 
 interface BusinessClientFormProps {
   defaultValues: BusinessClientFormValues;
@@ -54,24 +61,17 @@ export function BusinessClientForm({
   const canAssignAdvisor = !hasRole('advisor');
   const { advisors } = useAdvisors();
 
-  const [ruc, setRuc] = useState(defaultValues.ruc);
-  const [businessName, setBusinessName] = useState(defaultValues.businessName);
-  const [contactName, setContactName] = useState(defaultValues.contactName);
-  const [contactPhone, setContactPhone] = useState(defaultValues.contactPhone);
-  const [contactEmail, setContactEmail] = useState(defaultValues.contactEmail);
-  const [address, setAddress] = useState(defaultValues.address);
-  const [advisorId, setAdvisorId] = useState(defaultValues.advisorId);
-  const [isActive, setIsActive] = useState(defaultValues.isActive);
-
-  const isDirty =
-    ruc !== defaultValues.ruc ||
-    businessName !== defaultValues.businessName ||
-    contactName !== defaultValues.contactName ||
-    contactPhone !== defaultValues.contactPhone ||
-    contactEmail !== defaultValues.contactEmail ||
-    address !== defaultValues.address ||
-    advisorId !== defaultValues.advisorId ||
-    isActive !== defaultValues.isActive;
+  const {
+    register,
+    control,
+    handleSubmit,
+    watch,
+    formState: { errors, isDirty },
+  } = useForm<FormValues>({
+    resolver: zodResolver(BusinessClientFormSchema),
+    defaultValues,
+    mode: 'onTouched',
+  });
 
   useEffect(() => {
     onDirtyChange?.(isDirty);
@@ -82,86 +82,70 @@ export function BusinessClientForm({
     [advisors],
   );
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!businessName || !contactName) return;
-    if (!rucReadOnly && !ruc) return;
-    onSubmit({
-      ruc,
-      businessName,
-      contactName,
-      contactPhone,
-      contactEmail,
-      address,
-      advisorId,
-      isActive,
-    });
-  };
-
   return (
-    <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+    <form
+      onSubmit={handleSubmit((values) => onSubmit(values))}
+      noValidate
+      className="flex min-h-0 flex-1 flex-col"
+    >
       <div className="flex-1 overflow-y-auto p-4">
         {error && <FormAlert message={error} />}
 
         <FieldGroup>
-          <Field>
+          <Field data-invalid={errors.ruc ? true : undefined}>
             <FieldLabel>RUC</FieldLabel>
             {rucReadOnly ? (
-              <Input value={ruc} readOnly className="bg-muted" />
+              <Input value={watch('ruc')} readOnly className="bg-muted" />
             ) : (
-              <Input
-                value={ruc}
-                onChange={(e) => setRuc(e.target.value)}
-                placeholder="0991234567001"
-                maxLength={13}
-                required
-              />
+              <Input {...register('ruc')} placeholder="0991234567001" maxLength={13} />
             )}
+            <FieldError>{errors.ruc?.message}</FieldError>
           </Field>
 
-          <Field>
+          <Field data-invalid={errors.businessName ? true : undefined}>
             <FieldLabel>Nombre comercial</FieldLabel>
-            <Input
-              value={businessName}
-              onChange={(e) => setBusinessName(e.target.value)}
-              required
-            />
+            <Input {...register('businessName')} />
+            <FieldError>{errors.businessName?.message}</FieldError>
           </Field>
 
-          <Field>
+          <Field data-invalid={errors.contactName ? true : undefined}>
             <FieldLabel>Contacto</FieldLabel>
-            <Input value={contactName} onChange={(e) => setContactName(e.target.value)} required />
+            <Input {...register('contactName')} />
+            <FieldError>{errors.contactName?.message}</FieldError>
           </Field>
 
           <Field>
             <FieldLabel>Teléfono</FieldLabel>
-            <Input value={contactPhone} onChange={(e) => setContactPhone(e.target.value)} />
+            <Input {...register('contactPhone')} />
           </Field>
 
-          <Field>
+          <Field data-invalid={errors.contactEmail ? true : undefined}>
             <FieldLabel>Email</FieldLabel>
-            <Input
-              type="email"
-              value={contactEmail}
-              onChange={(e) => setContactEmail(e.target.value)}
-            />
+            <Input type="email" {...register('contactEmail')} />
+            <FieldError>{errors.contactEmail?.message}</FieldError>
           </Field>
 
           <Field>
             <FieldLabel>Dirección</FieldLabel>
-            <Textarea value={address} onChange={(e) => setAddress(e.target.value)} />
+            <Textarea {...register('address')} />
           </Field>
 
           {canAssignAdvisor && (
             <Field>
               <FieldLabel>Asesor</FieldLabel>
-              <SearchSelect
-                options={advisorOptions}
-                value={advisorId}
-                onValueChange={setAdvisorId}
-                placeholder="Seleccionar asesor"
-                searchPlaceholder="Buscar asesor..."
-                emptyMessage="Sin asesores"
+              <Controller
+                control={control}
+                name="advisorId"
+                render={({ field }) => (
+                  <SearchSelect
+                    options={advisorOptions}
+                    value={field.value}
+                    onValueChange={field.onChange}
+                    placeholder="Seleccionar asesor"
+                    searchPlaceholder="Buscar asesor..."
+                    emptyMessage="Sin asesores"
+                  />
+                )}
               />
             </Field>
           )}
@@ -170,7 +154,13 @@ export function BusinessClientForm({
             <Field>
               <div className="flex items-center justify-between">
                 <FieldLabel>Activo</FieldLabel>
-                <Switch checked={isActive} onCheckedChange={setIsActive} />
+                <Controller
+                  control={control}
+                  name="isActive"
+                  render={({ field }) => (
+                    <Switch checked={field.value} onCheckedChange={field.onChange} />
+                  )}
+                />
               </div>
             </Field>
           )}
@@ -178,10 +168,7 @@ export function BusinessClientForm({
       </div>
 
       <SheetFooter>
-        <Button
-          type="submit"
-          disabled={isPending || !businessName || !contactName || (!rucReadOnly && !ruc)}
-        >
+        <Button type="submit" disabled={isPending}>
           {isPending && <Loader2 data-icon="inline-start" className="animate-spin" />}
           {submitLabel}
         </Button>

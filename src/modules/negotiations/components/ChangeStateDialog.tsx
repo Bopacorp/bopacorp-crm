@@ -1,7 +1,11 @@
+import { ChangeNegotiationStateRequestSchema } from '@bopacorp/shared/crm';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo } from 'react';
+import { Controller, useForm } from 'react-hook-form';
 import { toast } from 'sonner';
+import type { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -10,7 +14,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Field, FieldGroup, FieldLabel } from '@/components/ui/field';
+import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import {
   Select,
@@ -21,10 +25,13 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { queryKeys } from '@/lib/query-keys.js';
+import { ApiError } from '@/services/api.js';
 import { getErrorMessage } from '@/shared/errors/index.js';
 import { FormAlert } from '@/shared/ui';
 import { useNegotiationStates } from '../hooks/useNegotiationStates.js';
 import { changeNegotiationState } from '../negotiations.service.js';
+
+type FormValues = z.input<typeof ChangeNegotiationStateRequestSchema>;
 
 interface ChangeStateDialogProps {
   open: boolean;
@@ -56,92 +63,99 @@ export function ChangeStateDialog({
   const isLocked = !!targetStateId;
   const targetStateName = states.find((s) => s.id === targetStateId)?.name;
 
-  const [stateId, setStateId] = useState(effectiveStateId);
-  const [notes, setNotes] = useState('');
-  const [error, setError] = useState('');
+  const form = useForm<FormValues>({
+    resolver: zodResolver(ChangeNegotiationStateRequestSchema),
+    defaultValues: { stateId: effectiveStateId, notes: '' },
+    mode: 'onTouched',
+  });
+
+  const {
+    register,
+    control,
+    handleSubmit,
+    reset,
+    setError,
+    formState: { errors },
+  } = form;
 
   useEffect(() => {
-    if (open && effectiveStateId) {
-      setStateId(effectiveStateId);
+    if (open) {
+      reset({ stateId: effectiveStateId, notes: '' });
     }
-  }, [open, effectiveStateId]);
+  }, [open, effectiveStateId, reset]);
 
   const mutation = useMutation({
-    mutationFn: (data: { stateId: string; notes?: string }) =>
-      changeNegotiationState(negotiationId, data),
+    mutationFn: (data: FormValues) => changeNegotiationState(negotiationId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.negotiations.all });
       toast.success('Estado actualizado');
-      handleOpenChange(false);
+      onOpenChange(false);
       onSuccess();
     },
-    onError: (err) => setError(getErrorMessage(err)),
+    onError: (err) => {
+      if (err instanceof ApiError && err.details?.length) {
+        for (const d of err.details) {
+          setError(d.field as keyof FormValues, { type: 'server', message: d.message });
+        }
+        return;
+      }
+      setError('root', { type: 'server', message: getErrorMessage(err) });
+    },
   });
 
-  const resetForm = () => {
-    setStateId(effectiveStateId);
-    setNotes('');
-    setError('');
-  };
-
-  const handleOpenChange = (value: boolean) => {
-    if (!value) resetForm();
-    onOpenChange(value);
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!stateId) return;
-    setError('');
-
-    mutation.mutate({ stateId, notes: notes || undefined });
+  const onSubmit = (data: FormValues) => {
+    mutation.mutate({ stateId: data.stateId, notes: data.notes || undefined });
   };
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{isLocked ? 'Confirmar cambio de estado' : 'Cambiar estado'}</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          {error && <FormAlert message={error} />}
+        <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">
+          {errors.root && <FormAlert message={errors.root.message ?? ''} />}
 
           <FieldGroup>
-            <Field>
+            <Field data-invalid={errors.stateId ? true : undefined}>
               <FieldLabel>Nuevo estado</FieldLabel>
               {isLocked ? (
                 <Input value={targetStateName ?? ''} readOnly className="bg-muted" />
               ) : (
-                <Select value={stateId} onValueChange={setStateId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Seleccionar estado" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableStates.map((state) => (
-                      <SelectItem key={state.id} value={state.id}>
-                        {state.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Controller
+                  control={control}
+                  name="stateId"
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Seleccionar estado" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availableStates.map((state) => (
+                          <SelectItem key={state.id} value={state.id}>
+                            {state.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
               )}
+              <FieldError>{errors.stateId?.message}</FieldError>
             </Field>
 
-            <Field>
+            <Field data-invalid={errors.notes ? true : undefined}>
               <FieldLabel>Notas (opcional)</FieldLabel>
-              <Textarea
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="Motivo del cambio..."
-              />
+              <Textarea {...register('notes')} placeholder="Motivo del cambio..." />
+              <FieldError>{errors.notes?.message}</FieldError>
             </Field>
           </FieldGroup>
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => handleOpenChange(false)}>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancelar
             </Button>
-            <Button type="submit" disabled={mutation.isPending || !stateId}>
+            <Button type="submit" disabled={mutation.isPending}>
               {mutation.isPending && <Loader2 data-icon="inline-start" className="animate-spin" />}
               {isLocked ? 'Confirmar' : 'Cambiar'}
             </Button>

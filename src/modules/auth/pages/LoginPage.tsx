@@ -1,9 +1,13 @@
+import { LoginRequestSchema } from '@bopacorp/shared/auth';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2 } from 'lucide-react';
 import { useState } from 'react';
+import { useForm } from 'react-hook-form';
 import { useLocation, useNavigate } from 'react-router-dom';
+import type { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Field, FieldGroup, FieldLabel } from '@/components/ui/field';
+import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { LOGIN_ERRORS } from '@/shared/errors/auth.js';
 import { getErrorMessage } from '@/shared/errors/index.js';
@@ -11,29 +15,29 @@ import { FormAlert } from '@/shared/ui/FormAlert';
 import { ModeToggle } from '@/shared/ui/ModeToggle';
 import { useAuth } from '../context/AuthContext.js';
 
+type LoginFormValues = z.input<typeof LoginRequestSchema>;
+
 export default function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { login } = useAuth();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [authError, setAuthError] = useState('');
 
   const from = (location.state as { from?: string })?.from ?? '/';
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
+  const form = useForm<LoginFormValues>({
+    resolver: zodResolver(LoginRequestSchema),
+    defaultValues: { email: '', password: '' },
+    mode: 'onTouched',
+  });
 
+  const onSubmit = async (values: LoginFormValues) => {
+    setAuthError('');
     try {
-      await login({ email, password });
+      await login({ email: values.email, password: values.password });
       navigate(from, { replace: true });
     } catch (err) {
-      setError(getErrorMessage(err, LOGIN_ERRORS));
-    } finally {
-      setLoading(false);
+      setAuthError(getErrorMessage(err, LOGIN_ERRORS));
     }
   };
 
@@ -48,39 +52,43 @@ export default function LoginPage() {
           <CardDescription>Iniciar sesión en el CRM</CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-            {error && <FormAlert message={error} />}
+          <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-4" noValidate>
+            {authError && <FormAlert message={authError} />}
 
             <FieldGroup>
-              <Field>
+              <Field data-invalid={form.formState.errors.email ? true : undefined}>
                 <FieldLabel htmlFor="email">Correo electrónico</FieldLabel>
                 <Input
                   id="email"
                   type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
                   autoComplete="email"
-                  disabled={loading}
+                  disabled={form.formState.isSubmitting}
+                  {...form.register('email')}
                 />
+                {form.formState.errors.email && (
+                  <FieldError>{form.formState.errors.email.message}</FieldError>
+                )}
               </Field>
 
-              <Field>
+              <Field data-invalid={form.formState.errors.password ? true : undefined}>
                 <FieldLabel htmlFor="password">Contraseña</FieldLabel>
                 <Input
                   id="password"
                   type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
                   autoComplete="current-password"
-                  disabled={loading}
+                  disabled={form.formState.isSubmitting}
+                  {...form.register('password')}
                 />
+                {form.formState.errors.password && (
+                  <FieldError>{form.formState.errors.password.message}</FieldError>
+                )}
               </Field>
             </FieldGroup>
 
-            <Button type="submit" disabled={loading} className="w-full">
-              {loading && <Loader2 data-icon="inline-start" className="animate-spin" />}
+            <Button type="submit" disabled={form.formState.isSubmitting} className="w-full">
+              {form.formState.isSubmitting && (
+                <Loader2 data-icon="inline-start" className="animate-spin" />
+              )}
               Iniciar sesión
             </Button>
           </form>

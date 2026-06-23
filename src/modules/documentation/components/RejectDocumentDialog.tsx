@@ -1,8 +1,11 @@
 import type { DocumentState } from '@bopacorp/shared/documents';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
+import { z } from 'zod';
 import { Button } from '@/components/ui/button.js';
 import {
   Dialog,
@@ -11,12 +14,18 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog.js';
-import { Field, FieldGroup, FieldLabel } from '@/components/ui/field.js';
+import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field.js';
 import { Textarea } from '@/components/ui/textarea.js';
 import { queryKeys } from '@/lib/query-keys.js';
 import { getErrorMessage } from '@/shared/errors/index.js';
 import { FormAlert } from '@/shared/ui';
 import { changeDocumentState } from '../documentation.service.js';
+
+const RejectFormSchema = z.object({
+  coordinatorMessage: z.string().max(1000, 'Máximo 1000 caracteres'),
+});
+
+type RejectFormValues = z.input<typeof RejectFormSchema>;
 
 interface RejectDocumentDialogProps {
   open: boolean;
@@ -34,19 +43,27 @@ export function RejectDocumentDialog({
   onSuccess,
 }: RejectDocumentDialogProps) {
   const queryClient = useQueryClient();
-  const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+
+  const form = useForm<RejectFormValues>({
+    resolver: zodResolver(RejectFormSchema),
+    defaultValues: { coordinatorMessage: '' },
+    mode: 'onTouched',
+  });
 
   useEffect(() => {
     if (open) {
-      setMessage('');
+      form.reset({ coordinatorMessage: '' });
       setError('');
     }
-  }, [open]);
+  }, [open, form]);
 
   const mutation = useMutation({
-    mutationFn: (notes: string) =>
-      changeDocumentState(documentId, { state: 'REJECTED', coordinatorMessage: notes }),
+    mutationFn: (data: RejectFormValues) =>
+      changeDocumentState(documentId, {
+        state: 'REJECTED',
+        coordinatorMessage: data.coordinatorMessage || undefined,
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.documents.all });
       toast.success('Documento rechazado');
@@ -56,13 +73,13 @@ export function RejectDocumentDialog({
     onError: (err) => setError(getErrorMessage(err)),
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const onSubmit = (values: RejectFormValues) => {
     setError('');
-    mutation.mutate(message);
+    mutation.mutate(values);
   };
 
   const isRejected = currentState === 'REJECTED';
+  const coordinatorMessage = form.watch('coordinatorMessage');
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -72,20 +89,22 @@ export function RejectDocumentDialog({
             {isRejected ? 'Cambiar estado del documento' : 'Rechazar documento'}
           </DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-4" noValidate>
           {error && <FormAlert message={error} />}
 
           <FieldGroup>
-            <Field>
+            <Field data-invalid={form.formState.errors.coordinatorMessage ? true : undefined}>
               <FieldLabel>Notas del coordinador</FieldLabel>
               <Textarea
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
                 placeholder={
                   isRejected ? 'Motivo del cambio de estado...' : 'Indica el motivo del rechazo...'
                 }
-                required={!isRejected}
+                disabled={mutation.isPending}
+                {...form.register('coordinatorMessage')}
               />
+              {form.formState.errors.coordinatorMessage && (
+                <FieldError>{form.formState.errors.coordinatorMessage.message}</FieldError>
+              )}
             </Field>
           </FieldGroup>
 
@@ -93,7 +112,10 @@ export function RejectDocumentDialog({
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancelar
             </Button>
-            <Button type="submit" disabled={mutation.isPending || (!isRejected && !message)}>
+            <Button
+              type="submit"
+              disabled={mutation.isPending || (!isRejected && !coordinatorMessage)}
+            >
               {mutation.isPending && <Loader2 data-icon="inline-start" className="animate-spin" />}
               {isRejected ? 'Guardar' : 'Rechazar'}
             </Button>

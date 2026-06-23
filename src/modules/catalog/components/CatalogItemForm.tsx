@@ -1,8 +1,11 @@
 import type { CatalogItemResponse } from '@bopacorp/shared/catalog';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2 } from 'lucide-react';
-import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
+import { Controller, useForm } from 'react-hook-form';
+import { z } from 'zod';
 import { Button } from '@/components/ui/button';
-import { Field, FieldGroup, FieldLabel } from '@/components/ui/field';
+import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import {
   Select,
@@ -65,6 +68,30 @@ export interface CatalogItemFormValues {
   legalConditions: LegalConditionFormValues | null;
   temporalConditions: TemporalConditionFormValues | null;
 }
+
+const CatalogItemFormSchema = z.object({
+  name: z.string().min(1, 'Requerido'),
+  description: z.string(),
+  price: z.string().min(1, 'Requerido'),
+  activationCode: z.string(),
+  permanenceMonths: z.string(),
+  categoryId: z.string().min(1, 'Requerido'),
+  itemTypeId: z.string().min(1, 'Requerido'),
+  contractTypeId: z.string().min(1, 'Requerido'),
+  segmentId: z.string().min(1, 'Requerido'),
+  tierId: z.string().min(1, 'Requerido'),
+  isActive: z.boolean(),
+  isPublished: z.boolean(),
+  voiceDetails: z.custom<VoiceDetailFormValues | null>(),
+  connectivityDetails: z.custom<ConnectivityDetailFormValues | null>(),
+  digitalDetails: z.custom<DigitalDetailFormValues | null>(),
+  roamingDetails: z.custom<RoamingDetailFormValues | null>(),
+  deviceDetails: z.custom<DeviceDetailFormValues | null>(),
+  benefits: z.custom<BenefitFormRow[]>(),
+  ageConditions: z.custom<AgeConditionFormValues | null>(),
+  legalConditions: z.custom<LegalConditionFormValues | null>(),
+  temporalConditions: z.custom<TemporalConditionFormValues | null>(),
+});
 
 export const EMPTY_FORM_VALUES: CatalogItemFormValues = {
   name: '',
@@ -333,29 +360,18 @@ export function CatalogItemForm({
   onCancel,
   mode,
 }: CatalogItemFormProps) {
-  const [name, setName] = useState(defaultValues.name);
-  const [description, setDescription] = useState(defaultValues.description);
-  const [price, setPrice] = useState(defaultValues.price);
-  const [activationCode, setActivationCode] = useState(defaultValues.activationCode);
-  const [permanenceMonths, setPermanenceMonths] = useState(defaultValues.permanenceMonths);
-  const [categoryId, setCategoryId] = useState(defaultValues.categoryId);
-  const [itemTypeId, setItemTypeId] = useState(defaultValues.itemTypeId);
-  const [contractTypeId, setContractTypeId] = useState(defaultValues.contractTypeId);
-  const [segmentId, setSegmentId] = useState(defaultValues.segmentId);
-  const [tierId, setTierId] = useState(defaultValues.tierId);
-  const [isActive, setIsActive] = useState(defaultValues.isActive);
-  const [isPublished, setIsPublished] = useState(defaultValues.isPublished);
-
-  const [voiceDetails, setVoiceDetails] = useState(defaultValues.voiceDetails);
-  const [connectivityDetails, setConnectivityDetails] = useState(defaultValues.connectivityDetails);
-  const [digitalDetails, setDigitalDetails] = useState(defaultValues.digitalDetails);
-  const [roamingDetails, setRoamingDetails] = useState(defaultValues.roamingDetails);
-  const [deviceDetails, setDeviceDetails] = useState(defaultValues.deviceDetails);
-
-  const [benefits, setBenefits] = useState(defaultValues.benefits);
-  const [ageConditions, setAgeConditions] = useState(defaultValues.ageConditions);
-  const [legalConditions, setLegalConditions] = useState(defaultValues.legalConditions);
-  const [temporalConditions, setTemporalConditions] = useState(defaultValues.temporalConditions);
+  const {
+    register,
+    control,
+    handleSubmit,
+    watch,
+    setValue,
+    formState: { errors, isDirty },
+  } = useForm<CatalogItemFormValues>({
+    resolver: zodResolver(CatalogItemFormSchema),
+    defaultValues,
+    mode: 'onTouched',
+  });
 
   const { options: categoryOptions } = useCategoryOptions();
   const { options: itemTypeOptions } = useItemTypeOptions();
@@ -363,120 +379,51 @@ export function CatalogItemForm({
   const { options: segmentOptions } = useSegmentOptions();
   const { options: tierOptions } = useTierOptions();
 
+  const watchedItemTypeId = watch('itemTypeId');
   const itemTypeCode = useMemo(
-    () => itemTypeOptions.find((o) => o.value === itemTypeId)?.code ?? null,
-    [itemTypeOptions, itemTypeId],
+    () => itemTypeOptions.find((o) => o.value === watchedItemTypeId)?.code ?? null,
+    [itemTypeOptions, watchedItemTypeId],
   );
 
-  // Switch detail type when itemTypeId changes
-  const prevItemTypeIdRef = useRef(itemTypeId);
-  if (prevItemTypeIdRef.current !== itemTypeId) {
-    const prevCode = itemTypeOptions.find((o) => o.value === prevItemTypeIdRef.current)?.code;
-    const newCode = itemTypeOptions.find((o) => o.value === itemTypeId)?.code;
-    prevItemTypeIdRef.current = itemTypeId;
+  const prevItemTypeIdRef = useRef(watchedItemTypeId);
+  useEffect(() => {
+    const prev = prevItemTypeIdRef.current;
+    if (prev === watchedItemTypeId) return;
+    prevItemTypeIdRef.current = watchedItemTypeId;
+
+    const prevCode = itemTypeOptions.find((o) => o.value === prev)?.code;
+    const newCode = itemTypeOptions.find((o) => o.value === watchedItemTypeId)?.code;
 
     if (prevCode && prevCode !== newCode) {
-      const prevKey = CODE_TO_DETAIL_KEY[prevCode] as keyof DetailValues;
-      if (prevKey === 'voiceDetails') setVoiceDetails(null);
-      if (prevKey === 'connectivityDetails') setConnectivityDetails(null);
-      if (prevKey === 'digitalDetails') setDigitalDetails(null);
-      if (prevKey === 'roamingDetails') setRoamingDetails(null);
-      if (prevKey === 'deviceDetails') setDeviceDetails(null);
+      const prevKey = CODE_TO_DETAIL_KEY[prevCode];
+      // biome-ignore lint/suspicious/noExplicitAny: detail key union too wide for setValue generics
+      if (prevKey) setValue(prevKey, null as any, { shouldDirty: true });
     }
-
     if (newCode) {
       const newKey = CODE_TO_DETAIL_KEY[newCode];
       const defaults = CODE_TO_DEFAULTS[newCode];
       if (newKey && defaults) {
-        if (newKey === 'voiceDetails') setVoiceDetails(defaults as VoiceDetailFormValues);
-        if (newKey === 'connectivityDetails')
-          setConnectivityDetails(defaults as ConnectivityDetailFormValues);
-        if (newKey === 'digitalDetails') setDigitalDetails(defaults as DigitalDetailFormValues);
-        if (newKey === 'roamingDetails') setRoamingDetails(defaults as RoamingDetailFormValues);
-        if (newKey === 'deviceDetails') setDeviceDetails(defaults as DeviceDetailFormValues);
+        // biome-ignore lint/suspicious/noExplicitAny: detail key union too wide for setValue generics
+        setValue(newKey, defaults as any, { shouldDirty: true });
       }
     }
-  }
+  }, [watchedItemTypeId, itemTypeOptions, setValue]);
 
   const handleDetailChange = <K extends keyof DetailValues>(key: K, val: DetailValues[K]) => {
-    if (key === 'voiceDetails') setVoiceDetails(val as VoiceDetailFormValues | null);
-    if (key === 'connectivityDetails')
-      setConnectivityDetails(val as ConnectivityDetailFormValues | null);
-    if (key === 'digitalDetails') setDigitalDetails(val as DigitalDetailFormValues | null);
-    if (key === 'roamingDetails') setRoamingDetails(val as RoamingDetailFormValues | null);
-    if (key === 'deviceDetails') setDeviceDetails(val as DeviceDetailFormValues | null);
+    // biome-ignore lint/suspicious/noExplicitAny: react-hook-form setValue generics can't infer mapped detail types
+    setValue(key, val as any, { shouldDirty: true });
   };
-
-  // Dirty detection
-  const isDirty =
-    name !== defaultValues.name ||
-    description !== defaultValues.description ||
-    price !== defaultValues.price ||
-    activationCode !== defaultValues.activationCode ||
-    permanenceMonths !== defaultValues.permanenceMonths ||
-    categoryId !== defaultValues.categoryId ||
-    itemTypeId !== defaultValues.itemTypeId ||
-    contractTypeId !== defaultValues.contractTypeId ||
-    segmentId !== defaultValues.segmentId ||
-    tierId !== defaultValues.tierId ||
-    isActive !== defaultValues.isActive ||
-    isPublished !== defaultValues.isPublished ||
-    JSON.stringify(voiceDetails) !== JSON.stringify(defaultValues.voiceDetails) ||
-    JSON.stringify(connectivityDetails) !== JSON.stringify(defaultValues.connectivityDetails) ||
-    JSON.stringify(digitalDetails) !== JSON.stringify(defaultValues.digitalDetails) ||
-    JSON.stringify(roamingDetails) !== JSON.stringify(defaultValues.roamingDetails) ||
-    JSON.stringify(deviceDetails) !== JSON.stringify(defaultValues.deviceDetails) ||
-    JSON.stringify(benefits) !== JSON.stringify(defaultValues.benefits) ||
-    JSON.stringify(ageConditions) !== JSON.stringify(defaultValues.ageConditions) ||
-    JSON.stringify(legalConditions) !== JSON.stringify(defaultValues.legalConditions) ||
-    JSON.stringify(temporalConditions) !== JSON.stringify(defaultValues.temporalConditions);
 
   useEffect(() => {
     onDirtyChange?.(isDirty);
   }, [isDirty, onDirtyChange]);
 
-  const canSubmit =
-    name.trim() !== '' &&
-    price !== '' &&
-    categoryId !== '' &&
-    itemTypeId !== '' &&
-    contractTypeId !== '' &&
-    segmentId !== '' &&
-    tierId !== '';
-
-  const handleSubmit = (e: FormEvent) => {
-    e.preventDefault();
-    if (!canSubmit) return;
-    onSubmit(
-      {
-        name,
-        description,
-        price,
-        activationCode,
-        permanenceMonths,
-        categoryId,
-        itemTypeId,
-        contractTypeId,
-        segmentId,
-        tierId,
-        isActive,
-        isPublished,
-        voiceDetails,
-        connectivityDetails,
-        digitalDetails,
-        roamingDetails,
-        deviceDetails,
-        benefits,
-        ageConditions,
-        legalConditions,
-        temporalConditions,
-      },
-      itemTypeCode,
-    );
+  const onSubmitHandler = (data: CatalogItemFormValues) => {
+    onSubmit(data, itemTypeCode);
   };
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-8">
+    <form onSubmit={handleSubmit(onSubmitHandler)} noValidate className="flex flex-col gap-8">
       {error && <FormAlert message={error} />}
 
       {/* Section 1: General */}
@@ -484,137 +431,161 @@ export function CatalogItemForm({
         <h3 className="text-sm font-semibold text-foreground">Información general</h3>
         <FieldGroup>
           <div className="grid gap-5 md:grid-cols-2">
-            <Field>
+            <Field data-invalid={errors.name ? true : undefined}>
               <FieldLabel>Nombre</FieldLabel>
-              <Input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                maxLength={200}
-                required
-              />
+              <Input {...register('name')} maxLength={200} />
+              <FieldError>{errors.name?.message}</FieldError>
             </Field>
-            <Field>
+            <Field data-invalid={errors.price ? true : undefined}>
               <FieldLabel>Precio</FieldLabel>
-              <Input
-                type="number"
-                min={0}
-                step={0.01}
-                value={price}
-                onChange={(e) => setPrice(e.target.value)}
-                required
-              />
+              <Input type="number" min={0} step={0.01} {...register('price')} />
+              <FieldError>{errors.price?.message}</FieldError>
             </Field>
             <Field className="md:col-span-2">
               <FieldLabel>Descripción</FieldLabel>
-              <Textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                rows={3}
-              />
+              <Textarea {...register('description')} rows={3} />
             </Field>
             <Field>
               <FieldLabel>Código de activación</FieldLabel>
-              <Input
-                value={activationCode}
-                onChange={(e) => setActivationCode(e.target.value)}
-                maxLength={50}
-              />
+              <Input {...register('activationCode')} maxLength={50} />
             </Field>
             <Field>
               <FieldLabel>Permanencia (meses)</FieldLabel>
-              <Input
-                type="number"
-                min={0}
-                value={permanenceMonths}
-                onChange={(e) => setPermanenceMonths(e.target.value)}
-              />
+              <Input type="number" min={0} {...register('permanenceMonths')} />
             </Field>
-            <Field>
+            <Field data-invalid={errors.categoryId ? true : undefined}>
               <FieldLabel>Categoría</FieldLabel>
-              <Select value={categoryId} onValueChange={setCategoryId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Seleccionar categoría" />
-                </SelectTrigger>
-                <SelectContent>
-                  {categoryOptions.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value} disabled={opt.disabled}>
-                      {opt.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Controller
+                control={control}
+                name="categoryId"
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleccionar categoría" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categoryOptions.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value} disabled={opt.disabled}>
+                          {opt.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              <FieldError>{errors.categoryId?.message}</FieldError>
             </Field>
-            <Field>
+            <Field data-invalid={errors.itemTypeId ? true : undefined}>
               <FieldLabel>Tipo de ítem</FieldLabel>
-              <Select value={itemTypeId} onValueChange={setItemTypeId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Seleccionar tipo" />
-                </SelectTrigger>
-                <SelectContent>
-                  {itemTypeOptions.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Controller
+                control={control}
+                name="itemTypeId"
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleccionar tipo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {itemTypeOptions.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              <FieldError>{errors.itemTypeId?.message}</FieldError>
             </Field>
-            <Field>
+            <Field data-invalid={errors.contractTypeId ? true : undefined}>
               <FieldLabel>Tipo de contrato</FieldLabel>
-              <Select value={contractTypeId} onValueChange={setContractTypeId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Seleccionar contrato" />
-                </SelectTrigger>
-                <SelectContent>
-                  {contractTypeOptions.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Controller
+                control={control}
+                name="contractTypeId"
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleccionar contrato" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {contractTypeOptions.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              <FieldError>{errors.contractTypeId?.message}</FieldError>
             </Field>
-            <Field>
+            <Field data-invalid={errors.segmentId ? true : undefined}>
               <FieldLabel>Segmento</FieldLabel>
-              <Select value={segmentId} onValueChange={setSegmentId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Seleccionar segmento" />
-                </SelectTrigger>
-                <SelectContent>
-                  {segmentOptions.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Controller
+                control={control}
+                name="segmentId"
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleccionar segmento" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {segmentOptions.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              <FieldError>{errors.segmentId?.message}</FieldError>
             </Field>
-            <Field>
+            <Field data-invalid={errors.tierId ? true : undefined}>
               <FieldLabel>Nivel</FieldLabel>
-              <Select value={tierId} onValueChange={setTierId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Seleccionar nivel" />
-                </SelectTrigger>
-                <SelectContent>
-                  {tierOptions.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Controller
+                control={control}
+                name="tierId"
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleccionar nivel" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {tierOptions.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              <FieldError>{errors.tierId?.message}</FieldError>
             </Field>
           </div>
           <div className="grid gap-5 md:grid-cols-2">
             {mode === 'edit' && (
               <Field orientation="horizontal">
                 <FieldLabel>Activo</FieldLabel>
-                <Switch checked={isActive} onCheckedChange={setIsActive} />
+                <Controller
+                  control={control}
+                  name="isActive"
+                  render={({ field }) => (
+                    <Switch checked={field.value} onCheckedChange={field.onChange} />
+                  )}
+                />
               </Field>
             )}
             <Field orientation="horizontal">
               <FieldLabel>Publicado</FieldLabel>
-              <Switch checked={isPublished} onCheckedChange={setIsPublished} />
+              <Controller
+                control={control}
+                name="isPublished"
+                render={({ field }) => (
+                  <Switch checked={field.value} onCheckedChange={field.onChange} />
+                )}
+              />
             </Field>
           </div>
         </FieldGroup>
@@ -627,11 +598,11 @@ export function CatalogItemForm({
           <TypeSpecificFields
             itemTypeCode={itemTypeCode}
             values={{
-              voiceDetails,
-              connectivityDetails,
-              digitalDetails,
-              roamingDetails,
-              deviceDetails,
+              voiceDetails: watch('voiceDetails'),
+              connectivityDetails: watch('connectivityDetails'),
+              digitalDetails: watch('digitalDetails'),
+              roamingDetails: watch('roamingDetails'),
+              deviceDetails: watch('deviceDetails'),
             }}
             onChange={handleDetailChange}
           />
@@ -641,19 +612,22 @@ export function CatalogItemForm({
       {/* Section 3: Benefits */}
       <section className="flex flex-col gap-4">
         <h3 className="text-sm font-semibold text-foreground">Beneficios</h3>
-        <BenefitsSection benefits={benefits} onChange={setBenefits} />
+        <BenefitsSection
+          benefits={watch('benefits')}
+          onChange={(b) => setValue('benefits', b, { shouldDirty: true })}
+        />
       </section>
 
       {/* Section 4: Conditions */}
       <section className="flex flex-col gap-4">
         <h3 className="text-sm font-semibold text-foreground">Condiciones</h3>
         <ConditionsSection
-          ageConditions={ageConditions}
-          legalConditions={legalConditions}
-          temporalConditions={temporalConditions}
-          onAgeChange={setAgeConditions}
-          onLegalChange={setLegalConditions}
-          onTemporalChange={setTemporalConditions}
+          ageConditions={watch('ageConditions')}
+          legalConditions={watch('legalConditions')}
+          temporalConditions={watch('temporalConditions')}
+          onAgeChange={(v) => setValue('ageConditions', v, { shouldDirty: true })}
+          onLegalChange={(v) => setValue('legalConditions', v, { shouldDirty: true })}
+          onTemporalChange={(v) => setValue('temporalConditions', v, { shouldDirty: true })}
         />
       </section>
 
@@ -664,7 +638,7 @@ export function CatalogItemForm({
             Cancelar
           </Button>
         )}
-        <Button type="submit" disabled={!canSubmit || isPending}>
+        <Button type="submit" disabled={isPending}>
           {isPending && <Loader2 data-icon="inline-start" className="animate-spin" />}
           {submitLabel}
         </Button>
