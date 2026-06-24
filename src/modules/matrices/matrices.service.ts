@@ -1,22 +1,15 @@
 import type { PaginationMeta } from '@bopacorp/shared/common';
 import type {
-  ChangeMatrixStateRequest,
   CreateMatrixAttachmentRequest,
-  CreateMatrixLineItemRequest,
   CreateOfferMatrixRequest,
   ListMatrixAttachmentsQuery,
-  ListMatrixLineItemsQuery,
-  ListMatrixStateHistoryQuery,
   ListOfferMatricesQuery,
   MatrixAttachmentResponse,
-  MatrixLineItemListItemResponse,
-  MatrixStateHistoryResponse,
   OfferMatrixListItemResponse,
   OfferMatrixResponse,
-  UpdateMatrixLineItemRequest,
   UpdateOfferMatrixRequest,
 } from '@bopacorp/shared/matrices';
-import { request, requestPaginated } from '@/services/api.js';
+import api, { request, requestPaginated } from '@/services/api.js';
 
 // ── Offer Matrices ──
 
@@ -44,48 +37,6 @@ export function deleteMatrix(id: string) {
   return request<void>({ method: 'DELETE', url: `/matrices/${id}` });
 }
 
-export function changeMatrixState(id: string, data: ChangeMatrixStateRequest) {
-  return request<OfferMatrixResponse>({
-    method: 'PATCH',
-    url: `/matrices/${id}/state`,
-    data,
-  });
-}
-
-// ── Line Items ──
-
-export function listLineItems(matrixId: string, query?: Partial<ListMatrixLineItemsQuery>) {
-  return requestPaginated<MatrixLineItemListItemResponse, PaginationMeta>({
-    method: 'GET',
-    url: `/matrices/${matrixId}/line-items`,
-    params: { ...query, matrixId },
-  });
-}
-
-export function createLineItem(matrixId: string, data: CreateMatrixLineItemRequest) {
-  return request<MatrixLineItemListItemResponse>({
-    method: 'POST',
-    url: `/matrices/${matrixId}/line-items`,
-    data,
-  });
-}
-
-export function updateLineItem(
-  matrixId: string,
-  lineItemId: string,
-  data: UpdateMatrixLineItemRequest,
-) {
-  return request<MatrixLineItemListItemResponse>({
-    method: 'PATCH',
-    url: `/matrices/${matrixId}/line-items/${lineItemId}`,
-    data,
-  });
-}
-
-export function deleteLineItem(matrixId: string, lineItemId: string) {
-  return request<void>({ method: 'DELETE', url: `/matrices/${matrixId}/line-items/${lineItemId}` });
-}
-
 // ── Attachments ──
 
 export function listAttachments(matrixId: string, query?: Partial<ListMatrixAttachmentsQuery>) {
@@ -111,12 +62,18 @@ export function deleteAttachment(matrixId: string, attachmentId: string) {
   });
 }
 
-// ── State History ──
-
-export function listHistory(matrixId: string, query?: Partial<ListMatrixStateHistoryQuery>) {
-  return requestPaginated<MatrixStateHistoryResponse, PaginationMeta>({
-    method: 'GET',
-    url: `/matrices/${matrixId}/history`,
-    params: { ...query, matrixId },
+export async function downloadAttachment(matrixId: string, attachmentId: string, filename: string) {
+  const response = await api.get(`/matrices/${matrixId}/attachments/${attachmentId}/download`, {
+    responseType: 'blob',
   });
+
+  const blob = new Blob([response.data as BlobPart]);
+  const url = window.URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.URL.revokeObjectURL(url);
 }

@@ -17,7 +17,6 @@ import DocumentationPage from '@/modules/documentation/pages/DocumentationPage';
 import ApplicantsPage from '@/modules/employability/pages/ApplicantsPage';
 import MessagesPage from '@/modules/employability/pages/MessagesPage';
 import VacanciesPage from '@/modules/employability/pages/VacanciesPage';
-import MatrixDetailPage from '@/modules/matrices/pages/MatrixDetailPage';
 import NegotiationDetailPage from '@/modules/negotiations/pages/NegotiationDetailPage';
 import NegotiationsPage from '@/modules/negotiations/pages/NegotiationsPage';
 import OrgSettingsPage from '@/modules/org/pages/OrgSettingsPage';
@@ -133,14 +132,6 @@ export default function App() {
                 element={
                   <RequireAuth>
                     <ContactRequestsPage />
-                  </RequireAuth>
-                }
-              />
-              <Route
-                path="/negociaciones/matrices/:id"
-                element={
-                  <RequireAuth>
-                    <MatrixDetailPage />
                   </RequireAuth>
                 }
               />
