@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { FormAlert } from '@/shared/ui';
 import { useCategoryOptions } from '../hooks/useCategoryOptions.js';
 import { useContractTypeOptions } from '../hooks/useContractTypeOptions.js';
@@ -503,18 +504,22 @@ export function CatalogItemForm({
                 control={control}
                 name="contractTypeId"
                 render={({ field }) => (
-                  <Select value={field.value} onValueChange={field.onChange}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Seleccionar contrato" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {contractTypeOptions.map((opt) => (
-                        <SelectItem key={opt.value} value={opt.value}>
-                          {opt.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <ToggleGroup
+                    type="single"
+                    variant="outline"
+                    spacing={0}
+                    value={field.value}
+                    onValueChange={(v) => {
+                      if (v) field.onChange(v);
+                    }}
+                    className="w-full"
+                  >
+                    {contractTypeOptions.map((opt) => (
+                      <ToggleGroupItem key={opt.value} value={opt.value} className="flex-1 text-xs">
+                        {opt.label}
+                      </ToggleGroupItem>
+                    ))}
+                  </ToggleGroup>
                 )}
               />
               <FieldError>{errors.contractTypeId?.message}</FieldError>
@@ -525,18 +530,22 @@ export function CatalogItemForm({
                 control={control}
                 name="segmentId"
                 render={({ field }) => (
-                  <Select value={field.value} onValueChange={field.onChange}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Seleccionar segmento" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {segmentOptions.map((opt) => (
-                        <SelectItem key={opt.value} value={opt.value}>
-                          {opt.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <ToggleGroup
+                    type="single"
+                    variant="outline"
+                    spacing={0}
+                    value={field.value}
+                    onValueChange={(v) => {
+                      if (v) field.onChange(v);
+                    }}
+                    className="w-full"
+                  >
+                    {segmentOptions.map((opt) => (
+                      <ToggleGroupItem key={opt.value} value={opt.value} className="flex-1 text-xs">
+                        {opt.label}
+                      </ToggleGroupItem>
+                    ))}
+                  </ToggleGroup>
                 )}
               />
               <FieldError>{errors.segmentId?.message}</FieldError>

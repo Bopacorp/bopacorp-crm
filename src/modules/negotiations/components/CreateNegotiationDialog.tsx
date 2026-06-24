@@ -44,8 +44,8 @@ export function CreateNegotiationDialog({
   const [clientPage, setClientPage] = useState(1);
   const { clients, meta, fetching } = useBusinessClients(clientPage, {
     search: clientSearch,
-    sortBy: 'updatedAt',
-    sortOrder: 'desc',
+    sortBy: 'businessName',
+    sortOrder: 'asc',
     limit: 10,
   });
 

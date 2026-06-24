@@ -94,26 +94,26 @@ export function SearchSelect({
                     </CommandItem>
                   ))}
                 </CommandGroup>
-                {hasMore && onLoadMore && (
-                  <div className="border-t border-border p-1">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="w-full justify-center"
-                      onClick={onLoadMore}
-                      disabled={loading}
-                    >
-                      {loading ? (
-                        <Loader2 data-icon="inline-start" className="size-4 animate-spin" />
-                      ) : null}
-                      {loadMoreLabel}
-                    </Button>
-                  </div>
-                )}
               </>
             )}
           </CommandList>
+          {hasMore && onLoadMore && (
+            <div className="border-t border-border p-1">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="w-full justify-center"
+                onClick={onLoadMore}
+                disabled={loading}
+              >
+                {loading ? (
+                  <Loader2 data-icon="inline-start" className="size-4 animate-spin" />
+                ) : null}
+                {loadMoreLabel}
+              </Button>
+            </div>
+          )}
         </Command>
       </PopoverContent>
     </Popover>
