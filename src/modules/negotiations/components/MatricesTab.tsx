@@ -1,6 +1,6 @@
 import type { AttachmentType, MatrixAttachmentResponse } from '@bopacorp/shared/matrices';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Download, FileIcon, FileSpreadsheet, Loader2, Mail, Pencil, Trash2 } from 'lucide-react';
+import { Download, FileSpreadsheet, Loader2, Mail, Pencil, Trash2 } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -331,29 +331,13 @@ function AttachmentSlot({ matrixId, type, attachment }: AttachmentSlotProps) {
   };
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-1 flex-col gap-2">
       <span className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
         {config.label}
       </span>
       {attachment ? (
-        <Card className="flex min-h-28 flex-col justify-between gap-3 p-4">
-          <div className="flex items-start gap-3">
-            <div className="flex size-10 shrink-0 items-center justify-center rounded-md bg-muted">
-              <FileIcon className="size-5 text-muted-foreground" />
-            </div>
-            <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-              <span className="truncate text-sm font-medium">
-                {attachment.filename}.{attachment.fileExtension}
-              </span>
-              <span className="text-xs text-muted-foreground">
-                {attachment.fileSizeMb} MB · {attachment.uploadedBy.username}
-              </span>
-              <span className="text-xs text-muted-foreground">
-                {formatRelativeTime(attachment.uploadedAt)}
-              </span>
-            </div>
-          </div>
-          <div className="flex items-center gap-1">
+        <Card className="relative flex flex-1 flex-col gap-3 p-4">
+          <div className="absolute top-3 right-3 flex items-center gap-0.5">
             <Button
               variant="ghost"
               size="icon-sm"
@@ -374,21 +358,38 @@ function AttachmentSlot({ matrixId, type, attachment }: AttachmentSlotProps) {
               </Button>
             </Can>
           </div>
+          <div className="flex size-10 items-center justify-center rounded-lg bg-muted">
+            <SlotIcon className="size-5 text-muted-foreground" />
+          </div>
+          <div className="flex flex-col gap-0.5 pr-16">
+            <span className="truncate text-sm font-medium">
+              {attachment.filename}.{attachment.fileExtension}
+            </span>
+            <span className="text-xs text-muted-foreground">
+              {attachment.fileSizeMb} MB · {attachment.uploadedBy.username} ·{' '}
+              {formatRelativeTime(attachment.uploadedAt)}
+            </span>
+          </div>
         </Card>
       ) : (
         <Can permission="matrix_attachments.create">
           <Card
-            className="flex min-h-28 cursor-pointer flex-col items-center justify-center gap-2 border-dashed p-6 transition-colors hover:bg-muted/50"
+            className="flex flex-1 cursor-pointer flex-col gap-3 border-dashed p-4 transition-colors hover:bg-muted/50"
             onClick={() => fileInputRef.current?.click()}
           >
-            {uploading ? (
-              <Loader2 className="size-8 animate-spin text-muted-foreground" />
-            ) : (
-              <SlotIcon className="size-8 text-muted-foreground" />
-            )}
-            <span className="text-sm text-muted-foreground">
-              {uploading ? 'Subiendo...' : `Subir ${config.label}`}
-            </span>
+            <div className="flex size-10 items-center justify-center rounded-lg bg-muted">
+              {uploading ? (
+                <Loader2 className="size-5 animate-spin text-muted-foreground" />
+              ) : (
+                <SlotIcon className="size-5 text-muted-foreground" />
+              )}
+            </div>
+            <div className="flex flex-col gap-0.5">
+              <span className="text-sm font-medium">
+                {uploading ? 'Subiendo...' : `Subir archivo`}
+              </span>
+              <span className="text-xs text-muted-foreground">{config.extensions.join(', ')}</span>
+            </div>
             <Input
               ref={fileInputRef}
               type="file"
