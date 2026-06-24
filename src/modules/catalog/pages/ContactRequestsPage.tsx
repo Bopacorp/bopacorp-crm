@@ -55,12 +55,7 @@ export default function ContactRequestsPage() {
       id: 'clientName',
       header: 'Nombre',
       accessor: (item: ContactRequestResponse) => (
-        <div className="flex flex-col">
-          <span className="font-medium">{item.clientName}</span>
-          {item.itemName && (
-            <span className="text-xs text-muted-foreground">Plan: {item.itemName}</span>
-          )}
-        </div>
+        <span className="font-medium">{item.clientName}</span>
       ),
     },
     {
