@@ -1,8 +1,11 @@
 import type { NegotiationListItemResponse } from '@bopacorp/shared/crm';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { FileUp, Loader2, X } from 'lucide-react';
-import { useCallback, useState } from 'react';
+import { useCallback } from 'react';
+import { Controller, useForm } from 'react-hook-form';
 import { toast } from 'sonner';
+import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -11,7 +14,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Field, FieldGroup, FieldLabel } from '@/components/ui/field';
+import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import {
   Select,
@@ -22,10 +25,26 @@ import {
 } from '@/components/ui/select';
 import { queryKeys } from '@/lib/query-keys.js';
 import { listNegotiations } from '@/modules/negotiations/negotiations.service.js';
+import { ApiError } from '@/services/api.js';
 import { getErrorMessage } from '@/shared/errors/index.js';
 import { FormAlert } from '@/shared/ui';
 import { createDocument, uploadDocument } from '../documentation.service.js';
 import { useActiveDocumentTypes } from '../hooks/useDocumentTypes.js';
+
+const MAX_FILE_SIZE_MB = 50;
+
+const DocumentUploadSchema = z.object({
+  negotiationId: z.string().uuid(),
+  documentTypeId: z.string().uuid(),
+  file: z
+    .instanceof(File)
+    .refine(
+      (f) => f.size / (1024 * 1024) <= MAX_FILE_SIZE_MB,
+      `El archivo no puede superar los ${MAX_FILE_SIZE_MB}MB`,
+    ),
+});
+
+type FormValues = z.input<typeof DocumentUploadSchema>;
 
 interface DocumentUploadDialogProps {
   open: boolean;
@@ -34,8 +53,6 @@ interface DocumentUploadDialogProps {
   negotiationId?: string;
 }
 
-const MAX_FILE_SIZE_MB = 50;
-
 export function DocumentUploadDialog({
   open,
   onOpenChange,
@@ -43,10 +60,27 @@ export function DocumentUploadDialog({
   negotiationId: preselectedNegotiationId,
 }: DocumentUploadDialogProps) {
   const queryClient = useQueryClient();
-  const [file, setFile] = useState<File | null>(null);
-  const [negotiationId, setNegotiationId] = useState(preselectedNegotiationId ?? '');
-  const [documentTypeId, setDocumentTypeId] = useState('');
-  const [error, setError] = useState('');
+
+  const form = useForm<FormValues>({
+    resolver: zodResolver(DocumentUploadSchema),
+    defaultValues: {
+      negotiationId: preselectedNegotiationId ?? '',
+      documentTypeId: '',
+      file: undefined as unknown as File,
+    },
+    mode: 'onTouched',
+  });
+
+  const {
+    control,
+    handleSubmit,
+    setValue,
+    watch,
+    setError,
+    formState: { errors },
+  } = form;
+
+  const file = watch('file');
 
   const documentTypes = useActiveDocumentTypes();
   const { data: negotiationsData } = useQuery({
@@ -57,23 +91,20 @@ export function DocumentUploadDialog({
   const negotiations = (negotiationsData?.data ?? []) as NegotiationListItemResponse[];
 
   const forceClose = useCallback(() => {
-    setFile(null);
-    setNegotiationId(preselectedNegotiationId ?? '');
-    setDocumentTypeId('');
-    setError('');
+    form.reset({
+      negotiationId: preselectedNegotiationId ?? '',
+      documentTypeId: '',
+      file: undefined as unknown as File,
+    });
     onOpenChange(false);
-  }, [onOpenChange, preselectedNegotiationId]);
+  }, [onOpenChange, preselectedNegotiationId, form]);
 
   const mutation = useMutation({
-    mutationFn: async () => {
-      if (!file) throw new Error('Selecciona un archivo');
-      if (!negotiationId) throw new Error('Selecciona una negociación');
-      if (!documentTypeId) throw new Error('Selecciona un tipo de documento');
-
-      const upload = await uploadDocument(file);
+    mutationFn: async (data: FormValues) => {
+      const upload = await uploadDocument(data.file);
       await createDocument({
-        negotiationId,
-        documentTypeId,
+        negotiationId: data.negotiationId,
+        documentTypeId: data.documentTypeId,
         filename: upload.filename,
         fileExtension: upload.fileExtension,
         fileSizeMb: upload.fileSizeMb,
@@ -88,24 +119,30 @@ export function DocumentUploadDialog({
       forceClose();
       onSuccess();
     },
-    onError: (err) => setError(getErrorMessage(err)),
+    onError: (err) => {
+      if (err instanceof ApiError && err.details?.length) {
+        for (const d of err.details) {
+          setError(d.field as keyof FormValues, { type: 'server', message: d.message });
+        }
+        return;
+      }
+      setError('root', { type: 'server', message: getErrorMessage(err) });
+    },
   });
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = e.target.files?.[0];
     if (!selected) return;
-    if (selected.size / (1024 * 1024) > MAX_FILE_SIZE_MB) {
-      setError(`El archivo no puede superar los ${MAX_FILE_SIZE_MB}MB`);
-      return;
-    }
-    setError('');
-    setFile(selected);
+    setValue('file', selected, { shouldValidate: true });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    mutation.mutate();
+  const removeFile = () => {
+    setValue('file', undefined as unknown as File);
+    form.clearErrors('file');
+  };
+
+  const onSubmit = (data: FormValues) => {
+    mutation.mutate(data);
   };
 
   return (
@@ -114,45 +151,59 @@ export function DocumentUploadDialog({
         <DialogHeader>
           <DialogTitle>Subir documento</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          {error && <FormAlert message={error} />}
+        <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">
+          {errors.root && <FormAlert message={errors.root.message ?? ''} />}
 
           <FieldGroup>
             {!preselectedNegotiationId && (
-              <Field>
+              <Field data-invalid={errors.negotiationId ? true : undefined}>
                 <FieldLabel>Negociación</FieldLabel>
-                <Select value={negotiationId} onValueChange={setNegotiationId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Seleccionar negociación" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {negotiations.map((n) => (
-                      <SelectItem key={n.id} value={n.id}>
-                        {n.client.businessName}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Controller
+                  control={control}
+                  name="negotiationId"
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Seleccionar negociación" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {negotiations.map((n) => (
+                          <SelectItem key={n.id} value={n.id}>
+                            {n.client.businessName}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+                <FieldError>{errors.negotiationId?.message}</FieldError>
               </Field>
             )}
 
-            <Field>
+            <Field data-invalid={errors.documentTypeId ? true : undefined}>
               <FieldLabel>Tipo de documento</FieldLabel>
-              <Select value={documentTypeId} onValueChange={setDocumentTypeId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Seleccionar tipo" />
-                </SelectTrigger>
-                <SelectContent>
-                  {documentTypes.map((t) => (
-                    <SelectItem key={t.id} value={t.id}>
-                      {t.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Controller
+                control={control}
+                name="documentTypeId"
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleccionar tipo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {documentTypes.map((t) => (
+                        <SelectItem key={t.id} value={t.id}>
+                          {t.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              <FieldError>{errors.documentTypeId?.message}</FieldError>
             </Field>
 
-            <Field>
+            <Field data-invalid={errors.file ? true : undefined}>
               <FieldLabel>Archivo</FieldLabel>
               {!file ? (
                 <div className="border-border rounded-lg border border-dashed p-6">
@@ -179,13 +230,14 @@ export function DocumentUploadDialog({
                     type="button"
                     variant="ghost"
                     size="icon"
-                    onClick={() => setFile(null)}
+                    onClick={removeFile}
                     aria-label="Quitar archivo"
                   >
                     <X className="size-4" />
                   </Button>
                 </div>
               )}
+              <FieldError>{errors.file?.message}</FieldError>
             </Field>
           </FieldGroup>
 
@@ -193,10 +245,7 @@ export function DocumentUploadDialog({
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancelar
             </Button>
-            <Button
-              type="submit"
-              disabled={mutation.isPending || !file || !negotiationId || !documentTypeId}
-            >
+            <Button type="submit" disabled={mutation.isPending}>
               {mutation.isPending && <Loader2 data-icon="inline-start" className="animate-spin" />}
               Subir documento
             </Button>

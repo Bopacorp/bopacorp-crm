@@ -1,43 +1,26 @@
 import type { OfferMatrixListItemResponse } from '@bopacorp/shared/matrices';
 import { Plus } from 'lucide-react';
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { formatCurrency, formatRelativeTime } from '@/lib/format.js';
+import { formatRelativeTime } from '@/lib/format.js';
 import { cn } from '@/lib/utils';
 import { Can } from '@/modules/auth/components/Can.js';
-import { CreateMatrixDialog } from '@/modules/matrices/components/CreateMatrixDialog.js';
+import { CreateMatrixSheet } from '@/modules/matrices/components/CreateMatrixSheet.js';
+import { MatrixSheet } from '@/modules/matrices/components/MatrixSheet.js';
 import { useMatrices } from '@/modules/matrices/hooks/useMatrices.js';
-import { matrixStateLabel } from '@/modules/matrices/lib/state.js';
-import { EmptyState, EntityTable, ErrorState, StateBadge, TableSkeleton } from '@/shared/ui';
+import { EmptyState, EntityTable, ErrorState, TableSkeleton } from '@/shared/ui';
 
 interface MatricesTabProps {
   negotiationId: string;
 }
 
 export function MatricesTab({ negotiationId }: MatricesTabProps) {
-  const navigate = useNavigate();
   const { matrices, loading, fetching, error, refetch } = useMatrices(negotiationId);
   const [createOpen, setCreateOpen] = useState(false);
+  const [selectedMatrixId, setSelectedMatrixId] = useState('');
+  const [detailOpen, setDetailOpen] = useState(false);
 
   const columns = [
-    {
-      id: 'state',
-      header: 'Estado',
-      accessor: (item: OfferMatrixListItemResponse) => (
-        <StateBadge state={item.state} label={matrixStateLabel(item.state)} />
-      ),
-    },
-    {
-      id: 'total',
-      header: 'Total',
-      accessor: (item: OfferMatrixListItemResponse) => formatCurrency(item.totalAmount),
-    },
-    {
-      id: 'subsidy',
-      header: 'Subsidio',
-      accessor: (item: OfferMatrixListItemResponse) => formatCurrency(item.calculatedSubsidy),
-    },
     {
       id: 'creator',
       header: 'Creador',
@@ -50,7 +33,7 @@ export function MatricesTab({ negotiationId }: MatricesTabProps) {
     },
   ];
 
-  if (loading) return <TableSkeleton columns={5} />;
+  if (loading) return <TableSkeleton columns={2} />;
   if (error) return <ErrorState error={error} onRetry={refetch} />;
 
   return (
@@ -79,15 +62,23 @@ export function MatricesTab({ negotiationId }: MatricesTabProps) {
           data={matrices}
           columns={columns}
           keyExtractor={(item) => item.id}
-          onRowClick={(item) => navigate(`/negociaciones/matrices/${item.id}`)}
+          onRowClick={(item) => {
+            setSelectedMatrixId(item.id);
+            setDetailOpen(true);
+          }}
         />
       )}
 
-      <CreateMatrixDialog
+      <CreateMatrixSheet
         open={createOpen}
         onOpenChange={setCreateOpen}
         negotiationId={negotiationId}
+        onSuccess={refetch}
       />
+
+      {selectedMatrixId && (
+        <MatrixSheet open={detailOpen} onOpenChange={setDetailOpen} matrixId={selectedMatrixId} />
+      )}
     </div>
   );
 }
