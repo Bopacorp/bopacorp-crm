@@ -309,7 +309,7 @@ function CreateForm({
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Nombre del rol"
-              maxLength={100}
+              maxLength={30}
             />
           </Field>
           <Field>
@@ -397,7 +397,7 @@ function EditForm({
           </Field>
           <Field>
             <FieldLabel>Nombre</FieldLabel>
-            <Input value={name} onChange={(e) => setName(e.target.value)} maxLength={100} />
+            <Input value={name} onChange={(e) => setName(e.target.value)} maxLength={30} />
           </Field>
           <Field>
             <FieldLabel>Departamento</FieldLabel>

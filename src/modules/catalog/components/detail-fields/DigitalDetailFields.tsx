@@ -22,7 +22,7 @@ export function DigitalDetailFields({ values, onChange }: DigitalDetailFieldsPro
         <Input
           value={values.provider}
           onChange={(e) => onChange({ provider: e.target.value })}
-          maxLength={200}
+          maxLength={50}
         />
       </Field>
     </FieldGroup>

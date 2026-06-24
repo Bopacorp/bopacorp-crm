@@ -162,7 +162,7 @@ export function AddAttachmentDialog({ matrixId, open, onOpenChange }: AddAttachm
               <Textarea
                 {...register('description')}
                 placeholder="Descripción del adjunto..."
-                maxLength={255}
+                maxLength={150}
               />
               <FieldError>{errors.description?.message}</FieldError>
             </Field>

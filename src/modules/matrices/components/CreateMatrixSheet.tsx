@@ -243,7 +243,7 @@ function CreateMatrixForm({ onSubmit, isPending, error, onDirtyChange }: CreateM
             <Textarea
               {...register('description')}
               placeholder="Descripción del adjunto..."
-              maxLength={255}
+              maxLength={150}
             />
             <FieldError>{errors.description?.message}</FieldError>
           </Field>
@@ -253,7 +253,7 @@ function CreateMatrixForm({ onSubmit, isPending, error, onDirtyChange }: CreateM
             <Textarea
               {...register('observations')}
               placeholder="Notas sobre esta matriz..."
-              maxLength={1000}
+              maxLength={500}
             />
             <FieldError>{errors.observations?.message}</FieldError>
           </Field>

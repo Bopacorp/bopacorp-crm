@@ -156,10 +156,12 @@ function CreateVisitForm({
   const { advisors } = useAdvisors();
   const isAdvisor = hasRole('advisor');
 
-  const advisorOptions = advisors.map((adv) => ({
-    value: adv.userId,
-    label: advisorLabel(adv),
-  }));
+  const advisorOptions = advisors
+    .map((adv) => ({
+      value: adv.userId,
+      label: advisorLabel(adv),
+    }))
+    .sort((a, b) => a.label.localeCompare(b.label));
 
   const {
     register,
@@ -262,7 +264,7 @@ function CreateVisitForm({
             <Textarea
               {...register('observations')}
               placeholder="Descripción de la visita..."
-              maxLength={1000}
+              maxLength={500}
             />
             <FieldError>{errors.observations?.message}</FieldError>
           </Field>

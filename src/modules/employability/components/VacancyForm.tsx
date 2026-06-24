@@ -99,7 +99,7 @@ export function VacancyForm({
         <FieldGroup>
           <Field data-invalid={errors.title ? true : undefined}>
             <FieldLabel>Título</FieldLabel>
-            <Input {...register('title')} placeholder="Título de la vacante" maxLength={255} />
+            <Input {...register('title')} placeholder="Título de la vacante" maxLength={50} />
             <FieldError>{errors.title?.message}</FieldError>
           </Field>
 

@@ -305,7 +305,7 @@ function EditForm({ entity, tree, onDirtyChange, onSaved, onCancel }: EditFormPr
         )}
         <Field>
           <FieldLabel>Nombre</FieldLabel>
-          <Input value={name} onChange={(e) => setName(e.target.value)} maxLength={100} />
+          <Input value={name} onChange={(e) => setName(e.target.value)} maxLength={30} />
         </Field>
         <Field>
           <FieldLabel>Categoría padre</FieldLabel>
@@ -328,7 +328,7 @@ function EditForm({ entity, tree, onDirtyChange, onSaved, onCancel }: EditFormPr
           <Textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            maxLength={255}
+            maxLength={150}
             rows={3}
           />
         </Field>

@@ -147,7 +147,7 @@ function CreateForm({
 
           <Field data-invalid={errors.name ? true : undefined}>
             <FieldLabel>Nombre</FieldLabel>
-            <Input {...register('name')} placeholder="Nombre de la categoría" maxLength={100} />
+            <Input {...register('name')} placeholder="Nombre de la categoría" maxLength={30} />
             <FieldError>{errors.name?.message}</FieldError>
           </Field>
 
@@ -183,7 +183,7 @@ function CreateForm({
             <Textarea
               {...register('description')}
               placeholder="Descripción opcional"
-              maxLength={255}
+              maxLength={150}
               rows={3}
             />
             <FieldError>{errors.description?.message}</FieldError>

@@ -78,7 +78,10 @@ export function BusinessClientForm({
   }, [isDirty, onDirtyChange]);
 
   const advisorOptions = useMemo(
-    () => advisors.map((emp) => ({ value: emp.userId, label: employeeName(emp) })),
+    () =>
+      advisors
+        .map((emp) => ({ value: emp.userId, label: employeeName(emp) }))
+        .sort((a, b) => a.label.localeCompare(b.label)),
     [advisors],
   );
 
@@ -104,30 +107,30 @@ export function BusinessClientForm({
 
           <Field data-invalid={errors.businessName ? true : undefined}>
             <FieldLabel>Nombre comercial</FieldLabel>
-            <Input {...register('businessName')} />
+            <Input {...register('businessName')} maxLength={50} />
             <FieldError>{errors.businessName?.message}</FieldError>
           </Field>
 
           <Field data-invalid={errors.contactName ? true : undefined}>
             <FieldLabel>Contacto</FieldLabel>
-            <Input {...register('contactName')} />
+            <Input {...register('contactName')} maxLength={50} />
             <FieldError>{errors.contactName?.message}</FieldError>
           </Field>
 
           <Field>
             <FieldLabel>Teléfono</FieldLabel>
-            <Input {...register('contactPhone')} />
+            <Input {...register('contactPhone')} maxLength={10} />
           </Field>
 
           <Field data-invalid={errors.contactEmail ? true : undefined}>
             <FieldLabel>Email</FieldLabel>
-            <Input type="email" {...register('contactEmail')} />
+            <Input type="email" {...register('contactEmail')} maxLength={80} />
             <FieldError>{errors.contactEmail?.message}</FieldError>
           </Field>
 
           <Field>
             <FieldLabel>Dirección</FieldLabel>
-            <Textarea {...register('address')} />
+            <Textarea {...register('address')} maxLength={150} />
           </Field>
 
           {canAssignAdvisor && (

@@ -34,7 +34,7 @@ export function DeviceDetailFields({ values, onChange }: DeviceDetailFieldsProps
           <Input
             value={values.brand}
             onChange={(e) => set('brand', e.target.value)}
-            maxLength={100}
+            maxLength={30}
           />
         </Field>
         <Field>
@@ -42,7 +42,7 @@ export function DeviceDetailFields({ values, onChange }: DeviceDetailFieldsProps
           <Input
             value={values.model}
             onChange={(e) => set('model', e.target.value)}
-            maxLength={100}
+            maxLength={30}
           />
         </Field>
         <Field>

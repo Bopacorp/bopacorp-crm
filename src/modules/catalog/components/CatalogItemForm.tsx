@@ -434,7 +434,7 @@ export function CatalogItemForm({
           <div className="grid gap-5 md:grid-cols-2">
             <Field data-invalid={errors.name ? true : undefined}>
               <FieldLabel>Nombre</FieldLabel>
-              <Input {...register('name')} maxLength={200} />
+              <Input {...register('name')} maxLength={50} />
               <FieldError>{errors.name?.message}</FieldError>
             </Field>
             <Field data-invalid={errors.price ? true : undefined}>
@@ -444,11 +444,11 @@ export function CatalogItemForm({
             </Field>
             <Field className="md:col-span-2">
               <FieldLabel>Descripción</FieldLabel>
-              <Textarea {...register('description')} rows={3} />
+              <Textarea {...register('description')} rows={3} maxLength={500} />
             </Field>
             <Field>
               <FieldLabel>Código de activación</FieldLabel>
-              <Input {...register('activationCode')} maxLength={50} />
+              <Input {...register('activationCode')} maxLength={20} />
             </Field>
             <Field>
               <FieldLabel>Permanencia (meses)</FieldLabel>

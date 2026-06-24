@@ -86,7 +86,7 @@ export function BenefitsSection({ benefits, onChange }: BenefitsSectionProps) {
                   <Input
                     value={row.name}
                     onChange={(e) => updateRow(index, { name: e.target.value })}
-                    maxLength={200}
+                    maxLength={50}
                   />
                 </Field>
                 <Field>
@@ -94,7 +94,7 @@ export function BenefitsSection({ benefits, onChange }: BenefitsSectionProps) {
                   <Input
                     value={row.description}
                     onChange={(e) => updateRow(index, { description: e.target.value })}
-                    maxLength={500}
+                    maxLength={150}
                   />
                 </Field>
                 <Field>

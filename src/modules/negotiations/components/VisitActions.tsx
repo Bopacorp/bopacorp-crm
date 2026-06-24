@@ -151,7 +151,7 @@ export function VisitActions({ visit, onSuccess }: VisitActionsProps) {
               value={supervisorComment}
               onChange={(e) => setSupervisorComment(e.target.value)}
               placeholder="Comentario del supervisor (opcional)"
-              maxLength={1000}
+              maxLength={500}
             />
           </div>
           <AlertDialogFooter>

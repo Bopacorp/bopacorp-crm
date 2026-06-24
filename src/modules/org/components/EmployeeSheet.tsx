@@ -483,7 +483,7 @@ function EditForm({
               value={territory}
               onChange={(e) => setTerritory(e.target.value)}
               placeholder="Zona o territorio asignado"
-              maxLength={100}
+              maxLength={50}
             />
           </Field>
           <Field>

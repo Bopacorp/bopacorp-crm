@@ -247,7 +247,7 @@ function EditObservationsDialog({
           value={obs}
           onChange={(e) => setObs(e.target.value)}
           placeholder="Notas sobre esta matriz..."
-          maxLength={1000}
+          maxLength={500}
           rows={5}
         />
         <DialogFooter>

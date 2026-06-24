@@ -134,7 +134,8 @@ function CreateForm({
       .map((e: EmployeeListItemResponse) => ({
         value: e.userId,
         label: employeeName(e),
-      }));
+      }))
+      .sort((a, b) => a.label.localeCompare(b.label));
   }, [supervisorCandidates]);
 
   const [formError, setFormError] = useState('');
@@ -352,7 +353,7 @@ function CreateForm({
                 <Input
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
-                  maxLength={200}
+                  maxLength={150}
                 />
               </Field>
             </FieldGroup>
@@ -394,7 +395,7 @@ function CreateForm({
                   value={territory}
                   onChange={(e) => setTerritory(e.target.value)}
                   placeholder="Zona o territorio asignado"
-                  maxLength={100}
+                  maxLength={50}
                 />
               </Field>
               <Field>

@@ -188,7 +188,11 @@ export function NegotiationForm({
 
           <Field>
             <FieldLabel>Observaciones</FieldLabel>
-            <Textarea {...register('observations')} placeholder="Notas adicionales..." />
+            <Textarea
+              {...register('observations')}
+              placeholder="Notas adicionales..."
+              maxLength={500}
+            />
           </Field>
 
           {showAdvisorField && advisorOptions && (

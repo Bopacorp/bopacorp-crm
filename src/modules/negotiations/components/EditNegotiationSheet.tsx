@@ -54,7 +54,10 @@ export function EditNegotiationSheet({
     useUnsavedGuard({ onClose: forceClose });
 
   const advisorOptions = useMemo(
-    () => advisors.map((emp) => ({ value: emp.userId, label: employeeName(emp) })),
+    () =>
+      advisors
+        .map((emp) => ({ value: emp.userId, label: employeeName(emp) }))
+        .sort((a, b) => a.label.localeCompare(b.label)),
     [advisors],
   );
 
