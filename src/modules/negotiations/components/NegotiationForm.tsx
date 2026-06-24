@@ -41,6 +41,11 @@ interface NegotiationFormProps {
   submitLabel: string;
   onDirtyChange?: (dirty: boolean) => void;
   clientOptions?: { value: string; label: string }[];
+  clientSearchValue?: string;
+  onClientSearchChange?: (search: string) => void;
+  clientLoading?: boolean;
+  clientHasMore?: boolean;
+  onClientLoadMore?: () => void;
   stateOptions: { id: string; name: string; position: number }[];
   onCreateClient?: () => void;
   showCreateClient?: boolean;
@@ -60,6 +65,11 @@ export function NegotiationForm({
   submitLabel,
   onDirtyChange,
   clientOptions,
+  clientSearchValue,
+  onClientSearchChange,
+  clientLoading,
+  clientHasMore,
+  onClientLoadMore,
   stateOptions,
   onCreateClient,
   showCreateClient,
@@ -108,6 +118,11 @@ export function NegotiationForm({
                       placeholder="Seleccionar cliente"
                       searchPlaceholder="Buscar cliente..."
                       emptyMessage="Sin clientes"
+                      searchValue={clientSearchValue}
+                      onSearchChange={onClientSearchChange}
+                      loading={clientLoading}
+                      hasMore={clientHasMore}
+                      onLoadMore={onClientLoadMore}
                     />
                   )}
                 />

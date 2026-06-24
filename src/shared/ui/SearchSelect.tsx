@@ -1,4 +1,4 @@
-import { ChevronsUpDown } from 'lucide-react';
+import { ChevronsUpDown, Loader2 } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -24,6 +24,12 @@ interface SearchSelectProps {
   placeholder?: string;
   searchPlaceholder?: string;
   emptyMessage?: string;
+  onSearchChange?: (search: string) => void;
+  searchValue?: string;
+  loading?: boolean;
+  hasMore?: boolean;
+  onLoadMore?: () => void;
+  loadMoreLabel?: string;
 }
 
 export function SearchSelect({
@@ -33,9 +39,16 @@ export function SearchSelect({
   placeholder = 'Seleccionar...',
   searchPlaceholder = 'Buscar...',
   emptyMessage = 'Sin resultados',
+  onSearchChange,
+  searchValue,
+  loading = false,
+  hasMore = false,
+  onLoadMore,
+  loadMoreLabel = 'Cargar más',
 }: SearchSelectProps) {
   const [open, setOpen] = useState(false);
   const selected = options.find((o) => o.value === value);
+  const isRemote = typeof onSearchChange === 'function';
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -51,25 +64,55 @@ export function SearchSelect({
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-        <Command>
-          <CommandInput placeholder={searchPlaceholder} />
+        <Command shouldFilter={!isRemote}>
+          <CommandInput
+            placeholder={searchPlaceholder}
+            value={isRemote ? searchValue : undefined}
+            onValueChange={isRemote ? onSearchChange : undefined}
+          />
           <CommandList>
-            <CommandEmpty>{emptyMessage}</CommandEmpty>
-            <CommandGroup>
-              {options.map((option) => (
-                <CommandItem
-                  key={option.value}
-                  value={option.label}
-                  data-checked={option.value === value}
-                  onSelect={() => {
-                    onValueChange(option.value === value ? '' : option.value);
-                    setOpen(false);
-                  }}
-                >
-                  {option.label}
-                </CommandItem>
-              ))}
-            </CommandGroup>
+            {loading && options.length === 0 ? (
+              <div className="flex items-center justify-center gap-2 py-6 text-sm text-muted-foreground">
+                <Loader2 data-icon="inline-start" className="size-4 animate-spin" />
+                Buscando...
+              </div>
+            ) : (
+              <>
+                <CommandEmpty>{loading ? 'Buscando...' : emptyMessage}</CommandEmpty>
+                <CommandGroup>
+                  {options.map((option) => (
+                    <CommandItem
+                      key={option.value}
+                      value={option.label}
+                      data-checked={option.value === value}
+                      onSelect={() => {
+                        onValueChange(option.value === value ? '' : option.value);
+                        setOpen(false);
+                      }}
+                    >
+                      {option.label}
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+                {hasMore && onLoadMore && (
+                  <div className="border-t border-border p-1">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="w-full justify-center"
+                      onClick={onLoadMore}
+                      disabled={loading}
+                    >
+                      {loading ? (
+                        <Loader2 data-icon="inline-start" className="size-4 animate-spin" />
+                      ) : null}
+                      {loadMoreLabel}
+                    </Button>
+                  </div>
+                )}
+              </>
+            )}
           </CommandList>
         </Command>
       </PopoverContent>
