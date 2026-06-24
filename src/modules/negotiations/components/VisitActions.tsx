@@ -1,6 +1,6 @@
 import type { VisitListItemResponse } from '@bopacorp/shared/crm';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { CheckCircle, Eye, Loader2, MoreHorizontal, Trash2 } from 'lucide-react';
+import { CheckCircle, Loader2, MoreHorizontal, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import {
@@ -29,12 +29,11 @@ import { deleteVisit, verifyVisit } from '../negotiations.service.js';
 interface VisitActionsProps {
   visit: VisitListItemResponse;
   onSuccess?: () => void;
-  onViewDetail: () => void;
 }
 
 type ActionState = 'idle' | 'loading' | 'success';
 
-export function VisitActions({ visit, onSuccess, onViewDetail }: VisitActionsProps) {
+export function VisitActions({ visit, onSuccess }: VisitActionsProps) {
   const queryClient = useQueryClient();
   const { hasPermission } = usePermission();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -90,13 +89,12 @@ export function VisitActions({ visit, onSuccess, onViewDetail }: VisitActionsPro
     setDeleteOpen(true);
   };
 
-  const handleViewDetail = () => {
-    setMenuOpen(false);
-    onViewDetail();
-  };
+  const hasActions = canVerify || canDelete;
+
+  if (!hasActions && verifyState === 'idle') return null;
 
   return (
-    <>
+    <div role="none" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
       {verifyState === 'loading' || verifyState === 'success' ? (
         <Button size="sm" variant="outline" disabled>
           {verifyState === 'loading' && (
@@ -116,10 +114,6 @@ export function VisitActions({ visit, onSuccess, onViewDetail }: VisitActionsPro
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={handleViewDetail}>
-              <Eye className="size-4" />
-              Ver detalle
-            </DropdownMenuItem>
             {canVerify && (
               <DropdownMenuItem onClick={handleVerifyClick}>
                 <CheckCircle className="size-4" />
@@ -213,6 +207,6 @@ export function VisitActions({ visit, onSuccess, onViewDetail }: VisitActionsPro
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </>
+    </div>
   );
 }

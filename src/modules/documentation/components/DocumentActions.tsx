@@ -64,7 +64,7 @@ export function DocumentActions({ document, onSuccess }: DocumentActionsProps) {
   const canChangeState = canManageState && document.state === 'REJECTED';
 
   return (
-    <>
+    <div role="none" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
       {approveState === 'loading' || approveState === 'success' ? (
         <Button size="sm" variant="outline" disabled>
           {approveState === 'loading' && (
@@ -123,6 +123,6 @@ export function DocumentActions({ document, onSuccess }: DocumentActionsProps) {
         currentState={document.state}
         onSuccess={onSuccess}
       />
-    </>
+    </div>
   );
 }

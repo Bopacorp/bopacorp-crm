@@ -80,16 +80,7 @@ export function VisitsTab({ clientId, negotiationId }: VisitsTabProps) {
     {
       id: 'actions',
       header: '',
-      accessor: (item: VisitListItemResponse) => (
-        <VisitActions
-          visit={item}
-          onSuccess={refetch}
-          onViewDetail={() => {
-            setSelectedVisitId(item.id);
-            setDetailOpen(true);
-          }}
-        />
-      ),
+      accessor: (item: VisitListItemResponse) => <VisitActions visit={item} onSuccess={refetch} />,
     },
   ];
 
@@ -116,7 +107,15 @@ export function VisitsTab({ clientId, negotiationId }: VisitsTabProps) {
         <EmptyState title="No hay visitas registradas" description="Las visitas aparecerán aquí" />
       ) : (
         <>
-          <EntityTable data={visits} columns={columns} keyExtractor={(item) => item.id} />
+          <EntityTable
+            data={visits}
+            columns={columns}
+            keyExtractor={(item) => item.id}
+            onRowClick={(item) => {
+              setSelectedVisitId(item.id);
+              setDetailOpen(true);
+            }}
+          />
           <PaginationFooter
             page={page}
             onPageChange={setPage}

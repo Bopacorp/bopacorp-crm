@@ -91,11 +91,7 @@ export default function ApplicantsPage() {
       id: 'actions',
       header: 'Acciones',
       accessor: (item: JobApplicationListItemResponse) => (
-        <ApplicationActions
-          application={item}
-          onDetailClick={(id) => setDetailId(id)}
-          onSuccess={refetch}
-        />
+        <ApplicationActions application={item} onSuccess={refetch} />
       ),
     },
   ];

@@ -1,6 +1,6 @@
 import type { JobApplicationListItemResponse } from '@bopacorp/shared/employability';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { CheckCircle, Eye, Loader2, MoreHorizontal, XCircle } from 'lucide-react';
+import { CheckCircle, Loader2, MoreHorizontal, XCircle } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button.js';
@@ -18,17 +18,12 @@ import { RejectApplicationDialog } from './RejectApplicationDialog.js';
 
 interface ApplicationActionsProps {
   application: JobApplicationListItemResponse;
-  onDetailClick: (id: string) => void;
   onSuccess?: () => void;
 }
 
 type AcceptState = 'idle' | 'loading' | 'success';
 
-export function ApplicationActions({
-  application,
-  onDetailClick,
-  onSuccess,
-}: ApplicationActionsProps) {
+export function ApplicationActions({ application, onSuccess }: ApplicationActionsProps) {
   const queryClient = useQueryClient();
   const { hasPermission } = usePermission();
   const [acceptState, setAcceptState] = useState<AcceptState>('idle');
@@ -60,17 +55,14 @@ export function ApplicationActions({
     setRejectOpen(true);
   };
 
-  const handleDetailClick = () => {
-    setMenuOpen(false);
-    onDetailClick(application.id);
-  };
-
   const canManageState = hasPermission('job_applications.update');
   const canAcceptOrReject = canManageState && application.state === 'PENDING';
   const isAcceptDisabled = acceptState !== 'idle' || mutation.isPending;
 
+  if (!canAcceptOrReject && acceptState === 'idle') return null;
+
   return (
-    <>
+    <div role="none" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
       {acceptState === 'loading' || acceptState === 'success' ? (
         <Button size="sm" variant="outline" disabled>
           {acceptState === 'loading' && (
@@ -84,37 +76,24 @@ export function ApplicationActions({
       ) : (
         <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
           <DropdownMenuTrigger asChild>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={(e: React.MouseEvent<HTMLButtonElement>) => e.stopPropagation()}
-            >
+            <Button size="sm" variant="outline">
               <MoreHorizontal data-icon="inline-start" className="size-4" />
               Acciones
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={handleDetailClick}>
-              <Eye className="size-4" />
-              Ver detalle
+            <DropdownMenuItem onClick={handleAccept} disabled={isAcceptDisabled}>
+              <CheckCircle className="size-4" />
+              Aceptar
             </DropdownMenuItem>
-
-            {canAcceptOrReject && (
-              <>
-                <DropdownMenuItem onClick={handleAccept} disabled={isAcceptDisabled}>
-                  <CheckCircle className="size-4" />
-                  Aceptar
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={handleRejectClick}
-                  disabled={mutation.isPending}
-                  variant="destructive"
-                >
-                  <XCircle className="size-4" />
-                  Rechazar
-                </DropdownMenuItem>
-              </>
-            )}
+            <DropdownMenuItem
+              onClick={handleRejectClick}
+              disabled={mutation.isPending}
+              variant="destructive"
+            >
+              <XCircle className="size-4" />
+              Rechazar
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       )}
@@ -125,6 +104,6 @@ export function ApplicationActions({
         applicationId={application.id}
         onSuccess={onSuccess}
       />
-    </>
+    </div>
   );
 }

@@ -115,7 +115,7 @@ export default function NegotiationDetailPage() {
           <TabsTrigger value="history">Historial</TabsTrigger>
           <TabsTrigger value="visits">Visitas</TabsTrigger>
           <TabsTrigger value="documents">Documentos</TabsTrigger>
-          <TabsTrigger value="matrices">Matrices</TabsTrigger>
+          <TabsTrigger value="matrices">Matriz</TabsTrigger>
         </TabsList>
         <TabsContent value="history" className="mt-4">
           <HistoryTab negotiationId={id} />
