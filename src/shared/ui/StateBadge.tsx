@@ -34,6 +34,7 @@ const stateVariants: Record<string, 'default' | 'secondary' | 'destructive' | 'o
   completed: 'default',
   in_progress: 'secondary',
   cancelled: 'destructive',
+  denied: 'destructive',
 };
 
 export function StateBadge({ state, label, variant, className }: StateBadgeProps) {

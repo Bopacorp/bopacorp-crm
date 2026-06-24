@@ -1,6 +1,6 @@
 import type { JobApplicationListItemResponse } from '@bopacorp/shared/employability';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { CheckCircle, Loader2, MoreHorizontal, XCircle } from 'lucide-react';
+import { CheckCircle, Download, Loader2, MoreHorizontal, XCircle } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button.js';
@@ -8,12 +8,17 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu.js';
 import { queryKeys } from '@/lib/query-keys.js';
 import { usePermission } from '@/modules/auth/hooks/usePermission.js';
 import { getErrorMessage } from '@/shared/errors/index.js';
-import { updateJobApplication } from '../employability.service.js';
+import {
+  downloadCandidateResume,
+  getJobApplication,
+  updateJobApplication,
+} from '../employability.service.js';
 import { RejectApplicationDialog } from './RejectApplicationDialog.js';
 
 interface ApplicationActionsProps {
@@ -21,12 +26,12 @@ interface ApplicationActionsProps {
   onSuccess?: () => void;
 }
 
-type AcceptState = 'idle' | 'loading' | 'success';
+type ReviewState = 'idle' | 'loading' | 'success';
 
 export function ApplicationActions({ application, onSuccess }: ApplicationActionsProps) {
   const queryClient = useQueryClient();
   const { hasPermission } = usePermission();
-  const [acceptState, setAcceptState] = useState<AcceptState>('idle');
+  const [reviewState, setReviewState] = useState<ReviewState>('idle');
   const [rejectOpen, setRejectOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -34,18 +39,18 @@ export function ApplicationActions({ application, onSuccess }: ApplicationAction
     mutationFn: () => updateJobApplication(application.id, { state: 'ACCEPTED' }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.employability.applications.all });
-      setAcceptState('success');
-      setTimeout(() => setAcceptState('idle'), 1500);
+      setReviewState('success');
+      setTimeout(() => setReviewState('idle'), 1500);
       onSuccess?.();
     },
     onError: (err) => {
-      setAcceptState('idle');
+      setReviewState('idle');
       toast.error(getErrorMessage(err));
     },
   });
 
-  const handleAccept = () => {
-    setAcceptState('loading');
+  const handleReview = () => {
+    setReviewState('loading');
     setMenuOpen(false);
     mutation.mutate();
   };
@@ -56,22 +61,37 @@ export function ApplicationActions({ application, onSuccess }: ApplicationAction
   };
 
   const canManageState = hasPermission('job_applications.update');
-  const canAcceptOrReject = canManageState && application.state === 'PENDING';
-  const isAcceptDisabled = acceptState !== 'idle' || mutation.isPending;
+  const canReviewOrReject = canManageState && application.state === 'PENDING';
+  const isReviewDisabled = reviewState !== 'idle' || mutation.isPending;
+  const hasResume = application.hasResume;
 
-  if (!canAcceptOrReject && acceptState === 'idle') return null;
+  const handleDownloadResume = async () => {
+    setMenuOpen(false);
+    try {
+      const app = await getJobApplication(application.id);
+      if (!app.resume) {
+        toast.error('No se encontró hoja de vida');
+        return;
+      }
+      await downloadCandidateResume(app.resume.id, app.resume.filename);
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+    }
+  };
+
+  if (!canReviewOrReject && !hasResume && reviewState === 'idle') return null;
 
   return (
     <div role="none" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
-      {acceptState === 'loading' || acceptState === 'success' ? (
+      {reviewState === 'loading' || reviewState === 'success' ? (
         <Button size="sm" variant="outline" disabled>
-          {acceptState === 'loading' && (
+          {reviewState === 'loading' && (
             <Loader2 data-icon="inline-start" className="size-4 animate-spin" />
           )}
-          {acceptState === 'success' && (
+          {reviewState === 'success' && (
             <CheckCircle data-icon="inline-start" className="size-4 text-green-600" />
           )}
-          {acceptState === 'success' ? 'Aceptado' : 'Aceptando'}
+          {reviewState === 'success' ? 'Revisado' : 'Revisando'}
         </Button>
       ) : (
         <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
@@ -82,18 +102,29 @@ export function ApplicationActions({ application, onSuccess }: ApplicationAction
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={handleAccept} disabled={isAcceptDisabled}>
-              <CheckCircle className="size-4" />
-              Aceptar
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={handleRejectClick}
-              disabled={mutation.isPending}
-              variant="destructive"
-            >
-              <XCircle className="size-4" />
-              Rechazar
-            </DropdownMenuItem>
+            {hasResume && (
+              <DropdownMenuItem onClick={handleDownloadResume}>
+                <Download className="size-4" />
+                Descargar CV
+              </DropdownMenuItem>
+            )}
+            {canReviewOrReject && hasResume && <DropdownMenuSeparator />}
+            {canReviewOrReject && (
+              <>
+                <DropdownMenuItem onClick={handleReview} disabled={isReviewDisabled}>
+                  <CheckCircle className="size-4" />
+                  Marcar revisado
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={handleRejectClick}
+                  disabled={mutation.isPending}
+                  variant="destructive"
+                >
+                  <XCircle className="size-4" />
+                  Rechazar
+                </DropdownMenuItem>
+              </>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
       )}
