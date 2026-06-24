@@ -11,7 +11,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu.js';
 import { queryKeys } from '@/lib/query-keys.js';
-import { Can } from '@/modules/auth/components/Can.js';
+import { usePermission } from '@/modules/auth/hooks/usePermission.js';
 import { getErrorMessage } from '@/shared/errors/index.js';
 import { updateJobApplication } from '../employability.service.js';
 import { RejectApplicationDialog } from './RejectApplicationDialog.js';
@@ -30,6 +30,7 @@ export function ApplicationActions({
   onSuccess,
 }: ApplicationActionsProps) {
   const queryClient = useQueryClient();
+  const { hasPermission } = usePermission();
   const [acceptState, setAcceptState] = useState<AcceptState>('idle');
   const [rejectOpen, setRejectOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -64,7 +65,8 @@ export function ApplicationActions({
     onDetailClick(application.id);
   };
 
-  const canAcceptOrReject = application.state === 'PENDING';
+  const canManageState = hasPermission('job_applications.update');
+  const canAcceptOrReject = canManageState && application.state === 'PENDING';
   const isAcceptDisabled = acceptState !== 'idle' || mutation.isPending;
 
   return (
@@ -98,7 +100,7 @@ export function ApplicationActions({
             </DropdownMenuItem>
 
             {canAcceptOrReject && (
-              <Can permission="job_applications.update">
+              <>
                 <DropdownMenuItem onClick={handleAccept} disabled={isAcceptDisabled}>
                   <CheckCircle className="size-4" />
                   Aceptar
@@ -111,7 +113,7 @@ export function ApplicationActions({
                   <XCircle className="size-4" />
                   Rechazar
                 </DropdownMenuItem>
-              </Can>
+              </>
             )}
           </DropdownMenuContent>
         </DropdownMenu>

@@ -22,7 +22,10 @@ import { FormAlert } from '@/shared/ui';
 import { changeDocumentState } from '../documentation.service.js';
 
 const RejectFormSchema = z.object({
-  coordinatorMessage: z.string().max(1000, 'Máximo 1000 caracteres'),
+  coordinatorMessage: z
+    .string()
+    .min(1, 'Las notas son obligatorias')
+    .max(1000, 'Máximo 1000 caracteres'),
 });
 
 type RejectFormValues = z.input<typeof RejectFormSchema>;
@@ -79,7 +82,6 @@ export function RejectDocumentDialog({
   };
 
   const isRejected = currentState === 'REJECTED';
-  const coordinatorMessage = form.watch('coordinatorMessage');
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -112,10 +114,7 @@ export function RejectDocumentDialog({
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancelar
             </Button>
-            <Button
-              type="submit"
-              disabled={mutation.isPending || (!isRejected && !coordinatorMessage)}
-            >
+            <Button type="submit" disabled={mutation.isPending}>
               {mutation.isPending && <Loader2 data-icon="inline-start" className="animate-spin" />}
               {isRejected ? 'Guardar' : 'Rechazar'}
             </Button>

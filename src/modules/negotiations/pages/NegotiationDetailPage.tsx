@@ -121,7 +121,7 @@ export default function NegotiationDetailPage() {
           <HistoryTab negotiationId={id} />
         </TabsContent>
         <TabsContent value="visits" className="mt-4">
-          <VisitsTab clientId={negotiation.client.id} />
+          <VisitsTab clientId={negotiation.client.id} negotiationId={id} />
         </TabsContent>
         <TabsContent value="documents" className="mt-4">
           <NegotiationDocumentsTab negotiationId={id} />

@@ -6,7 +6,6 @@ import {
   FileText,
   HandshakeIcon,
   Home,
-  Inbox,
   LogOut,
   MessageCircle,
   Monitor,
@@ -60,12 +59,44 @@ const navigationTop = [
   },
 ];
 
-const navigationBottom = [{ name: 'Documentación', href: '/documentacion', icon: FileText }];
+const navigationBottom = [
+  {
+    name: 'Documentación',
+    href: '/documentacion',
+    icon: FileText,
+    permission: 'negotiation_documents.read',
+  },
+];
+
+const catalogChildren = [
+  { name: 'Productos', href: '/catalogo', icon: Package, permission: 'catalog_items.read' },
+  {
+    name: 'Configuración',
+    href: '/catalogo/configuracion',
+    icon: Settings,
+    permission: 'categories.read',
+  },
+  {
+    name: 'Solicitudes',
+    href: '/catalogo/solicitudes',
+    icon: MessageCircle,
+    permission: 'contact_requests.read',
+  },
+];
 
 const employabilityChildren = [
-  { name: 'Vacantes', href: '/empleabilidad/vacantes', icon: Briefcase },
-  { name: 'Aplicantes', href: '/empleabilidad/aplicantes', icon: Users },
-  { name: 'Solicitudes', href: '/empleabilidad/mensajes', icon: Inbox },
+  {
+    name: 'Vacantes',
+    href: '/empleabilidad/vacantes',
+    icon: Briefcase,
+    permission: 'job_vacancies.read',
+  },
+  {
+    name: 'Aplicantes',
+    href: '/empleabilidad/aplicantes',
+    icon: Users,
+    permission: 'job_applications.read',
+  },
 ];
 
 const orgChildren = [
@@ -181,93 +212,70 @@ export function AppSidebar() {
                   </SidebarMenuItem>
                 ))}
 
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={isActive('/catalogo')} tooltip="Catálogo">
-                  <Link to="/catalogo">
-                    <BookOpen />
-                    <span>Catálogo</span>
-                  </Link>
-                </SidebarMenuButton>
-                <SidebarMenuSub>
-                  <SidebarMenuSubItem>
-                    <SidebarMenuSubButton asChild isActive={location.pathname === '/catalogo'}>
-                      <Link to="/catalogo">
-                        <Package />
-                        <span>Productos</span>
+              {(() => {
+                const visible = catalogChildren.filter((c) => hasPermission(c.permission));
+                if (visible.length === 0) return null;
+                return (
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild isActive={isActive('/catalogo')} tooltip="Catálogo">
+                      <Link to={visible[0].href}>
+                        <BookOpen />
+                        <span>Catálogo</span>
                       </Link>
-                    </SidebarMenuSubButton>
-                  </SidebarMenuSubItem>
-                  <SidebarMenuSubItem>
-                    <SidebarMenuSubButton asChild isActive={isActive('/catalogo/configuracion')}>
-                      <Link to="/catalogo/configuracion">
-                        <Settings />
-                        <span>Configuración</span>
+                    </SidebarMenuButton>
+                    <SidebarMenuSub>
+                      {visible.map((child) => (
+                        <SidebarMenuSubItem key={child.href}>
+                          <SidebarMenuSubButton
+                            asChild
+                            isActive={
+                              child.href === '/catalogo'
+                                ? location.pathname === '/catalogo'
+                                : isActive(child.href)
+                            }
+                          >
+                            <Link to={child.href}>
+                              <child.icon />
+                              <span>{child.name}</span>
+                            </Link>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                      ))}
+                    </SidebarMenuSub>
+                  </SidebarMenuItem>
+                );
+              })()}
+
+              {navigationBottom
+                .filter((item) => !item.permission || hasPermission(item.permission))
+                .map((item) => (
+                  <SidebarMenuItem key={item.href}>
+                    <SidebarMenuButton asChild isActive={isActive(item.href)} tooltip={item.name}>
+                      <Link to={item.href}>
+                        <item.icon />
+                        <span>{item.name}</span>
                       </Link>
-                    </SidebarMenuSubButton>
-                  </SidebarMenuSubItem>
-                  <SidebarMenuSubItem>
-                    <SidebarMenuSubButton asChild isActive={isActive('/catalogo/solicitudes')}>
-                      <Link to="/catalogo/solicitudes">
-                        <MessageCircle />
-                        <span>Solicitudes</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+
+              {(() => {
+                const visible = employabilityChildren.filter((c) => hasPermission(c.permission));
+                if (visible.length === 0) return null;
+                return (
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={isActive('/empleabilidad')}
+                      tooltip="Empleabilidad"
+                    >
+                      <Link to={visible[0].href}>
+                        <Briefcase />
+                        <span>Empleabilidad</span>
                       </Link>
-                    </SidebarMenuSubButton>
-                  </SidebarMenuSubItem>
-                </SidebarMenuSub>
-              </SidebarMenuItem>
-
-              {navigationBottom.map((item) => (
-                <SidebarMenuItem key={item.href}>
-                  <SidebarMenuButton asChild isActive={isActive(item.href)} tooltip={item.name}>
-                    <Link to={item.href}>
-                      <item.icon />
-                      <span>{item.name}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  asChild
-                  isActive={isActive('/empleabilidad')}
-                  tooltip="Empleabilidad"
-                >
-                  <Link to="/empleabilidad/vacantes">
-                    <Briefcase />
-                    <span>Empleabilidad</span>
-                  </Link>
-                </SidebarMenuButton>
-                <SidebarMenuSub>
-                  {employabilityChildren.map((child) => (
-                    <SidebarMenuSubItem key={child.href}>
-                      <SidebarMenuSubButton asChild isActive={isActive(child.href)}>
-                        <Link to={child.href}>
-                          <child.icon />
-                          <span>{child.name}</span>
-                        </Link>
-                      </SidebarMenuSubButton>
-                    </SidebarMenuSubItem>
-                  ))}
-                </SidebarMenuSub>
-              </SidebarMenuItem>
-
-              {orgChildren.some((c) => hasPermission(c.permission)) && (
-                <SidebarMenuItem>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={isActive('/organizacion')}
-                    tooltip="Organización"
-                  >
-                    <Link to="/organizacion/equipo">
-                      <Network />
-                      <span>Organización</span>
-                    </Link>
-                  </SidebarMenuButton>
-                  <SidebarMenuSub>
-                    {orgChildren
-                      .filter((child) => hasPermission(child.permission))
-                      .map((child) => (
+                    </SidebarMenuButton>
+                    <SidebarMenuSub>
+                      {visible.map((child) => (
                         <SidebarMenuSubItem key={child.href}>
                           <SidebarMenuSubButton asChild isActive={isActive(child.href)}>
                             <Link to={child.href}>
@@ -277,9 +285,41 @@ export function AppSidebar() {
                           </SidebarMenuSubButton>
                         </SidebarMenuSubItem>
                       ))}
-                  </SidebarMenuSub>
-                </SidebarMenuItem>
-              )}
+                    </SidebarMenuSub>
+                  </SidebarMenuItem>
+                );
+              })()}
+
+              <Can roles={MANAGEMENT_ROLES}>
+                {orgChildren.some((c) => hasPermission(c.permission)) && (
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={isActive('/organizacion')}
+                      tooltip="Organización"
+                    >
+                      <Link to="/organizacion/equipo">
+                        <Network />
+                        <span>Organización</span>
+                      </Link>
+                    </SidebarMenuButton>
+                    <SidebarMenuSub>
+                      {orgChildren
+                        .filter((child) => hasPermission(child.permission))
+                        .map((child) => (
+                          <SidebarMenuSubItem key={child.href}>
+                            <SidebarMenuSubButton asChild isActive={isActive(child.href)}>
+                              <Link to={child.href}>
+                                <child.icon />
+                                <span>{child.name}</span>
+                              </Link>
+                            </SidebarMenuSubButton>
+                          </SidebarMenuSubItem>
+                        ))}
+                    </SidebarMenuSub>
+                  </SidebarMenuItem>
+                )}
+              </Can>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

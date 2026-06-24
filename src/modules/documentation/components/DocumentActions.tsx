@@ -1,6 +1,7 @@
 import type { NegotiationDocumentListItemResponse } from '@bopacorp/shared/documents';
 import { CheckCircle, Download, Loader2, MoreHorizontal, XCircle } from 'lucide-react';
 import { useState } from 'react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button.js';
 import {
   DropdownMenu,
@@ -8,6 +9,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu.js';
+import { usePermission } from '@/modules/auth/hooks/usePermission.js';
+import { getErrorMessage } from '@/shared/errors/index.js';
 import { downloadDocument } from '../documentation.service.js';
 import { useChangeDocumentState } from '../hooks/useChangeDocumentState.js';
 import { RejectDocumentDialog } from './RejectDocumentDialog.js';
@@ -20,6 +23,7 @@ interface DocumentActionsProps {
 type ApproveState = 'idle' | 'loading' | 'success';
 
 export function DocumentActions({ document, onSuccess }: DocumentActionsProps) {
+  const { hasPermission } = usePermission();
   const changeState = useChangeDocumentState();
   const [approveState, setApproveState] = useState<ApproveState>('idle');
   const [rejectOpen, setRejectOpen] = useState(false);
@@ -36,7 +40,10 @@ export function DocumentActions({ document, onSuccess }: DocumentActionsProps) {
           setTimeout(() => setApproveState('idle'), 1500);
           onSuccess?.();
         },
-        onError: () => setApproveState('idle'),
+        onError: (err) => {
+          setApproveState('idle');
+          toast.error(getErrorMessage(err));
+        },
       },
     );
   };
@@ -52,8 +59,9 @@ export function DocumentActions({ document, onSuccess }: DocumentActionsProps) {
   };
 
   const isApproveDisabled = approveState !== 'idle' || changeState.isPending;
-  const canApproveOrReject = document.state === 'PENDING_APPROVAL';
-  const canChangeState = document.state === 'REJECTED';
+  const canManageState = hasPermission('negotiation_documents.change_state');
+  const canApproveOrReject = canManageState && document.state === 'PENDING_APPROVAL';
+  const canChangeState = canManageState && document.state === 'REJECTED';
 
   return (
     <>
@@ -72,7 +80,7 @@ export function DocumentActions({ document, onSuccess }: DocumentActionsProps) {
           <DropdownMenuTrigger asChild>
             <Button size="sm" variant="outline">
               <MoreHorizontal data-icon="inline-start" className="size-4" />
-              Ver acciones
+              Acciones
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
