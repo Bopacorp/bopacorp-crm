@@ -19,6 +19,7 @@ export const queryKeys = {
     all: ['visits'] as const,
     list: (page: number, filters: Record<string, unknown>) =>
       ['visits', 'list', page, filters] as const,
+    detail: (id: string) => ['visits', 'detail', id] as const,
   },
   visitTypes: {
     all: ['visit-types'] as const,

@@ -1,12 +1,13 @@
 import type { ContactRequestResponse } from '@bopacorp/shared/catalog';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { CheckCircle2, Mail, MessageSquare, Phone } from 'lucide-react';
+import { CheckCircle2, Loader2 } from 'lucide-react';
 import { useState } from 'react';
-import { Badge } from '@/components/ui/badge';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import { formatDateTime } from '@/lib/format.js';
+import { formatDate } from '@/lib/format.js';
 import { queryKeys } from '@/lib/query-keys.js';
-import { Can } from '@/modules/auth/components/Can.js';
+import { usePermission } from '@/modules/auth/hooks/usePermission.js';
+import { getErrorMessage } from '@/shared/errors/index.js';
 import { usePageReset } from '@/shared/hooks/usePageReset.js';
 import {
   EmptyState,
@@ -15,9 +16,11 @@ import {
   FilterBar,
   PaginationFooter,
   SectionHeader,
+  StateBadge,
   TableSkeleton,
 } from '@/shared/ui';
 import { updateContactRequest } from '../catalog.service.js';
+import { ContactRequestDetailSheet } from '../components/ContactRequestDetailSheet.js';
 import { useContactRequests } from '../hooks/useContactRequests.js';
 
 const ATTENDED_OPTIONS = [
@@ -30,9 +33,12 @@ const PAGE_SIZE = 10;
 
 export default function ContactRequestsPage() {
   const queryClient = useQueryClient();
+  const { hasPermission } = usePermission();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [isAttendedFilter, setIsAttendedFilter] = useState('all');
+  const [selectedRequestId, setSelectedRequestId] = useState('');
+  const [detailOpen, setDetailOpen] = useState(false);
 
   usePageReset([search, isAttendedFilter], setPage);
 
@@ -43,10 +49,15 @@ export default function ContactRequestsPage() {
     isAttended,
   });
 
+  const canUpdate = hasPermission('contact_requests.update');
+
   const attendMutation = useMutation({
     mutationFn: (id: string) => updateContactRequest(id, { isAttended: true }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.catalog.contactRequests.all });
+    },
+    onError: (err) => {
+      toast.error(getErrorMessage(err));
     },
   });
 
@@ -55,76 +66,62 @@ export default function ContactRequestsPage() {
       id: 'clientName',
       header: 'Nombre',
       accessor: (item: ContactRequestResponse) => (
-        <span className="font-medium">{item.clientName}</span>
+        <span className="font-medium text-foreground hover:underline">{item.clientName}</span>
       ),
     },
     {
-      id: 'contact',
-      header: 'Contacto',
-      accessor: (item: ContactRequestResponse) => (
-        <div className="flex flex-col gap-0.5 text-sm">
-          <div className="flex items-center gap-1.5 text-muted-foreground">
-            <Mail className="size-3.5" />
-            <span>{item.clientEmail}</span>
-          </div>
-          {item.clientPhone && (
-            <div className="flex items-center gap-1.5 text-muted-foreground">
-              <Phone className="size-3.5" />
-              <span>{item.clientPhone}</span>
-            </div>
-          )}
-        </div>
-      ),
+      id: 'clientEmail',
+      header: 'Correo',
+      accessor: (item: ContactRequestResponse) => item.clientEmail,
     },
     {
-      id: 'message',
-      header: 'Mensaje',
-      accessor: (item: ContactRequestResponse) => (
-        <div className="flex items-start gap-1.5 max-w-xs">
-          <MessageSquare className="size-3.5 mt-0.5 shrink-0 text-muted-foreground" />
-          <span className="text-sm text-muted-foreground truncate">
-            {item.message ?? 'Sin mensaje'}
-          </span>
-        </div>
-      ),
+      id: 'clientPhone',
+      header: 'Teléfono',
+      accessor: (item: ContactRequestResponse) => item.clientPhone ?? '—',
     },
     {
       id: 'receivedAt',
       header: 'Recibido',
-      accessor: (item: ContactRequestResponse) => (
-        <span className="text-sm text-muted-foreground whitespace-nowrap">
-          {formatDateTime(item.createdAt)}
-        </span>
-      ),
+      accessor: (item: ContactRequestResponse) => formatDate(item.createdAt),
     },
     {
       id: 'status',
       header: 'Estado',
-      accessor: (item: ContactRequestResponse) =>
-        item.isAttended ? (
-          <Badge variant="outline" className="gap-1 text-emerald-600 border-emerald-200">
-            <CheckCircle2 className="size-3" />
-            Atendido
-          </Badge>
-        ) : (
-          <Badge variant="secondary">Pendiente</Badge>
-        ),
+      accessor: (item: ContactRequestResponse) => (
+        <StateBadge
+          state={item.isAttended ? 'ATTENDED' : 'PENDING'}
+          label={item.isAttended ? 'Atendido' : 'Pendiente'}
+          variant={item.isAttended ? 'default' : 'secondary'}
+        />
+      ),
     },
     {
       id: 'actions',
       header: 'Acciones',
       accessor: (item: ContactRequestResponse) =>
-        !item.isAttended && (
-          <Can permission="contact_requests.update">
+        !item.isAttended &&
+        canUpdate && (
+          <div
+            role="none"
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.stopPropagation()}
+          >
             <Button
               size="sm"
               variant="outline"
               disabled={attendMutation.isPending && attendMutation.variables === item.id}
               onClick={() => attendMutation.mutate(item.id)}
             >
-              Marcar atendida
+              {attendMutation.isPending && attendMutation.variables === item.id ? (
+                <Loader2 data-icon="inline-start" className="size-4 animate-spin" />
+              ) : (
+                <CheckCircle2 data-icon="inline-start" className="size-4" />
+              )}
+              {attendMutation.isPending && attendMutation.variables === item.id
+                ? 'Atendiendo…'
+                : 'Marcar atendida'}
             </Button>
-          </Can>
+          </div>
         ),
     },
   ];
@@ -183,7 +180,15 @@ export default function ContactRequestsPage() {
         />
       ) : (
         <>
-          <EntityTable data={contactRequests} columns={columns} keyExtractor={(item) => item.id} />
+          <EntityTable
+            data={contactRequests}
+            columns={columns}
+            keyExtractor={(item) => item.id}
+            onRowClick={(item) => {
+              setSelectedRequestId(item.id);
+              setDetailOpen(true);
+            }}
+          />
           <PaginationFooter
             page={page}
             onPageChange={setPage}
@@ -192,6 +197,14 @@ export default function ContactRequestsPage() {
             meta={meta}
           />
         </>
+      )}
+
+      {selectedRequestId && (
+        <ContactRequestDetailSheet
+          open={detailOpen}
+          onOpenChange={setDetailOpen}
+          contactRequestId={selectedRequestId}
+        />
       )}
     </div>
   );

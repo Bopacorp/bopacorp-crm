@@ -1,5 +1,5 @@
 import type { JobApplicationListItemResponse } from '@bopacorp/shared/employability';
-import { ArrowLeft, FileText } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -25,7 +25,7 @@ const STATE_OPTIONS = [
   { value: 'all', label: 'Todos' },
   { value: 'DRAFT', label: 'Borrador' },
   { value: 'PENDING', label: 'Pendiente' },
-  { value: 'ACCEPTED', label: 'Aceptado' },
+  { value: 'ACCEPTED', label: 'Revisado' },
   { value: 'REJECTED', label: 'Rechazado' },
 ];
 
@@ -82,20 +82,10 @@ export default function ApplicantsPage() {
       ),
     },
     {
-      id: 'resume',
-      header: 'CV',
-      accessor: (item: JobApplicationListItemResponse) =>
-        item.hasResume ? <FileText className="size-4 text-muted-foreground" /> : '—',
-    },
-    {
       id: 'actions',
       header: 'Acciones',
       accessor: (item: JobApplicationListItemResponse) => (
-        <ApplicationActions
-          application={item}
-          onDetailClick={(id) => setDetailId(id)}
-          onSuccess={refetch}
-        />
+        <ApplicationActions application={item} onSuccess={refetch} />
       ),
     },
   ];

@@ -97,6 +97,10 @@ export function verifyVisit(id: string, data: VerifyVisitRequest) {
   return request<VisitResponse>({ method: 'PATCH', url: `/crm/visits/${id}/verify`, data });
 }
 
+export function deleteVisit(id: string) {
+  return request<void>({ method: 'DELETE', url: `/crm/visits/${id}` });
+}
+
 // Visit Types
 
 export function listVisitTypes(query?: ListVisitTypesQuery) {

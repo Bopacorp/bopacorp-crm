@@ -7,7 +7,7 @@ export function applicationStateLabel(state: ApplicationState): string {
     case 'PENDING':
       return 'Pendiente';
     case 'ACCEPTED':
-      return 'Aceptado';
+      return 'Revisado';
     case 'REJECTED':
       return 'Rechazado';
     default:

@@ -7,7 +7,8 @@ export function useAdvisors() {
 
   const { data, isLoading, error } = useQuery({
     queryKey: queryKeys.employees.list(filters),
-    queryFn: () => listEmployees({ page: 1, limit: 100, sortOrder: 'asc', ...filters }),
+    queryFn: () =>
+      listEmployees({ page: 1, limit: 100, sortBy: 'username', sortOrder: 'asc', ...filters }),
     staleTime: 5 * 60_000,
   });
 

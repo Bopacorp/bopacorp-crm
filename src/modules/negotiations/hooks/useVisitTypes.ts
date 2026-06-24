@@ -5,7 +5,7 @@ import { listVisitTypes } from '../negotiations.service.js';
 export function useVisitTypes() {
   const { data, isLoading, error } = useQuery({
     queryKey: queryKeys.visitTypes.all,
-    queryFn: () => listVisitTypes({ page: 1, limit: 100, sortOrder: 'asc' }),
+    queryFn: () => listVisitTypes({ page: 1, limit: 100, sortBy: 'name', sortOrder: 'asc' }),
     staleTime: 5 * 60_000,
   });
 

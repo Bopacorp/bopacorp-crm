@@ -3,6 +3,7 @@ import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router-dom
 import MainLayout from '@/app/MainLayout.js';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import RequireAuth from '@/modules/auth/components/RequireAuth.js';
+import { RequirePermission } from '@/modules/auth/components/RequirePermission.js';
 import { MANAGEMENT_ROLES } from '@/modules/auth/constants.js';
 import { useAuth } from '@/modules/auth/context/AuthContext.js';
 import LoginPage from '@/modules/auth/pages/LoginPage';
@@ -15,7 +16,6 @@ import { ClientSheetProvider } from '@/modules/clients/context/ClientSheetContex
 import ClientsPage from '@/modules/clients/pages/ClientsPage';
 import DocumentationPage from '@/modules/documentation/pages/DocumentationPage';
 import ApplicantsPage from '@/modules/employability/pages/ApplicantsPage';
-import MessagesPage from '@/modules/employability/pages/MessagesPage';
 import VacanciesPage from '@/modules/employability/pages/VacanciesPage';
 import NegotiationDetailPage from '@/modules/negotiations/pages/NegotiationDetailPage';
 import NegotiationsPage from '@/modules/negotiations/pages/NegotiationsPage';
@@ -105,7 +105,9 @@ export default function App() {
                 path="/documentacion"
                 element={
                   <RequireAuth>
-                    <DocumentationPage />
+                    <RequirePermission permission="negotiation_documents.read">
+                      <DocumentationPage />
+                    </RequirePermission>
                   </RequireAuth>
                 }
               />
@@ -115,7 +117,9 @@ export default function App() {
                 path="/catalogo"
                 element={
                   <RequireAuth>
-                    <CatalogPage />
+                    <RequirePermission permission="catalog_items.read">
+                      <CatalogPage />
+                    </RequirePermission>
                   </RequireAuth>
                 }
               />
@@ -123,7 +127,9 @@ export default function App() {
                 path="/catalogo/configuracion"
                 element={
                   <RequireAuth>
-                    <CatalogSettingsPage />
+                    <RequirePermission permission="categories.read">
+                      <CatalogSettingsPage />
+                    </RequirePermission>
                   </RequireAuth>
                 }
               />
@@ -131,7 +137,9 @@ export default function App() {
                 path="/catalogo/solicitudes"
                 element={
                   <RequireAuth>
-                    <ContactRequestsPage />
+                    <RequirePermission permission="contact_requests.read">
+                      <ContactRequestsPage />
+                    </RequirePermission>
                   </RequireAuth>
                 }
               />
@@ -139,7 +147,9 @@ export default function App() {
                 path="/catalogo/nuevo"
                 element={
                   <RequireAuth>
-                    <CatalogItemCreatePage />
+                    <RequirePermission permission="catalog_items.read">
+                      <CatalogItemCreatePage />
+                    </RequirePermission>
                   </RequireAuth>
                 }
               />
@@ -147,7 +157,9 @@ export default function App() {
                 path="/catalogo/:id"
                 element={
                   <RequireAuth>
-                    <CatalogItemDetailPage />
+                    <RequirePermission permission="catalog_items.read">
+                      <CatalogItemDetailPage />
+                    </RequirePermission>
                   </RequireAuth>
                 }
               />
@@ -157,7 +169,9 @@ export default function App() {
                 path="/organizacion/equipo"
                 element={
                   <RequireAuth>
-                    <TeamPage />
+                    <ManagementOnly>
+                      <TeamPage />
+                    </ManagementOnly>
                   </RequireAuth>
                 }
               />
@@ -165,7 +179,9 @@ export default function App() {
                 path="/organizacion/configuracion"
                 element={
                   <RequireAuth>
-                    <OrgSettingsPage />
+                    <RequirePermission permission="departments.read">
+                      <OrgSettingsPage />
+                    </RequirePermission>
                   </RequireAuth>
                 }
               />
@@ -175,7 +191,9 @@ export default function App() {
                 path="/reportes"
                 element={
                   <RequireAuth>
-                    <ReportsPage />
+                    <RequirePermission permission="report_exports.read">
+                      <ReportsPage />
+                    </RequirePermission>
                   </RequireAuth>
                 }
               />
@@ -185,7 +203,9 @@ export default function App() {
                 path="/empleabilidad/vacantes"
                 element={
                   <RequireAuth>
-                    <VacanciesPage />
+                    <RequirePermission permission="job_vacancies.read">
+                      <VacanciesPage />
+                    </RequirePermission>
                   </RequireAuth>
                 }
               />
@@ -193,15 +213,9 @@ export default function App() {
                 path="/empleabilidad/aplicantes"
                 element={
                   <RequireAuth>
-                    <ApplicantsPage />
-                  </RequireAuth>
-                }
-              />
-              <Route
-                path="/empleabilidad/mensajes"
-                element={
-                  <RequireAuth>
-                    <MessagesPage />
+                    <RequirePermission permission="job_applications.read">
+                      <ApplicantsPage />
+                    </RequirePermission>
                   </RequireAuth>
                 }
               />
