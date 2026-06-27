@@ -12,7 +12,6 @@ import { ApiError } from '@/services/api.js';
 import { getErrorMessage } from '@/shared/errors/index.js';
 import { useUnsavedGuard } from '@/shared/hooks/useUnsavedGuard.js';
 import { DiscardChangesDialog } from '@/shared/ui';
-import { useNegotiationStates } from '../hooks/useNegotiationStates.js';
 import { createNegotiation } from '../negotiations.service.js';
 import type { NegotiationFormValues } from './NegotiationForm.js';
 import { NegotiationForm } from './NegotiationForm.js';
@@ -27,7 +26,6 @@ type ServerFieldError = { field: string; message: string };
 
 const EMPTY_VALUES: NegotiationFormValues = {
   clientId: '',
-  stateId: '',
   advisorId: '',
   startDate: undefined,
   estimatedCloseDate: undefined,
@@ -43,7 +41,6 @@ export function CreateNegotiationDialog({
   const { t } = useTranslation();
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const { states } = useNegotiationStates();
 
   const [clientSearch, setClientSearch] = useState('');
   const [clientPage, setClientPage] = useState(1);
@@ -118,7 +115,6 @@ export function CreateNegotiationDialog({
     mutation.mutate({
       clientId: values.clientId,
       advisorId: user.id,
-      stateId: values.stateId,
       startDate: values.startDate || undefined,
       estimatedCloseDate: values.estimatedCloseDate || undefined,
       observations: values.observations || undefined,
@@ -154,7 +150,8 @@ export function CreateNegotiationDialog({
           clientLoading={fetching}
           clientHasMore={hasMore}
           onClientLoadMore={() => setClientPage((p) => p + 1)}
-          stateOptions={states}
+          stateOptions={[]}
+          hideState
           showCreateClient
           onCreateClient={() => setCreateClientOpen(true)}
         />

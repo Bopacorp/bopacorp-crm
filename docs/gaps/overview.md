@@ -59,5 +59,7 @@ File: `src/modules/overview/pages/OverviewPage.tsx`
 |----------|--------|------|-------------|
 | `/reports/advisor-metrics` | GET | authenticated | Dynamic `stateCounts` array per advisor + visited + billing + avgDaysToClose. Supports `dateFrom`/`dateTo`/`supervisorId` |
 | `/reports/recent-activity` | GET | authenticated | Paginated union of state changes + visits. Supports `advisorId`/`dateFrom`/`dateTo`/`sortOrder` |
-| `/reports/objectives` | GET/POST/PUT/DELETE | `sales_objectives.*` | CRUD for sales objectives |
+| `/reports/targets` | GET | `sales_targets.read` | List active tier configs |
+| `/reports/targets/:id` | PUT | `sales_targets.update` | Edit tier thresholds (manager) |
+| `/reports/advisor-performance` | GET | `report_exports.read` | Per-advisor tier performance breakdown |
 | `/reports/exports` | GET/POST | `report_exports.*` | CRUD for report export records (metadata only) |

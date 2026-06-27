@@ -1,17 +1,16 @@
 import type {
   AdvisorMetricResponse,
+  AdvisorPerformanceResponse,
   CreateReportExportRequest,
-  CreateSalesObjectiveRequest,
   ListAdvisorMetricsQuery,
+  ListAdvisorPerformanceQuery,
   ListRecentActivityQuery,
   ListReportExportsQuery,
-  ListSalesObjectivesQuery,
   RecentActivityResponse,
   ReportExportListItemResponse,
   ReportExportResponse,
-  SalesObjectiveListItemResponse,
-  SalesObjectiveResponse,
-  UpdateSalesObjectiveRequest,
+  SalesTargetResponse,
+  UpdateSalesTargetRequest,
 } from '@bopacorp/shared/reports';
 import { request, requestPaginated } from '@/services/api.js';
 
@@ -31,34 +30,19 @@ export function listRecentActivity(query: ListRecentActivityQuery) {
   });
 }
 
-export function listObjectives(query: ListSalesObjectivesQuery) {
-  return requestPaginated<SalesObjectiveListItemResponse>({
+export function listTargets() {
+  return request<SalesTargetResponse[]>({ method: 'GET', url: '/reports/targets' });
+}
+
+export function updateTarget(id: string, data: UpdateSalesTargetRequest) {
+  return request<SalesTargetResponse>({ method: 'PUT', url: `/reports/targets/${id}`, data });
+}
+
+export function getAdvisorPerformance(query: ListAdvisorPerformanceQuery = {}) {
+  return request<AdvisorPerformanceResponse[]>({
     method: 'GET',
-    url: '/reports/objectives',
+    url: '/reports/advisor-performance',
     params: query,
-  });
-}
-
-export function createObjective(data: CreateSalesObjectiveRequest) {
-  return request<SalesObjectiveResponse>({
-    method: 'POST',
-    url: '/reports/objectives',
-    data,
-  });
-}
-
-export function updateObjective(id: string, data: UpdateSalesObjectiveRequest) {
-  return request<SalesObjectiveResponse>({
-    method: 'PUT',
-    url: `/reports/objectives/${id}`,
-    data,
-  });
-}
-
-export function deleteObjective(id: string) {
-  return request<null>({
-    method: 'DELETE',
-    url: `/reports/objectives/${id}`,
   });
 }
 

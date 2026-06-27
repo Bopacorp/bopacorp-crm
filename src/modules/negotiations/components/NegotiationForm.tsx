@@ -50,6 +50,7 @@ interface NegotiationFormProps {
   showAdvisorField?: boolean;
   showIsActive?: boolean;
   stateLabel?: string;
+  hideState?: boolean;
 }
 
 export function NegotiationForm({
@@ -75,6 +76,7 @@ export function NegotiationForm({
   showAdvisorField,
   showIsActive,
   stateLabel,
+  hideState,
 }: NegotiationFormProps) {
   const { t } = useTranslation();
   const {
@@ -154,30 +156,32 @@ export function NegotiationForm({
             <FieldError>{errors.clientId?.message}</FieldError>
           </Field>
 
-          <Field data-invalid={errors.stateId ? true : undefined}>
-            <FieldLabel htmlFor="negotiation-state">
-              {stateLabel ?? t('negotiations.initialState')}
-            </FieldLabel>
-            <Controller
-              control={control}
-              name="stateId"
-              render={({ field }) => (
-                <Select value={field.value} onValueChange={field.onChange}>
-                  <SelectTrigger id="negotiation-state">
-                    <SelectValue placeholder={t('negotiations.selectState')} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {stateOptions.map((state) => (
-                      <SelectItem key={state.id} value={state.id}>
-                        {state.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-            />
-            <FieldError>{errors.stateId?.message}</FieldError>
-          </Field>
+          {!hideState && (
+            <Field data-invalid={errors.stateId ? true : undefined}>
+              <FieldLabel htmlFor="negotiation-state">
+                {stateLabel ?? t('negotiations.initialState')}
+              </FieldLabel>
+              <Controller
+                control={control}
+                name="stateId"
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger id="negotiation-state">
+                      <SelectValue placeholder={t('negotiations.selectState')} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {stateOptions.map((state) => (
+                        <SelectItem key={state.id} value={state.id}>
+                          {state.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              <FieldError>{errors.stateId?.message}</FieldError>
+            </Field>
+          )}
 
           <Field>
             <FieldLabel htmlFor="negotiation-start-date">{t('common.startDate')}</FieldLabel>

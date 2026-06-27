@@ -54,7 +54,9 @@ export const queryKeys = {
       ['reports', 'advisor-metrics', filters] as const,
     recentActivity: (filters: Record<string, unknown>) =>
       ['reports', 'recent-activity', filters] as const,
-    objectives: (filters: Record<string, unknown>) => ['reports', 'objectives', filters] as const,
+    targets: () => ['reports', 'targets'] as const,
+    advisorPerformance: (filters: Record<string, unknown>) =>
+      ['reports', 'advisor-performance', filters] as const,
     exports: (filters: Record<string, unknown>) => ['reports', 'exports', filters] as const,
   },
   documents: {
