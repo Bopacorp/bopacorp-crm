@@ -2,6 +2,7 @@ import type { CategoryTreeResponse } from '@bopacorp/shared/catalog';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Calendar, FileText, GitBranch, Hash, Loader2, Pencil, Settings, Tag } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Field, FieldGroup, FieldLabel } from '@/components/ui/field';
@@ -69,6 +70,7 @@ export function CategoryDetailPanel({
   onUpdated,
   dirtyRef: externalDirtyRef,
 }: CategoryDetailPanelProps) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState(false);
   const prevCategoryIdRef = useRef(categoryId);
@@ -169,37 +171,37 @@ export function CategoryDetailPanel({
 
       <div className="flex flex-col gap-5">
         <div className="flex flex-col gap-1">
-          <SectionLabel>Información</SectionLabel>
-          <DetailField icon={Tag} label="Nombre">
+          <SectionLabel>{t('common.information')}</SectionLabel>
+          <DetailField icon={Tag} label={t('common.name')}>
             {entity.name}
           </DetailField>
           {parentName && (
-            <DetailField icon={GitBranch} label="Categoría padre">
+            <DetailField icon={GitBranch} label={t('catalog.parentCategory')}>
               {parentName}
             </DetailField>
           )}
           {entity.description && (
-            <DetailField icon={FileText} label="Descripción">
+            <DetailField icon={FileText} label={t('common.description')}>
               {entity.description}
             </DetailField>
           )}
-          <DetailField icon={Hash} label="Orden">
+          <DetailField icon={Hash} label={t('common.order')}>
             {entity.sortOrder}
           </DetailField>
-          <DetailField icon={Settings} label="Estado">
+          <DetailField icon={Settings} label={t('common.status')}>
             <StateBadge
               state={entity.isActive ? 'active' : 'inactive'}
-              label={entity.isActive ? 'Activo' : 'Inactivo'}
+              label={entity.isActive ? t('common.active') : t('common.inactive')}
             />
           </DetailField>
         </div>
 
         <div className="flex flex-col gap-1">
-          <SectionLabel>Fechas</SectionLabel>
-          <DetailField icon={Calendar} label="Creado">
+          <SectionLabel>{t('common.dates')}</SectionLabel>
+          <DetailField icon={Calendar} label={t('common.created')}>
             {formatRelativeTime(entity.createdAt)}
           </DetailField>
-          <DetailField icon={Calendar} label="Actualizado">
+          <DetailField icon={Calendar} label={t('common.updated')}>
             {formatRelativeTime(entity.updatedAt)}
           </DetailField>
         </div>
@@ -252,6 +254,7 @@ interface EditFormProps {
 }
 
 function EditForm({ entity, tree, onDirtyChange, onSaved, onCancel }: EditFormProps) {
+  const { t } = useTranslation();
   const [name, setName] = useState(entity.name);
   const [parentId, setParentId] = useState(entity.parentId ?? '__none__');
   const [description, setDescription] = useState(entity.description ?? '');
@@ -286,7 +289,7 @@ function EditForm({ entity, tree, onDirtyChange, onSaved, onCancel }: EditFormPr
         isActive,
       }),
     onSuccess: () => {
-      toast.success('Categoría actualizada');
+      toast.success(t('catalog.categoryUpdated'));
       onSaved();
     },
     onError: (err) => setFormError(getErrorMessage(err)),
@@ -296,7 +299,7 @@ function EditForm({ entity, tree, onDirtyChange, onSaved, onCancel }: EditFormPr
 
   return (
     <div className="flex flex-col gap-4 p-4">
-      <h3 className="text-base font-medium">Editar categoría</h3>
+      <h3 className="text-base font-medium">{t('catalog.editCategory')}</h3>
       <FieldGroup>
         {formError && (
           <div className="rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
@@ -304,17 +307,17 @@ function EditForm({ entity, tree, onDirtyChange, onSaved, onCancel }: EditFormPr
           </div>
         )}
         <Field>
-          <FieldLabel>Nombre</FieldLabel>
+          <FieldLabel>{t('common.name')}</FieldLabel>
           <Input value={name} onChange={(e) => setName(e.target.value)} maxLength={30} />
         </Field>
         <Field>
-          <FieldLabel>Categoría padre</FieldLabel>
+          <FieldLabel>{t('catalog.parentCategory')}</FieldLabel>
           <Select value={parentId} onValueChange={setParentId}>
             <SelectTrigger>
-              <SelectValue placeholder="Sin padre (raíz)" />
+              <SelectValue placeholder={t('common.noParent')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="__none__">Sin padre (raíz)</SelectItem>
+              <SelectItem value="__none__">{t('common.noParent')}</SelectItem>
               {options.map((opt) => (
                 <SelectItem key={opt.value} value={opt.value} disabled={opt.disabled}>
                   {opt.label}
@@ -324,7 +327,7 @@ function EditForm({ entity, tree, onDirtyChange, onSaved, onCancel }: EditFormPr
           </Select>
         </Field>
         <Field>
-          <FieldLabel>Descripción</FieldLabel>
+          <FieldLabel>{t('common.description')}</FieldLabel>
           <Textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
@@ -333,7 +336,7 @@ function EditForm({ entity, tree, onDirtyChange, onSaved, onCancel }: EditFormPr
           />
         </Field>
         <Field>
-          <FieldLabel>Orden</FieldLabel>
+          <FieldLabel>{t('common.order')}</FieldLabel>
           <Input
             type="number"
             value={sortOrder}
@@ -342,17 +345,17 @@ function EditForm({ entity, tree, onDirtyChange, onSaved, onCancel }: EditFormPr
           />
         </Field>
         <Field orientation="horizontal">
-          <FieldLabel>Activo</FieldLabel>
+          <FieldLabel>{t('common.active')}</FieldLabel>
           <Switch checked={isActive} onCheckedChange={setIsActive} />
         </Field>
       </FieldGroup>
       <div className="flex items-center gap-2">
         <Button onClick={() => mutation.mutate()} disabled={!canSubmit || mutation.isPending}>
           {mutation.isPending && <Loader2 data-icon="inline-start" className="animate-spin" />}
-          Guardar
+          {t('common.save')}
         </Button>
         <Button variant="ghost" onClick={onCancel}>
-          Cancelar
+          {t('common.cancel')}
         </Button>
       </div>
     </div>

@@ -1,8 +1,10 @@
 import type { CatalogItemResponse } from '@bopacorp/shared/catalog';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import type { TFunction } from 'i18next';
 import { ArrowLeft, ImageMinus, Loader2, Pencil, Trash2, Upload } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useBreadcrumbTitle } from '@/app/BreadcrumbTitleContext.js';
@@ -40,51 +42,64 @@ import { useCatalogItem } from '../hooks/useCatalogItem.js';
 
 function getTechnicalDetails(
   item: CatalogItemResponse,
+  t: TFunction,
 ): { title: string; fields: { label: string; value: ReactNode }[] } | null {
   if (item.voiceDetails) {
     const d = item.voiceDetails;
     return {
-      title: 'Detalle de voz',
+      title: t('catalog.voiceDetail'),
       fields: [
-        { label: 'Gigas estructurales', value: `${d.gigasStructural} GB` },
-        { label: 'Gigas fidelización', value: `${d.gigasLoyalty} GB` },
+        { label: t('catalog.gigasStructural'), value: `${d.gigasStructural} GB` },
+        { label: t('catalog.gigasLoyalty'), value: `${d.gigasLoyalty} GB` },
         {
-          label: 'Minutos nacionales',
-          value: d.hasUnlimitedMinutes ? 'Ilimitados' : String(d.minutesNational ?? '—'),
+          label: t('catalog.minutesNational'),
+          value: d.hasUnlimitedMinutes ? t('catalog.unlimited') : String(d.minutesNational ?? '—'),
         },
-        { label: 'Minutos LDI', value: String(d.minutesLdi) },
-        { label: 'SMS', value: String(d.sms) },
-        { label: 'WhatsApp ilimitado', value: d.hasUnlimitedWhatsapp ? 'Sí' : 'No' },
-        { label: 'Redes sociales', value: d.hasSocialNetworks ? 'Sí' : 'No' },
-        { label: 'Roaming incluido', value: `${d.includedRoamingGb} GB` },
+        { label: t('catalog.minutesLdi'), value: String(d.minutesLdi) },
+        { label: t('catalog.sms'), value: String(d.sms) },
+        {
+          label: t('catalog.unlimitedWhatsapp'),
+          value: d.hasUnlimitedWhatsapp ? t('common.yes') : t('common.no'),
+        },
+        {
+          label: t('catalog.socialNetworks'),
+          value: d.hasSocialNetworks ? t('common.yes') : t('common.no'),
+        },
+        { label: t('catalog.includedRoaming'), value: `${d.includedRoamingGb} GB` },
       ],
     };
   }
 
   if (item.connectivityDetails) {
     return {
-      title: 'Detalle de conectividad',
+      title: t('catalog.connectivityDetail'),
       fields: [
-        { label: 'Ancho de banda', value: `${item.connectivityDetails.bandwidthMbps} Mbps` },
+        {
+          label: t('catalog.bandwidth'),
+          value: `${item.connectivityDetails.bandwidthMbps} Mbps`,
+        },
       ],
     };
   }
 
   if (item.digitalDetails) {
     return {
-      title: 'Detalle digital',
-      fields: [{ label: 'Proveedor', value: item.digitalDetails.provider }],
+      title: t('catalog.digitalDetail'),
+      fields: [{ label: t('catalog.provider'), value: item.digitalDetails.provider }],
     };
   }
 
   if (item.roamingDetails) {
     const d = item.roamingDetails;
     return {
-      title: 'Detalle de roaming',
+      title: t('catalog.roamingDetail'),
       fields: [
-        { label: 'Datos', value: `${d.dataMb} MB` },
-        { label: 'Duración', value: `${d.durationDays} días` },
-        { label: 'Throttle', value: d.hasThrottle ? 'Sí' : 'No' },
+        { label: t('catalog.data'), value: `${d.dataMb} MB` },
+        { label: t('catalog.duration'), value: t('catalog.days', { count: d.durationDays }) },
+        {
+          label: t('catalog.throttle'),
+          value: d.hasThrottle ? t('common.yes') : t('common.no'),
+        },
       ],
     };
   }
@@ -92,14 +107,20 @@ function getTechnicalDetails(
   if (item.deviceDetails) {
     const d = item.deviceDetails;
     return {
-      title: 'Detalle de dispositivo',
+      title: t('catalog.deviceDetail'),
       fields: [
-        { label: 'Marca', value: d.brand },
-        { label: 'Modelo', value: d.model },
-        { label: 'Almacenamiento', value: d.storageGb ? `${d.storageGb} GB` : null },
-        { label: 'Financiamiento', value: d.financingMonths ? `${d.financingMonths} meses` : null },
+        { label: t('catalog.brand'), value: d.brand },
+        { label: t('catalog.model'), value: d.model },
         {
-          label: 'Cuota mensual',
+          label: t('catalog.storage'),
+          value: d.storageGb ? `${d.storageGb} GB` : null,
+        },
+        {
+          label: t('catalog.financing'),
+          value: d.financingMonths ? t('catalog.months', { count: d.financingMonths }) : null,
+        },
+        {
+          label: t('catalog.monthlyPayment'),
           value: d.financingMonthly ? formatCurrency(d.financingMonthly) : null,
         },
       ],
@@ -110,6 +131,7 @@ function getTechnicalDetails(
 }
 
 export default function CatalogItemDetailPage() {
+  const { t } = useTranslation();
   const { id = '' } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -126,7 +148,7 @@ export default function CatalogItemDetailPage() {
     mutationFn: () => deleteCatalogItem(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.catalog.items.all });
-      toast.success('Producto eliminado');
+      toast.success(t('catalog.productDeleted'));
       navigate('/catalogo');
     },
     onError: (err) => toast.error(getErrorMessage(err)),
@@ -136,7 +158,7 @@ export default function CatalogItemDetailPage() {
     mutationFn: (file: File) => uploadCatalogItemImage(id, file),
     onSuccess: () => {
       refetch();
-      toast.success('Imagen cargada');
+      toast.success(t('catalog.imageUploaded'));
     },
     onError: (err) => toast.error(getErrorMessage(err)),
   });
@@ -145,7 +167,7 @@ export default function CatalogItemDetailPage() {
     mutationFn: () => deleteCatalogItemImage(id),
     onSuccess: () => {
       refetch();
-      toast.success('Imagen eliminada');
+      toast.success(t('catalog.imageDeleted'));
     },
     onError: (err) => toast.error(getErrorMessage(err)),
   });
@@ -153,7 +175,7 @@ export default function CatalogItemDetailPage() {
   if (loading) return <DetailSkeleton fields={8} tabs={0} />;
   if (error || !item) return <ErrorState error={error} onRetry={refetch} />;
 
-  const technicalDetails = getTechnicalDetails(item);
+  const technicalDetails = getTechnicalDetails(item, t);
   const hasConditions = item.ageConditions || item.legalConditions || item.temporalConditions;
 
   return (
@@ -166,9 +188,9 @@ export default function CatalogItemDetailPage() {
         <h1 className="text-lg font-semibold text-foreground">{item.name}</h1>
         <StateBadge
           state={item.isActive ? 'active' : 'inactive'}
-          label={item.isActive ? 'Activo' : 'Inactivo'}
+          label={item.isActive ? t('common.active') : t('common.inactive')}
         />
-        {item.isPublished && <Badge variant="outline">Publicado</Badge>}
+        {item.isPublished && <Badge variant="outline">{t('common.published')}</Badge>}
         {item.imagePath && (
           <button type="button" onClick={() => setImageViewOpen(true)}>
             <img src={item.imagePath} alt={item.name} className="size-10 rounded-md object-cover" />
@@ -188,7 +210,7 @@ export default function CatalogItemDetailPage() {
               ) : (
                 <Upload data-icon="inline-start" />
               )}
-              Subir imagen
+              {t('catalog.uploadImage')}
             </Button>
             {item.imagePath && (
               <Button
@@ -202,18 +224,18 @@ export default function CatalogItemDetailPage() {
                 ) : (
                   <ImageMinus data-icon="inline-start" />
                 )}
-                Eliminar imagen
+                {t('catalog.deleteImage')}
               </Button>
             )}
             <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
               <Pencil data-icon="inline-start" />
-              Editar
+              {t('common.edit')}
             </Button>
           </Can>
           <Can permission="catalog_items.delete">
             <Button variant="outline" size="sm" onClick={() => setShowDelete(true)}>
               <Trash2 data-icon="inline-start" />
-              Eliminar
+              {t('common.delete')}
             </Button>
           </Can>
         </div>
@@ -222,22 +244,24 @@ export default function CatalogItemDetailPage() {
       {/* Section 1: General Info */}
       <Card>
         <CardHeader>
-          <CardTitle>Información general</CardTitle>
+          <CardTitle>{t('catalog.generalInfo')}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 md:grid-cols-2">
-            <InfoField label="Nombre">{item.name}</InfoField>
-            <InfoField label="Descripción">{item.description}</InfoField>
-            <InfoField label="Precio">{formatCurrency(item.price)}</InfoField>
-            <InfoField label="Código de activación">{item.activationCode}</InfoField>
-            <InfoField label="Permanencia">
-              {item.permanenceMonths === 0 ? 'Sin permanencia' : `${item.permanenceMonths} meses`}
+            <InfoField label={t('common.name')}>{item.name}</InfoField>
+            <InfoField label={t('common.description')}>{item.description}</InfoField>
+            <InfoField label={t('common.price')}>{formatCurrency(item.price)}</InfoField>
+            <InfoField label={t('catalog.activationCode')}>{item.activationCode}</InfoField>
+            <InfoField label={t('catalog.permanence')}>
+              {item.permanenceMonths === 0
+                ? t('catalog.noPermanence')
+                : t('catalog.months', { count: item.permanenceMonths })}
             </InfoField>
-            <InfoField label="Categoría">{item.category.name}</InfoField>
-            <InfoField label="Tipo de ítem">{item.itemType.name}</InfoField>
-            <InfoField label="Tipo de contrato">{item.contractType.name}</InfoField>
-            <InfoField label="Segmento">{item.segment.name}</InfoField>
-            <InfoField label="Nivel">{item.tier.name}</InfoField>
+            <InfoField label={t('common.category')}>{item.category.name}</InfoField>
+            <InfoField label={t('catalog.itemType')}>{item.itemType.name}</InfoField>
+            <InfoField label={t('catalog.contractType')}>{item.contractType.name}</InfoField>
+            <InfoField label={t('catalog.segment')}>{item.segment.name}</InfoField>
+            <InfoField label={t('catalog.level')}>{item.tier.name}</InfoField>
           </div>
         </CardContent>
       </Card>
@@ -263,19 +287,21 @@ export default function CatalogItemDetailPage() {
       {/* Section 3: Benefits */}
       <Card>
         <CardHeader>
-          <CardTitle>Beneficios</CardTitle>
+          <CardTitle>{t('catalog.benefits')}</CardTitle>
         </CardHeader>
         <CardContent>
           {item.benefits.length === 0 ? (
-            <EmptyState title="Sin beneficios" description="Sin beneficios configurados" />
+            <EmptyState title={t('catalog.noBenefits')} description={t('catalog.noBenefitsDesc')} />
           ) : (
             <div className="divide-y divide-border">
               {item.benefits.map((b) => (
                 <div key={b.id} className="grid gap-4 py-3 md:grid-cols-3">
-                  <InfoField label="Nombre">{b.name}</InfoField>
-                  <InfoField label="Descripción">{b.description}</InfoField>
-                  <InfoField label="Duración">
-                    {b.durationDays ? `${b.durationDays} días` : 'Permanente'}
+                  <InfoField label={t('common.name')}>{b.name}</InfoField>
+                  <InfoField label={t('common.description')}>{b.description}</InfoField>
+                  <InfoField label={t('catalog.duration')}>
+                    {b.durationDays
+                      ? t('catalog.days', { count: b.durationDays })
+                      : t('catalog.permanent')}
                   </InfoField>
                 </div>
               ))}
@@ -288,21 +314,23 @@ export default function CatalogItemDetailPage() {
       {hasConditions && (
         <Card>
           <CardHeader>
-            <CardTitle>Condiciones</CardTitle>
+            <CardTitle>{t('catalog.conditions')}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex flex-col gap-6">
               {item.ageConditions && (
                 <div className="flex flex-col gap-3">
                   <span className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-                    Edad
+                    {t('catalog.age')}
                   </span>
                   <div className="grid gap-4 md:grid-cols-2">
-                    <InfoField label="Edad mínima">{item.ageConditions.minAge} años</InfoField>
-                    <InfoField label="Edad máxima">
+                    <InfoField label={t('catalog.minAge')}>
+                      {t('catalog.years', { count: item.ageConditions.minAge })}
+                    </InfoField>
+                    <InfoField label={t('catalog.maxAge')}>
                       {item.ageConditions.maxAge
-                        ? `${item.ageConditions.maxAge} años`
-                        : 'Sin límite'}
+                        ? t('catalog.years', { count: item.ageConditions.maxAge })
+                        : t('catalog.noLimit')}
                     </InfoField>
                   </div>
                 </div>
@@ -311,11 +339,15 @@ export default function CatalogItemDetailPage() {
               {item.legalConditions && (
                 <div className="flex flex-col gap-3">
                   <span className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-                    Legales
+                    {t('catalog.legal')}
                   </span>
                   <div className="grid gap-4 md:grid-cols-2">
-                    <InfoField label="Requisito">{item.legalConditions.legalRequirement}</InfoField>
-                    <InfoField label="Descripción">{item.legalConditions.description}</InfoField>
+                    <InfoField label={t('catalog.legalRequirement')}>
+                      {item.legalConditions.legalRequirement}
+                    </InfoField>
+                    <InfoField label={t('common.description')}>
+                      {item.legalConditions.description}
+                    </InfoField>
                   </div>
                 </div>
               )}
@@ -323,16 +355,16 @@ export default function CatalogItemDetailPage() {
               {item.temporalConditions && (
                 <div className="flex flex-col gap-3">
                   <span className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-                    Temporales
+                    {t('catalog.temporal')}
                   </span>
                   <div className="grid gap-4 md:grid-cols-2">
-                    <InfoField label="Vigencia desde">
+                    <InfoField label={t('catalog.effectiveFrom')}>
                       {formatDate(item.temporalConditions.effectiveDate)}
                     </InfoField>
-                    <InfoField label="Vencimiento">
+                    <InfoField label={t('catalog.expiration')}>
                       {item.temporalConditions.expirationDate
                         ? formatDate(item.temporalConditions.expirationDate)
-                        : 'Sin vencimiento'}
+                        : t('catalog.noExpiration')}
                     </InfoField>
                   </div>
                 </div>
@@ -359,13 +391,15 @@ export default function CatalogItemDetailPage() {
       <AlertDialog open={showDelete} onOpenChange={setShowDelete}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>¿Eliminar producto?</AlertDialogTitle>
+            <AlertDialogTitle>{t('catalog.deleteProduct')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Se eliminará <strong>{item.name}</strong>. Esta acción no se puede deshacer.
+              {t('common.deleteEntityDesc', { name: item.name })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleteItemMutation.isPending}>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel disabled={deleteItemMutation.isPending}>
+              {t('common.cancel')}
+            </AlertDialogCancel>
             <AlertDialogAction
               onClick={(e) => {
                 e.preventDefault();
@@ -376,7 +410,7 @@ export default function CatalogItemDetailPage() {
               {deleteItemMutation.isPending && (
                 <Loader2 data-icon="inline-start" className="animate-spin" />
               )}
-              Eliminar
+              {t('common.delete')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

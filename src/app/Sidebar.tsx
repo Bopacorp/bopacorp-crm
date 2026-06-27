@@ -207,16 +207,18 @@ export function AppSidebar() {
           <SidebarGroupLabel>{t('nav.menu')}</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              <Can roles={MANAGEMENT_ROLES}>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={isActive('/overview')} tooltip="Overview">
-                    <Link to="/overview">
-                      <Home />
-                      <span>Overview</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              </Can>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  isActive={isActive('/overview')}
+                  tooltip={t('nav.overview')}
+                >
+                  <Link to="/overview">
+                    <Home />
+                    <span>{t('nav.overview')}</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
 
               {navigationTop
                 .filter((item) => !item.permission || hasPermission(item.permission))

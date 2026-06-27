@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Field, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
@@ -42,12 +43,13 @@ export function ConditionsSection({
   onLegalChange,
   onTemporalChange,
 }: ConditionsSectionProps) {
+  const { t } = useTranslation();
   return (
     <div className="flex flex-col gap-6">
       {/* Age */}
       <div className="flex flex-col gap-3">
         <Field orientation="horizontal">
-          <FieldLabel>Aplicar condición de edad</FieldLabel>
+          <FieldLabel>{t('catalog.applyAgeCondition')}</FieldLabel>
           <Switch
             checked={ageConditions !== null}
             onCheckedChange={(v) => onAgeChange(v ? { ...AGE_DEFAULTS } : null)}
@@ -57,7 +59,7 @@ export function ConditionsSection({
           <FieldGroup>
             <div className="grid gap-5 md:grid-cols-2">
               <Field>
-                <FieldLabel>Edad mínima</FieldLabel>
+                <FieldLabel>{t('catalog.minAge')}</FieldLabel>
                 <Input
                   type="number"
                   min={0}
@@ -66,13 +68,13 @@ export function ConditionsSection({
                 />
               </Field>
               <Field>
-                <FieldLabel>Edad máxima</FieldLabel>
+                <FieldLabel>{t('catalog.maxAge')}</FieldLabel>
                 <Input
                   type="number"
                   min={0}
                   value={ageConditions.maxAge}
                   onChange={(e) => onAgeChange({ ...ageConditions, maxAge: e.target.value })}
-                  placeholder="Sin límite"
+                  placeholder={t('catalog.noLimit')}
                 />
               </Field>
             </div>
@@ -83,7 +85,7 @@ export function ConditionsSection({
       {/* Legal */}
       <div className="flex flex-col gap-3">
         <Field orientation="horizontal">
-          <FieldLabel>Aplicar condición legal</FieldLabel>
+          <FieldLabel>{t('catalog.applyLegalCondition')}</FieldLabel>
           <Switch
             checked={legalConditions !== null}
             onCheckedChange={(v) => onLegalChange(v ? { ...LEGAL_DEFAULTS } : null)}
@@ -92,7 +94,7 @@ export function ConditionsSection({
         {legalConditions && (
           <FieldGroup>
             <Field>
-              <FieldLabel>Requisito legal</FieldLabel>
+              <FieldLabel>{t('catalog.legalRequirement')}</FieldLabel>
               <Textarea
                 value={legalConditions.legalRequirement}
                 onChange={(e) =>
@@ -102,7 +104,7 @@ export function ConditionsSection({
               />
             </Field>
             <Field>
-              <FieldLabel>Descripción</FieldLabel>
+              <FieldLabel>{t('common.description')}</FieldLabel>
               <Input
                 value={legalConditions.description}
                 onChange={(e) => onLegalChange({ ...legalConditions, description: e.target.value })}
@@ -115,7 +117,7 @@ export function ConditionsSection({
       {/* Temporal */}
       <div className="flex flex-col gap-3">
         <Field orientation="horizontal">
-          <FieldLabel>Aplicar condición temporal</FieldLabel>
+          <FieldLabel>{t('catalog.applyTemporalCondition')}</FieldLabel>
           <Switch
             checked={temporalConditions !== null}
             onCheckedChange={(v) => onTemporalChange(v ? { ...TEMPORAL_DEFAULTS } : null)}
@@ -125,7 +127,7 @@ export function ConditionsSection({
           <FieldGroup>
             <div className="grid gap-5 md:grid-cols-2">
               <Field>
-                <FieldLabel>Vigencia desde</FieldLabel>
+                <FieldLabel>{t('catalog.effectiveFrom')}</FieldLabel>
                 <Input
                   type="date"
                   value={temporalConditions.effectiveDate}
@@ -135,7 +137,7 @@ export function ConditionsSection({
                 />
               </Field>
               <Field>
-                <FieldLabel>Vencimiento</FieldLabel>
+                <FieldLabel>{t('catalog.expiration')}</FieldLabel>
                 <Input
                   type="date"
                   value={temporalConditions.expirationDate}

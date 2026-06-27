@@ -26,9 +26,7 @@ import ReportsPage from '@/modules/reports/pages/ReportsPage';
 import { ErrorBoundary } from '@/shared/ui/ErrorBoundary';
 
 function HomeRedirect() {
-  const { hasRole } = useAuth();
-  const isManagement = MANAGEMENT_ROLES.some((role) => hasRole(role));
-  return <Navigate to={isManagement ? '/overview' : '/clientes'} replace />;
+  return <Navigate to="/overview" replace />;
 }
 
 function ManagementOnly({ children }: { children: ReactNode }) {
@@ -59,9 +57,7 @@ export default function App() {
                 path="/overview"
                 element={
                   <RequireAuth>
-                    <ManagementOnly>
-                      <OverviewPage />
-                    </ManagementOnly>
+                    <OverviewPage />
                   </RequireAuth>
                 }
               />

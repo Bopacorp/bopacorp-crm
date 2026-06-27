@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Field, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 
@@ -15,10 +16,11 @@ interface ConnectivityDetailFieldsProps {
 }
 
 export function ConnectivityDetailFields({ values, onChange }: ConnectivityDetailFieldsProps) {
+  const { t } = useTranslation();
   return (
     <FieldGroup>
       <Field>
-        <FieldLabel>Ancho de banda (Mbps)</FieldLabel>
+        <FieldLabel>{t('catalog.bandwidthMbps')}</FieldLabel>
         <Input
           type="number"
           min={0}

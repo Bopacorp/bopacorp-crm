@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Field, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
@@ -32,6 +33,7 @@ interface VoiceDetailFieldsProps {
 }
 
 export function VoiceDetailFields({ values, onChange }: VoiceDetailFieldsProps) {
+  const { t } = useTranslation();
   const set = <K extends keyof VoiceDetailFormValues>(key: K, val: VoiceDetailFormValues[K]) =>
     onChange({ ...values, [key]: val });
 
@@ -39,7 +41,7 @@ export function VoiceDetailFields({ values, onChange }: VoiceDetailFieldsProps) 
     <FieldGroup>
       <div className="grid gap-5 md:grid-cols-2">
         <Field>
-          <FieldLabel>Gigas estructurales</FieldLabel>
+          <FieldLabel>{t('catalog.gigasStructural')}</FieldLabel>
           <Input
             type="number"
             min={0}
@@ -48,7 +50,7 @@ export function VoiceDetailFields({ values, onChange }: VoiceDetailFieldsProps) 
           />
         </Field>
         <Field>
-          <FieldLabel>Gigas fidelización</FieldLabel>
+          <FieldLabel>{t('catalog.gigasLoyalty')}</FieldLabel>
           <Input
             type="number"
             min={0}
@@ -57,18 +59,18 @@ export function VoiceDetailFields({ values, onChange }: VoiceDetailFieldsProps) 
           />
         </Field>
         <Field>
-          <FieldLabel>Minutos nacionales</FieldLabel>
+          <FieldLabel>{t('catalog.minutesNational')}</FieldLabel>
           <Input
             type="number"
             min={0}
             value={values.minutesNational}
             onChange={(e) => set('minutesNational', e.target.value)}
             disabled={values.hasUnlimitedMinutes}
-            placeholder={values.hasUnlimitedMinutes ? 'Ilimitados' : ''}
+            placeholder={values.hasUnlimitedMinutes ? t('catalog.unlimited') : ''}
           />
         </Field>
         <Field>
-          <FieldLabel>Minutos LDI</FieldLabel>
+          <FieldLabel>{t('catalog.minutesLdi')}</FieldLabel>
           <Input
             type="number"
             min={0}
@@ -77,7 +79,7 @@ export function VoiceDetailFields({ values, onChange }: VoiceDetailFieldsProps) 
           />
         </Field>
         <Field>
-          <FieldLabel>SMS</FieldLabel>
+          <FieldLabel>{t('catalog.sms')}</FieldLabel>
           <Input
             type="number"
             min={0}
@@ -86,7 +88,7 @@ export function VoiceDetailFields({ values, onChange }: VoiceDetailFieldsProps) 
           />
         </Field>
         <Field>
-          <FieldLabel>Roaming incluido (GB)</FieldLabel>
+          <FieldLabel>{t('catalog.includedRoamingGb')}</FieldLabel>
           <Input
             type="number"
             min={0}
@@ -97,21 +99,21 @@ export function VoiceDetailFields({ values, onChange }: VoiceDetailFieldsProps) 
       </div>
       <div className="grid gap-5 md:grid-cols-3">
         <Field orientation="horizontal">
-          <FieldLabel>Minutos ilimitados</FieldLabel>
+          <FieldLabel>{t('catalog.unlimitedMinutes')}</FieldLabel>
           <Switch
             checked={values.hasUnlimitedMinutes}
             onCheckedChange={(v) => set('hasUnlimitedMinutes', v)}
           />
         </Field>
         <Field orientation="horizontal">
-          <FieldLabel>WhatsApp ilimitado</FieldLabel>
+          <FieldLabel>{t('catalog.unlimitedWhatsapp')}</FieldLabel>
           <Switch
             checked={values.hasUnlimitedWhatsapp}
             onCheckedChange={(v) => set('hasUnlimitedWhatsapp', v)}
           />
         </Field>
         <Field orientation="horizontal">
-          <FieldLabel>Redes sociales</FieldLabel>
+          <FieldLabel>{t('catalog.socialNetworks')}</FieldLabel>
           <Switch
             checked={values.hasSocialNetworks}
             onCheckedChange={(v) => set('hasSocialNetworks', v)}

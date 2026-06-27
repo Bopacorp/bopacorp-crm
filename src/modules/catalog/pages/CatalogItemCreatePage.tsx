@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft } from 'lucide-react';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -15,6 +16,7 @@ import {
 } from '../components/CatalogItemForm.js';
 
 export default function CatalogItemCreatePage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [error, setError] = useState('');
@@ -23,7 +25,7 @@ export default function CatalogItemCreatePage() {
     mutationFn: createCatalogItem,
     onSuccess: (item) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.catalog.items.all });
-      toast.success('Producto creado');
+      toast.success(t('catalog.productCreated'));
       navigate(`/catalogo/${item.id}`);
     },
     onError: (err) => setError(getErrorMessage(err)),
@@ -35,7 +37,7 @@ export default function CatalogItemCreatePage() {
         <Button variant="ghost" size="icon-sm" onClick={() => navigate('/catalogo')}>
           <ArrowLeft />
         </Button>
-        <h1 className="text-lg font-semibold text-foreground">Nuevo producto</h1>
+        <h1 className="text-lg font-semibold text-foreground">{t('catalog.newProduct')}</h1>
       </div>
 
       <Card>
@@ -48,7 +50,7 @@ export default function CatalogItemCreatePage() {
             }}
             isPending={mutation.isPending}
             error={error}
-            submitLabel="Crear"
+            submitLabel={t('common.create')}
             onCancel={() => navigate('/catalogo')}
             mode="create"
           />

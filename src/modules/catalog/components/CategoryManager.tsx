@@ -1,5 +1,6 @@
 import { FolderTree, Plus } from 'lucide-react';
 import { useCallback, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -11,6 +12,7 @@ import { CategoryTreeNode } from './CategoryTreeNode.js';
 import { CreateCategoryDialog } from './CreateCategoryDialog.js';
 
 export function CategoryManager() {
+  const { t } = useTranslation();
   const { tree, loading, error, refetch } = useCategoryTree();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
@@ -20,13 +22,13 @@ export function CategoryManager() {
     (id: string) => {
       if (id === selectedId) return;
       if (detailDirtyRef.current) {
-        const discard = window.confirm('Tienes cambios sin guardar. ¿Deseas descartarlos?');
+        const discard = window.confirm(t('common.unsavedChangesConfirm'));
         if (!discard) return;
       }
       detailDirtyRef.current = false;
       setSelectedId(id);
     },
-    [selectedId],
+    [selectedId, t],
   );
 
   if (error) return <ErrorState error={error} onRetry={refetch} />;
@@ -37,7 +39,9 @@ export function CategoryManager() {
         {/* Left panel — tree */}
         <div className="w-72 shrink-0 flex flex-col gap-3 border-r border-border pr-6">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-muted-foreground">Estructura</span>
+            <span className="text-sm font-medium text-muted-foreground">
+              {t('common.structure')}
+            </span>
             <Can permission="categories.create">
               <Button variant="ghost" size="icon-sm" onClick={() => setCreateOpen(true)}>
                 <Plus />
@@ -53,11 +57,11 @@ export function CategoryManager() {
             </div>
           ) : tree.length === 0 ? (
             <EmptyState
-              title="Sin categorías"
-              description="Crea tu primera categoría para organizar el catálogo"
+              title={t('catalog.noCategories')}
+              description={t('catalog.noCategoriesDesc')}
               icon={FolderTree}
               action={{
-                label: 'Crear primera categoría',
+                label: t('catalog.createFirstCategory'),
                 onClick: () => setCreateOpen(true),
               }}
             />
@@ -90,8 +94,8 @@ export function CategoryManager() {
           ) : (
             <div className="flex items-center justify-center h-full">
               <EmptyState
-                title="Selecciona una categoría"
-                description="Haz clic en una categoría del árbol para ver sus detalles"
+                title={t('catalog.selectCategory')}
+                description={t('catalog.selectCategoryDesc')}
                 icon={FolderTree}
               />
             </div>

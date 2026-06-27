@@ -52,6 +52,8 @@ export const queryKeys = {
   reports: {
     advisorMetrics: (filters: Record<string, unknown>) =>
       ['reports', 'advisor-metrics', filters] as const,
+    recentActivity: (filters: Record<string, unknown>) =>
+      ['reports', 'recent-activity', filters] as const,
   },
   documents: {
     all: ['documents'] as const,

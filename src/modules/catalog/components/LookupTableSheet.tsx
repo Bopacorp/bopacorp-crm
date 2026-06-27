@@ -11,6 +11,7 @@ import {
   XIcon,
 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Field, FieldGroup, FieldLabel } from '@/components/ui/field';
@@ -42,6 +43,7 @@ export function LookupTableSheet({
   config,
   mode: initialMode,
 }: LookupTableSheetProps) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState(false);
   const [formKey, setFormKey] = useState(0);
@@ -99,9 +101,9 @@ export function LookupTableSheet({
               )}
               <SheetTitle>
                 {isCreate
-                  ? `Nuevo ${config.entityName.toLowerCase()}`
+                  ? t('common.newEntity', { entity: config.entityName.toLowerCase() })
                   : editing
-                    ? `Editar ${config.entityName.toLowerCase()}`
+                    ? t('common.editEntity', { entity: config.entityName.toLowerCase() })
                     : isLoading
                       ? config.entityName
                       : (entity?.name ?? config.entityName)}
@@ -170,36 +172,37 @@ interface ViewEntity {
 }
 
 function ViewMode({ entity }: { entity: ViewEntity; config: LookupTableConfig }) {
+  const { t } = useTranslation();
   return (
     <div className="flex-1 overflow-y-auto p-4">
       <div className="flex flex-col gap-5">
         <div className="flex flex-col gap-1">
-          <SectionLabel>Información</SectionLabel>
-          <DetailField icon={Code} label="Código">
+          <SectionLabel>{t('common.information')}</SectionLabel>
+          <DetailField icon={Code} label={t('common.code')}>
             <span className="font-mono text-xs">{entity.code}</span>
           </DetailField>
-          <DetailField icon={Tag} label="Nombre">
+          <DetailField icon={Tag} label={t('common.name')}>
             {entity.name}
           </DetailField>
           {entity.description && (
-            <DetailField icon={FileText} label="Descripción">
+            <DetailField icon={FileText} label={t('common.description')}>
               {entity.description}
             </DetailField>
           )}
-          <DetailField icon={Settings} label="Estado">
+          <DetailField icon={Settings} label={t('common.status')}>
             <StateBadge
               state={entity.isActive ? 'active' : 'inactive'}
-              label={entity.isActive ? 'Activo' : 'Inactivo'}
+              label={entity.isActive ? t('common.active') : t('common.inactive')}
             />
           </DetailField>
         </div>
 
         <div className="flex flex-col gap-1">
-          <SectionLabel>Fechas</SectionLabel>
-          <DetailField icon={Calendar} label="Creado">
+          <SectionLabel>{t('common.dates')}</SectionLabel>
+          <DetailField icon={Calendar} label={t('common.created')}>
             {formatRelativeTime(entity.createdAt)}
           </DetailField>
-          <DetailField icon={Calendar} label="Actualizado">
+          <DetailField icon={Calendar} label={t('common.updated')}>
             {formatRelativeTime(entity.updatedAt)}
           </DetailField>
         </div>
@@ -245,6 +248,7 @@ function CreateForm({
   onSuccess: () => void;
   onDirtyChange: (dirty: boolean) => void;
 }) {
+  const { t } = useTranslation();
   const [code, setCode] = useState('');
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -260,7 +264,7 @@ function CreateForm({
     mutationFn: () =>
       config.createFn({ code, name, isActive: true, description: description || undefined }),
     onSuccess: () => {
-      toast.success(`${config.entityName} creado`);
+      toast.success(t('common.entityCreated', { entity: config.entityName }));
       onSuccess();
     },
     onError: (err) => setFormError(getErrorMessage(err)),
@@ -278,29 +282,29 @@ function CreateForm({
             </div>
           )}
           <Field>
-            <FieldLabel>Código</FieldLabel>
+            <FieldLabel>{t('common.code')}</FieldLabel>
             <Input
               value={code}
               onChange={(e) => setCode(e.target.value.toUpperCase())}
-              placeholder="CODIGO"
+              placeholder={t('common.codePlaceholder')}
               maxLength={30}
             />
           </Field>
           <Field>
-            <FieldLabel>Nombre</FieldLabel>
+            <FieldLabel>{t('common.name')}</FieldLabel>
             <Input
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Nombre del registro"
+              placeholder={t('common.namePlaceholder')}
               maxLength={30}
             />
           </Field>
           <Field>
-            <FieldLabel>Descripción</FieldLabel>
+            <FieldLabel>{t('common.description')}</FieldLabel>
             <Textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Descripción opcional"
+              placeholder={t('common.descriptionPlaceholder')}
               maxLength={150}
               rows={3}
             />
@@ -314,7 +318,7 @@ function CreateForm({
           disabled={!canSubmit || mutation.isPending}
         >
           {mutation.isPending && <Loader2 data-icon="inline-start" className="animate-spin" />}
-          Crear
+          {t('common.create')}
         </Button>
       </SheetFooter>
     </>
@@ -334,6 +338,7 @@ function EditForm({
   onSaved: () => void;
   onDirtyChange: (dirty: boolean) => void;
 }) {
+  const { t } = useTranslation();
   const [name, setName] = useState(entity.name);
   const [description, setDescription] = useState(entity.description ?? '');
   const [isActive, setIsActive] = useState(entity.isActive);
@@ -356,7 +361,7 @@ function EditForm({
         isActive,
       }),
     onSuccess: () => {
-      toast.success(`${config.entityName} actualizado`);
+      toast.success(t('common.entityUpdated', { entity: config.entityName }));
       onSaved();
     },
     onError: (err) => setFormError(getErrorMessage(err)),
@@ -374,15 +379,15 @@ function EditForm({
             </div>
           )}
           <Field>
-            <FieldLabel>Código</FieldLabel>
+            <FieldLabel>{t('common.code')}</FieldLabel>
             <Input value={entity.code} disabled className="font-mono" />
           </Field>
           <Field>
-            <FieldLabel>Nombre</FieldLabel>
+            <FieldLabel>{t('common.name')}</FieldLabel>
             <Input value={name} onChange={(e) => setName(e.target.value)} maxLength={30} />
           </Field>
           <Field>
-            <FieldLabel>Descripción</FieldLabel>
+            <FieldLabel>{t('common.description')}</FieldLabel>
             <Textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
@@ -391,7 +396,7 @@ function EditForm({
             />
           </Field>
           <Field orientation="horizontal">
-            <FieldLabel>Activo</FieldLabel>
+            <FieldLabel>{t('common.active')}</FieldLabel>
             <Switch checked={isActive} onCheckedChange={setIsActive} />
           </Field>
         </FieldGroup>
@@ -403,7 +408,7 @@ function EditForm({
           disabled={!canSubmit || mutation.isPending}
         >
           {mutation.isPending && <Loader2 data-icon="inline-start" className="animate-spin" />}
-          Guardar
+          {t('common.save')}
         </Button>
       </SheetFooter>
     </>

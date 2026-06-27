@@ -5,6 +5,7 @@ import { useMutation } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import type { z } from 'zod';
 import { Button } from '@/components/ui/button';
@@ -42,6 +43,7 @@ interface CreateCategoryDialogProps {
 }
 
 export function CreateCategoryDialog({ open, onOpenChange, onCreated }: CreateCategoryDialogProps) {
+  const { t } = useTranslation();
   const [formKey, setFormKey] = useState(0);
 
   const onClose = useCallback(() => onOpenChange(false), [onOpenChange]);
@@ -68,7 +70,7 @@ export function CreateCategoryDialog({ open, onOpenChange, onCreated }: CreateCa
       <Dialog open={open} onOpenChange={handleOpenChange}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Nueva categoría</DialogTitle>
+            <DialogTitle>{t('catalog.newCategory')}</DialogTitle>
           </DialogHeader>
           <CreateForm
             key={formKey}
@@ -93,6 +95,7 @@ function CreateForm({
   onDirtyChange: (dirty: boolean) => void;
   onSuccess: (id: string) => void;
 }) {
+  const { t } = useTranslation();
   const { options } = useCategoryOptions();
 
   const {
@@ -129,7 +132,7 @@ function CreateForm({
       });
     },
     onSuccess: (data: CategoryResponse) => {
-      toast.success('Categoría creada');
+      toast.success(t('catalog.categoryCreated'));
       onSuccess(data.id);
     },
     onError: (err) => {
@@ -154,13 +157,13 @@ function CreateForm({
           {errors.root && <FormAlert message={errors.root.message ?? ''} />}
 
           <Field data-invalid={errors.name ? true : undefined}>
-            <FieldLabel>Nombre</FieldLabel>
-            <Input {...register('name')} placeholder="Nombre de la categoría" maxLength={30} />
+            <FieldLabel>{t('common.name')}</FieldLabel>
+            <Input {...register('name')} placeholder={t('catalog.categoryName')} maxLength={30} />
             <FieldError>{errors.name?.message}</FieldError>
           </Field>
 
           <Field data-invalid={errors.parentId ? true : undefined}>
-            <FieldLabel>Categoría padre</FieldLabel>
+            <FieldLabel>{t('catalog.parentCategory')}</FieldLabel>
             <Controller
               control={control}
               name="parentId"
@@ -170,10 +173,10 @@ function CreateForm({
                   onValueChange={(v) => field.onChange(v === '__none__' ? undefined : v)}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Sin padre (raíz)" />
+                    <SelectValue placeholder={t('common.noParent')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="__none__">Sin padre (raíz)</SelectItem>
+                    <SelectItem value="__none__">{t('common.noParent')}</SelectItem>
                     {options.map((opt) => (
                       <SelectItem key={opt.value} value={opt.value}>
                         {opt.label}
@@ -187,10 +190,10 @@ function CreateForm({
           </Field>
 
           <Field data-invalid={errors.description ? true : undefined}>
-            <FieldLabel>Descripción</FieldLabel>
+            <FieldLabel>{t('common.description')}</FieldLabel>
             <Textarea
               {...register('description')}
-              placeholder="Descripción opcional"
+              placeholder={t('common.descriptionPlaceholder')}
               maxLength={150}
               rows={3}
             />
@@ -198,13 +201,13 @@ function CreateForm({
           </Field>
 
           <Field data-invalid={errors.sortOrder ? true : undefined}>
-            <FieldLabel>Orden</FieldLabel>
+            <FieldLabel>{t('common.order')}</FieldLabel>
             <Input type="number" {...register('sortOrder', { valueAsNumber: true })} min={0} />
             <FieldError>{errors.sortOrder?.message}</FieldError>
           </Field>
 
           <Field orientation="horizontal">
-            <FieldLabel>Activo</FieldLabel>
+            <FieldLabel>{t('common.active')}</FieldLabel>
             <Controller
               control={control}
               name="isActive"
@@ -218,7 +221,7 @@ function CreateForm({
       <DialogFooter>
         <Button type="submit" disabled={mutation.isPending}>
           {mutation.isPending && <Loader2 data-icon="inline-start" className="animate-spin" />}
-          Crear
+          {t('common.create')}
         </Button>
       </DialogFooter>
     </form>

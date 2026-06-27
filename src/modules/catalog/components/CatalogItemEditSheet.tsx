@@ -2,6 +2,7 @@ import type { CatalogItemResponse } from '@bopacorp/shared/catalog';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { XIcon } from 'lucide-react';
 import { useCallback, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import {
@@ -31,6 +32,7 @@ export function CatalogItemEditSheet({
   item,
   onSuccess,
 }: CatalogItemEditSheetProps) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [key, setKey] = useState(0);
   const [error, setError] = useState('');
@@ -49,7 +51,7 @@ export function CatalogItemEditSheet({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.catalog.items.detail(item.id) });
       queryClient.invalidateQueries({ queryKey: queryKeys.catalog.items.all });
-      toast.success('Producto actualizado');
+      toast.success(t('catalog.productUpdated'));
       dirtyRef.current = false;
       forceClose();
       onSuccess();
@@ -73,14 +75,12 @@ export function CatalogItemEditSheet({
         <SheetContent showCloseButton={false} className="sm:max-w-2xl overflow-y-auto">
           <SheetHeader>
             <div className="flex items-center justify-between">
-              <SheetTitle>Editar producto</SheetTitle>
+              <SheetTitle>{t('catalog.editProduct')}</SheetTitle>
               <Button variant="ghost" size="icon-sm" onClick={() => handleOpenChange(false)}>
                 <XIcon />
               </Button>
             </div>
-            <SheetDescription className="sr-only">
-              Formulario de edición de producto
-            </SheetDescription>
+            <SheetDescription className="sr-only">{t('catalog.editProductDesc')}</SheetDescription>
           </SheetHeader>
           <div className="p-4">
             <CatalogItemForm
@@ -92,7 +92,7 @@ export function CatalogItemEditSheet({
               }}
               isPending={mutation.isPending}
               error={error}
-              submitLabel="Guardar"
+              submitLabel={t('common.save')}
               onDirtyChange={handleDirtyChange}
               onCancel={() => guardedAction('close')}
               mode="edit"

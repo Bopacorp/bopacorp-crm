@@ -3,6 +3,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2 } from 'lucide-react';
 import { useEffect, useMemo, useRef } from 'react';
 import { Controller, useForm } from 'react-hook-form';
+import { useTranslation } from 'react-i18next';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field';
@@ -361,6 +362,7 @@ export function CatalogItemForm({
   onCancel,
   mode,
 }: CatalogItemFormProps) {
+  const { t } = useTranslation();
   const {
     register,
     control,
@@ -429,40 +431,40 @@ export function CatalogItemForm({
 
       {/* Section 1: General */}
       <section className="flex flex-col gap-4">
-        <h3 className="text-sm font-semibold text-foreground">Información general</h3>
+        <h3 className="text-sm font-semibold text-foreground">{t('catalog.generalInfo')}</h3>
         <FieldGroup>
           <div className="grid gap-5 md:grid-cols-2">
             <Field data-invalid={errors.name ? true : undefined}>
-              <FieldLabel>Nombre</FieldLabel>
+              <FieldLabel>{t('common.name')}</FieldLabel>
               <Input {...register('name')} maxLength={50} />
               <FieldError>{errors.name?.message}</FieldError>
             </Field>
             <Field data-invalid={errors.price ? true : undefined}>
-              <FieldLabel>Precio</FieldLabel>
+              <FieldLabel>{t('common.price')}</FieldLabel>
               <Input type="number" min={0} step={0.01} {...register('price')} />
               <FieldError>{errors.price?.message}</FieldError>
             </Field>
             <Field className="md:col-span-2">
-              <FieldLabel>Descripción</FieldLabel>
+              <FieldLabel>{t('common.description')}</FieldLabel>
               <Textarea {...register('description')} rows={3} maxLength={500} />
             </Field>
             <Field>
-              <FieldLabel>Código de activación</FieldLabel>
+              <FieldLabel>{t('catalog.activationCode')}</FieldLabel>
               <Input {...register('activationCode')} maxLength={20} />
             </Field>
             <Field>
-              <FieldLabel>Permanencia (meses)</FieldLabel>
+              <FieldLabel>{t('catalog.permanenceMonths')}</FieldLabel>
               <Input type="number" min={0} {...register('permanenceMonths')} />
             </Field>
             <Field data-invalid={errors.categoryId ? true : undefined}>
-              <FieldLabel>Categoría</FieldLabel>
+              <FieldLabel>{t('common.category')}</FieldLabel>
               <Controller
                 control={control}
                 name="categoryId"
                 render={({ field }) => (
                   <Select value={field.value} onValueChange={field.onChange}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Seleccionar categoría" />
+                      <SelectValue placeholder={t('common.selectCategory')} />
                     </SelectTrigger>
                     <SelectContent>
                       {categoryOptions.map((opt) => (
@@ -477,14 +479,14 @@ export function CatalogItemForm({
               <FieldError>{errors.categoryId?.message}</FieldError>
             </Field>
             <Field data-invalid={errors.itemTypeId ? true : undefined}>
-              <FieldLabel>Tipo de ítem</FieldLabel>
+              <FieldLabel>{t('catalog.itemType')}</FieldLabel>
               <Controller
                 control={control}
                 name="itemTypeId"
                 render={({ field }) => (
                   <Select value={field.value} onValueChange={field.onChange}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Seleccionar tipo" />
+                      <SelectValue placeholder={t('common.selectType')} />
                     </SelectTrigger>
                     <SelectContent>
                       {itemTypeOptions.map((opt) => (
@@ -499,7 +501,7 @@ export function CatalogItemForm({
               <FieldError>{errors.itemTypeId?.message}</FieldError>
             </Field>
             <Field data-invalid={errors.contractTypeId ? true : undefined}>
-              <FieldLabel>Tipo de contrato</FieldLabel>
+              <FieldLabel>{t('catalog.contractType')}</FieldLabel>
               <Controller
                 control={control}
                 name="contractTypeId"
@@ -525,7 +527,7 @@ export function CatalogItemForm({
               <FieldError>{errors.contractTypeId?.message}</FieldError>
             </Field>
             <Field data-invalid={errors.segmentId ? true : undefined}>
-              <FieldLabel>Segmento</FieldLabel>
+              <FieldLabel>{t('catalog.segment')}</FieldLabel>
               <Controller
                 control={control}
                 name="segmentId"
@@ -551,14 +553,14 @@ export function CatalogItemForm({
               <FieldError>{errors.segmentId?.message}</FieldError>
             </Field>
             <Field data-invalid={errors.tierId ? true : undefined}>
-              <FieldLabel>Nivel</FieldLabel>
+              <FieldLabel>{t('catalog.level')}</FieldLabel>
               <Controller
                 control={control}
                 name="tierId"
                 render={({ field }) => (
                   <Select value={field.value} onValueChange={field.onChange}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Seleccionar nivel" />
+                      <SelectValue placeholder={t('common.selectLevel')} />
                     </SelectTrigger>
                     <SelectContent>
                       {tierOptions.map((opt) => (
@@ -576,7 +578,7 @@ export function CatalogItemForm({
           <div className="grid gap-5 md:grid-cols-2">
             {mode === 'edit' && (
               <Field orientation="horizontal">
-                <FieldLabel>Activo</FieldLabel>
+                <FieldLabel>{t('common.active')}</FieldLabel>
                 <Controller
                   control={control}
                   name="isActive"
@@ -587,7 +589,7 @@ export function CatalogItemForm({
               </Field>
             )}
             <Field orientation="horizontal">
-              <FieldLabel>Publicado</FieldLabel>
+              <FieldLabel>{t('common.published')}</FieldLabel>
               <Controller
                 control={control}
                 name="isPublished"
@@ -603,7 +605,7 @@ export function CatalogItemForm({
       {/* Section 2: Technical details */}
       {itemTypeCode && (
         <section className="flex flex-col gap-4">
-          <h3 className="text-sm font-semibold text-foreground">Detalle técnico</h3>
+          <h3 className="text-sm font-semibold text-foreground">{t('catalog.technicalDetail')}</h3>
           <TypeSpecificFields
             itemTypeCode={itemTypeCode}
             values={{
@@ -620,7 +622,7 @@ export function CatalogItemForm({
 
       {/* Section 3: Benefits */}
       <section className="flex flex-col gap-4">
-        <h3 className="text-sm font-semibold text-foreground">Beneficios</h3>
+        <h3 className="text-sm font-semibold text-foreground">{t('catalog.benefits')}</h3>
         <BenefitsSection
           benefits={watch('benefits')}
           onChange={(b) => setValue('benefits', b, { shouldDirty: true })}
@@ -629,7 +631,7 @@ export function CatalogItemForm({
 
       {/* Section 4: Conditions */}
       <section className="flex flex-col gap-4">
-        <h3 className="text-sm font-semibold text-foreground">Condiciones</h3>
+        <h3 className="text-sm font-semibold text-foreground">{t('catalog.conditions')}</h3>
         <ConditionsSection
           ageConditions={watch('ageConditions')}
           legalConditions={watch('legalConditions')}
@@ -644,7 +646,7 @@ export function CatalogItemForm({
       <div className="flex justify-end gap-2 border-t border-border pt-4">
         {onCancel && (
           <Button type="button" variant="ghost" onClick={onCancel}>
-            Cancelar
+            {t('common.cancel')}
           </Button>
         )}
         <Button type="submit" disabled={isPending}>
