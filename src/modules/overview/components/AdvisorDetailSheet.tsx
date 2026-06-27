@@ -32,7 +32,7 @@ export function AdvisorDetailSheet({ advisor, onClose }: AdvisorDetailSheetProps
         </SheetHeader>
 
         {advisor && (
-          <div className="flex flex-col gap-6 p-4">
+          <div className="flex flex-1 flex-col gap-6 overflow-y-auto p-4">
             <div className="grid gap-4 sm:grid-cols-2">
               {advisor.stateCounts.map((sc) => (
                 <KpiCard
