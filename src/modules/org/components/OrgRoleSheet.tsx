@@ -11,6 +11,7 @@ import {
   XIcon,
 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Field, FieldGroup, FieldLabel } from '@/components/ui/field';
@@ -63,6 +64,7 @@ export function OrgRoleSheet({
   entityId,
   mode: initialMode,
 }: OrgRoleSheetProps) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState(false);
   const [formKey, setFormKey] = useState(0);
@@ -120,12 +122,12 @@ export function OrgRoleSheet({
               )}
               <SheetTitle>
                 {isCreate
-                  ? 'Nuevo rol organizacional'
+                  ? t('org.newOrgRole')
                   : editing
-                    ? 'Editar rol organizacional'
+                    ? t('org.editOrgRole')
                     : isLoading
-                      ? 'Rol organizacional'
-                      : (entity?.name ?? 'Rol organizacional')}
+                      ? t('org.orgRoleSingular')
+                      : (entity?.name ?? t('org.orgRoleSingular'))}
               </SheetTitle>
             </div>
             <div className="flex items-center gap-1">
@@ -215,34 +217,35 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 }
 
 function ViewMode({ entity }: { entity: OrgRoleEntity }) {
+  const { t } = useTranslation();
   return (
     <div className="flex-1 overflow-y-auto p-4">
       <div className="flex flex-col gap-5">
         <div className="flex flex-col gap-1">
-          <SectionLabel>Información</SectionLabel>
-          <DetailField icon={Code} label="Código">
+          <SectionLabel>{t('common.information')}</SectionLabel>
+          <DetailField icon={Code} label={t('common.code')}>
             <span className="font-mono text-xs">{entity.code}</span>
           </DetailField>
-          <DetailField icon={Tag} label="Nombre">
+          <DetailField icon={Tag} label={t('common.name')}>
             {entity.name}
           </DetailField>
-          <DetailField icon={Building2} label="Departamento">
+          <DetailField icon={Building2} label={t('org.department')}>
             {entity.department?.name ?? '—'}
           </DetailField>
-          <DetailField icon={Settings} label="Estado">
+          <DetailField icon={Settings} label={t('common.status')}>
             <StateBadge
               state={entity.isActive ? 'active' : 'inactive'}
-              label={entity.isActive ? 'Activo' : 'Inactivo'}
+              label={entity.isActive ? t('common.active') : t('common.inactive')}
             />
           </DetailField>
         </div>
 
         <div className="flex flex-col gap-1">
-          <SectionLabel>Fechas</SectionLabel>
-          <DetailField icon={Calendar} label="Creado">
+          <SectionLabel>{t('common.dates')}</SectionLabel>
+          <DetailField icon={Calendar} label={t('common.created')}>
             {formatRelativeTime(entity.createdAt)}
           </DetailField>
-          <DetailField icon={Calendar} label="Actualizado">
+          <DetailField icon={Calendar} label={t('common.updated')}>
             {formatRelativeTime(entity.updatedAt)}
           </DetailField>
         </div>
@@ -260,6 +263,7 @@ function CreateForm({
   onSuccess: () => void;
   onDirtyChange: (dirty: boolean) => void;
 }) {
+  const { t } = useTranslation();
   const departments = useDepartmentOptions();
   const [code, setCode] = useState('');
   const [name, setName] = useState('');
@@ -281,7 +285,7 @@ function CreateForm({
         departmentId: departmentId === NONE_VALUE ? undefined : departmentId,
       }),
     onSuccess: () => {
-      toast.success('Rol organizacional creado');
+      toast.success(t('org.orgRoleCreated'));
       onSuccess();
     },
     onError: (err) => setFormError(getErrorMessage(err)),
@@ -295,31 +299,31 @@ function CreateForm({
         <FieldGroup>
           {formError && <FormAlert message={formError} />}
           <Field>
-            <FieldLabel>Código</FieldLabel>
+            <FieldLabel>{t('common.code')}</FieldLabel>
             <Input
               value={code}
               onChange={(e) => setCode(e.target.value.toUpperCase())}
-              placeholder="CODIGO"
+              placeholder={t('common.codePlaceholder')}
               maxLength={30}
             />
           </Field>
           <Field>
-            <FieldLabel>Nombre</FieldLabel>
+            <FieldLabel>{t('common.name')}</FieldLabel>
             <Input
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Nombre del rol"
+              placeholder={t('org.roleName')}
               maxLength={30}
             />
           </Field>
           <Field>
-            <FieldLabel>Departamento</FieldLabel>
+            <FieldLabel>{t('org.department')}</FieldLabel>
             <Select value={departmentId} onValueChange={setDepartmentId}>
               <SelectTrigger>
-                <SelectValue placeholder="Sin departamento" />
+                <SelectValue placeholder={t('org.noDepartment')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value={NONE_VALUE}>Sin departamento</SelectItem>
+                <SelectItem value={NONE_VALUE}>{t('org.noDepartment')}</SelectItem>
                 {departments.map((d) => (
                   <SelectItem key={d.id} value={d.id}>
                     {d.name}
@@ -337,7 +341,7 @@ function CreateForm({
           disabled={!canSubmit || mutation.isPending}
         >
           {mutation.isPending && <Loader2 data-icon="inline-start" className="animate-spin" />}
-          Crear
+          {t('common.create')}
         </Button>
       </SheetFooter>
     </>
@@ -355,6 +359,7 @@ function EditForm({
   onSaved: () => void;
   onDirtyChange: (dirty: boolean) => void;
 }) {
+  const { t } = useTranslation();
   const departments = useDepartmentOptions();
   const [name, setName] = useState(entity.name);
   const [departmentId, setDepartmentId] = useState<string>(entity.department?.id ?? NONE_VALUE);
@@ -378,7 +383,7 @@ function EditForm({
         isActive,
       }),
     onSuccess: () => {
-      toast.success('Rol organizacional actualizado');
+      toast.success(t('org.orgRoleUpdated'));
       onSaved();
     },
     onError: (err) => setFormError(getErrorMessage(err)),
@@ -392,21 +397,21 @@ function EditForm({
         <FieldGroup>
           {formError && <FormAlert message={formError} />}
           <Field>
-            <FieldLabel>Código</FieldLabel>
+            <FieldLabel>{t('common.code')}</FieldLabel>
             <Input value={entity.code} disabled className="font-mono" />
           </Field>
           <Field>
-            <FieldLabel>Nombre</FieldLabel>
+            <FieldLabel>{t('common.name')}</FieldLabel>
             <Input value={name} onChange={(e) => setName(e.target.value)} maxLength={30} />
           </Field>
           <Field>
-            <FieldLabel>Departamento</FieldLabel>
+            <FieldLabel>{t('org.department')}</FieldLabel>
             <Select value={departmentId} onValueChange={setDepartmentId}>
               <SelectTrigger>
-                <SelectValue placeholder="Sin departamento" />
+                <SelectValue placeholder={t('org.noDepartment')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value={NONE_VALUE}>Sin departamento</SelectItem>
+                <SelectItem value={NONE_VALUE}>{t('org.noDepartment')}</SelectItem>
                 {departments.map((d) => (
                   <SelectItem key={d.id} value={d.id}>
                     {d.name}
@@ -416,7 +421,7 @@ function EditForm({
             </Select>
           </Field>
           <Field orientation="horizontal">
-            <FieldLabel>Activo</FieldLabel>
+            <FieldLabel>{t('common.active')}</FieldLabel>
             <Switch checked={isActive} onCheckedChange={setIsActive} />
           </Field>
         </FieldGroup>
@@ -428,7 +433,7 @@ function EditForm({
           disabled={!canSubmit || mutation.isPending}
         >
           {mutation.isPending && <Loader2 data-icon="inline-start" className="animate-spin" />}
-          Guardar
+          {t('common.save')}
         </Button>
       </SheetFooter>
     </>

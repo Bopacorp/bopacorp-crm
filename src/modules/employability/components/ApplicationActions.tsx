@@ -2,6 +2,7 @@ import type { JobApplicationListItemResponse } from '@bopacorp/shared/employabil
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { CheckCircle, Download, Loader2, MoreHorizontal, XCircle } from 'lucide-react';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button.js';
 import {
@@ -29,6 +30,7 @@ interface ApplicationActionsProps {
 type ReviewState = 'idle' | 'loading' | 'success';
 
 export function ApplicationActions({ application, onSuccess }: ApplicationActionsProps) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { hasPermission } = usePermission();
   const [reviewState, setReviewState] = useState<ReviewState>('idle');
@@ -70,7 +72,7 @@ export function ApplicationActions({ application, onSuccess }: ApplicationAction
     try {
       const app = await getJobApplication(application.id);
       if (!app.resume) {
-        toast.error('No se encontró hoja de vida');
+        toast.error(t('employability.noResumeFound'));
         return;
       }
       await downloadCandidateResume(app.resume.id, app.resume.filename);
@@ -91,21 +93,21 @@ export function ApplicationActions({ application, onSuccess }: ApplicationAction
           {reviewState === 'success' && (
             <CheckCircle data-icon="inline-start" className="size-4 text-green-600" />
           )}
-          {reviewState === 'success' ? 'Revisado' : 'Revisando'}
+          {reviewState === 'success' ? t('employability.reviewed') : t('employability.reviewing')}
         </Button>
       ) : (
         <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
           <DropdownMenuTrigger asChild>
             <Button size="sm" variant="outline">
               <MoreHorizontal data-icon="inline-start" className="size-4" />
-              Acciones
+              {t('common.actions')}
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             {hasResume && (
               <DropdownMenuItem onClick={handleDownloadResume}>
                 <Download className="size-4" />
-                Descargar CV
+                {t('employability.downloadCV')}
               </DropdownMenuItem>
             )}
             {canReviewOrReject && hasResume && <DropdownMenuSeparator />}
@@ -113,7 +115,7 @@ export function ApplicationActions({ application, onSuccess }: ApplicationAction
               <>
                 <DropdownMenuItem onClick={handleReview} disabled={isReviewDisabled}>
                   <CheckCircle className="size-4" />
-                  Marcar revisado
+                  {t('employability.markReviewed')}
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={handleRejectClick}
@@ -121,7 +123,7 @@ export function ApplicationActions({ application, onSuccess }: ApplicationAction
                   variant="destructive"
                 >
                   <XCircle className="size-4" />
-                  Rechazar
+                  {t('common.reject')}
                 </DropdownMenuItem>
               </>
             )}

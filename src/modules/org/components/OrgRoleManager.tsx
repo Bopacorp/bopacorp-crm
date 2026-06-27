@@ -3,6 +3,7 @@ import type { OrgRoleListItemResponse } from '@bopacorp/shared/core';
 import { useQuery } from '@tanstack/react-query';
 import { Plus } from 'lucide-react';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useDebounce } from 'use-debounce';
 import { Button } from '@/components/ui/button';
 import { queryKeys } from '@/lib/query-keys.js';
@@ -21,13 +22,8 @@ import {
 import { listDepartments, listOrgRoles } from '../org.service.js';
 import { OrgRoleSheet } from './OrgRoleSheet.js';
 
-const STATUS_OPTIONS = [
-  { value: 'all', label: 'Todos' },
-  { value: 'true', label: 'Activos' },
-  { value: 'false', label: 'Inactivos' },
-];
-
 export function OrgRoleManager() {
+  const { t } = useTranslation();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [isActiveFilter, setIsActiveFilter] = useState<string>('all');
@@ -50,8 +46,14 @@ export function OrgRoleManager() {
   });
 
   const departmentOptions = [
-    { value: 'all', label: 'Todos' },
+    { value: 'all', label: t('common.all') },
     ...(deptData?.data.map((d) => ({ value: d.id, label: d.name })) ?? []),
+  ];
+
+  const statusOptions = [
+    { value: 'all', label: t('common.all') },
+    { value: 'true', label: t('common.actives') },
+    { value: 'false', label: t('common.inactives') },
   ];
 
   const { data, isLoading, isFetching, error, refetch } = useQuery({
@@ -78,30 +80,30 @@ export function OrgRoleManager() {
   const columns = [
     {
       id: 'code',
-      header: 'Código',
+      header: t('common.code'),
       accessor: (item: OrgRoleListItemResponse) => (
         <span className="font-mono text-xs">{item.code}</span>
       ),
     },
     {
       id: 'name',
-      header: 'Nombre',
+      header: t('common.name'),
       accessor: (item: OrgRoleListItemResponse) => item.name,
     },
     {
       id: 'department',
-      header: 'Departamento',
+      header: t('org.departmentSingular'),
       accessor: (item: OrgRoleListItemResponse) => (
         <span className="text-muted-foreground">{item.department?.name ?? '—'}</span>
       ),
     },
     {
       id: 'state',
-      header: 'Estado',
+      header: t('common.status'),
       accessor: (item: OrgRoleListItemResponse) => (
         <StateBadge
           state={item.isActive ? 'active' : 'inactive'}
-          label={item.isActive ? 'Activo' : 'Inactivo'}
+          label={item.isActive ? t('common.active') : t('common.inactive')}
         />
       ),
     },
@@ -120,21 +122,21 @@ export function OrgRoleManager() {
       <FilterBar
         searchValue={search}
         onSearchChange={setSearch}
-        searchPlaceholder="Buscar roles organizacionales..."
+        searchPlaceholder={t('org.searchOrgRoles')}
         filters={[
           {
             id: 'department',
-            label: 'Departamento',
-            placeholder: 'Departamento',
+            label: t('org.departmentSingular'),
+            placeholder: t('org.departmentSingular'),
             options: departmentOptions,
             value: departmentFilter,
             onChange: setDepartmentFilter,
           },
           {
             id: 'isActive',
-            label: 'Estado',
-            placeholder: 'Estado',
-            options: STATUS_OPTIONS,
+            label: t('common.status'),
+            placeholder: t('common.status'),
+            options: statusOptions,
             value: isActiveFilter,
             onChange: setIsActiveFilter,
           },
@@ -143,7 +145,7 @@ export function OrgRoleManager() {
           <Can permission="org_roles.create">
             <Button onClick={() => setCreateOpen(true)}>
               <Plus data-icon="inline-start" />
-              Nuevo rol
+              {t('org.newOrgRole')}
             </Button>
           </Can>
         }
@@ -152,13 +154,17 @@ export function OrgRoleManager() {
       {items.length === 0 ? (
         debouncedSearch || isActive !== undefined || departmentId ? (
           <EmptyState
-            title="Sin resultados"
-            description="No se encontraron roles organizacionales con los filtros aplicados"
+            title={t('common.noResults')}
+            description={t('common.noFilterResults', {
+              entities: t('org.orgRolePlural').toLowerCase(),
+            })}
           />
         ) : (
           <EmptyState
-            title="No hay roles organizacionales"
-            description="Crea tu primer rol organizacional para comenzar"
+            title={t('common.noEntities', { entities: t('org.orgRolePlural').toLowerCase() })}
+            description={t('common.createFirstEntity', {
+              entity: t('org.orgRoleSingular').toLowerCase(),
+            })}
           />
         )
       ) : (

@@ -1,6 +1,7 @@
 import type { JobApplicationListItemResponse } from '@bopacorp/shared/employability';
 import { ArrowLeft } from 'lucide-react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { formatDate } from '@/lib/format.js';
@@ -21,15 +22,8 @@ import { ApplicationDetailSheet } from '../components/ApplicationDetailSheet.js'
 import { useJobApplications } from '../hooks/useJobApplications.js';
 import { applicationStateLabel, applicationStateVariant } from '../lib/state.js';
 
-const STATE_OPTIONS = [
-  { value: 'all', label: 'Todos' },
-  { value: 'DRAFT', label: 'Borrador' },
-  { value: 'PENDING', label: 'Pendiente' },
-  { value: 'ACCEPTED', label: 'Revisado' },
-  { value: 'REJECTED', label: 'Rechazado' },
-];
-
 export default function ApplicantsPage() {
+  const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
   const vacancyId = searchParams.get('vacancyId') ?? undefined;
 
@@ -49,10 +43,21 @@ export default function ApplicantsPage() {
 
   usePageReset([search, stateFilter, vacancyId, pageSize], setPage);
 
+  const stateOptions = useMemo(
+    () => [
+      { value: 'all', label: t('common.all') },
+      { value: 'DRAFT', label: t('employability.stateDraft') },
+      { value: 'PENDING', label: t('employability.statePending') },
+      { value: 'ACCEPTED', label: t('employability.stateReviewed') },
+      { value: 'REJECTED', label: t('employability.stateRejected') },
+    ],
+    [t],
+  );
+
   const columns = [
     {
       id: 'candidate',
-      header: 'Candidato',
+      header: t('employability.candidate'),
       accessor: (item: JobApplicationListItemResponse) => (
         <span className="font-medium text-foreground hover:underline">
           {item.candidate.firstName} {item.candidate.lastName}
@@ -61,18 +66,18 @@ export default function ApplicantsPage() {
     },
     {
       id: 'vacancy',
-      header: 'Vacante',
+      header: t('employability.vacancy'),
       accessor: (item: JobApplicationListItemResponse) => item.vacancy.title,
     },
     {
       id: 'appliedAt',
-      header: 'Fecha de aplicación',
+      header: t('employability.applicationDate'),
       accessor: (item: JobApplicationListItemResponse) =>
         item.appliedAt ? formatDate(item.appliedAt) : '—',
     },
     {
       id: 'state',
-      header: 'Estado',
+      header: t('common.status'),
       accessor: (item: JobApplicationListItemResponse) => (
         <StateBadge
           state={item.state}
@@ -83,7 +88,7 @@ export default function ApplicantsPage() {
     },
     {
       id: 'actions',
-      header: 'Acciones',
+      header: t('common.actions'),
       accessor: (item: JobApplicationListItemResponse) => (
         <ApplicationActions application={item} onSuccess={refetch} />
       ),
@@ -111,29 +116,27 @@ export default function ApplicantsPage() {
           }}
         >
           <ArrowLeft data-icon="inline-start" />
-          Volver a vacantes
+          {t('employability.backToVacancies')}
         </Button>
       )}
 
       <SectionHeader
-        title="Aplicantes"
+        title={t('employability.applicants')}
         description={
-          vacancyId
-            ? 'Postulantes filtrados por vacante seleccionada'
-            : 'Gestión de candidatos y aplicaciones a vacantes'
+          vacancyId ? t('employability.applicantsVacancyDesc') : t('employability.applicantsDesc')
         }
       />
 
       <FilterBar
         searchValue={search}
         onSearchChange={setSearch}
-        searchPlaceholder="Buscar candidatos..."
+        searchPlaceholder={t('employability.searchApplicants')}
         filters={[
           {
             id: 'state',
-            label: 'Estado',
-            placeholder: 'Estado',
-            options: STATE_OPTIONS,
+            label: t('common.status'),
+            placeholder: t('common.status'),
+            options: stateOptions,
             value: stateFilter,
             onChange: setStateFilter,
           },
@@ -143,13 +146,13 @@ export default function ApplicantsPage() {
       {applications.length === 0 ? (
         search || state ? (
           <EmptyState
-            title="Sin resultados"
-            description="No se encontraron aplicaciones con los filtros aplicados"
+            title={t('common.noResults')}
+            description={t('common.noResultsDescription')}
           />
         ) : (
           <EmptyState
-            title="No hay aplicaciones"
-            description="Las aplicaciones de candidatos aparecerán aquí"
+            title={t('employability.noApplications')}
+            description={t('employability.noApplicationsDesc')}
           />
         )
       ) : (

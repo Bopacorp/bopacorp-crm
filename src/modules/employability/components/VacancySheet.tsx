@@ -12,6 +12,7 @@ import {
   XIcon,
 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
@@ -68,57 +69,62 @@ const SKELETON_SECTIONS = [
 ];
 
 function ViewMode({ vacancy }: { vacancy: JobVacancyResponse }) {
+  const { t } = useTranslation();
   return (
     <div className="flex-1 overflow-y-auto p-4">
       <div className="flex flex-col gap-5">
         <div className="flex flex-col gap-1">
-          <SectionLabel>Información</SectionLabel>
-          <DetailField icon={Briefcase} label="Título">
+          <SectionLabel>{t('common.information')}</SectionLabel>
+          <DetailField icon={Briefcase} label={t('employability.vacancyTitle')}>
             {vacancy.title}
           </DetailField>
-          <DetailField icon={FileText} label="Descripción">
+          <DetailField icon={FileText} label={t('common.description')}>
             <span className="whitespace-pre-wrap">{vacancy.description}</span>
           </DetailField>
-          <DetailField icon={FileText} label="Requisitos">
+          <DetailField icon={FileText} label={t('employability.requirements')}>
             <span className="whitespace-pre-wrap">{vacancy.requirements}</span>
           </DetailField>
         </div>
 
         <div className="flex flex-col gap-1">
-          <SectionLabel>Estado</SectionLabel>
-          <DetailField icon={Settings} label="Activa">
+          <SectionLabel>{t('common.status')}</SectionLabel>
+          <DetailField icon={Settings} label={t('employability.activeFem')}>
             <StateBadge
               state={vacancy.isActive ? 'active' : 'inactive'}
-              label={vacancy.isActive ? 'Activa' : 'Inactiva'}
+              label={
+                vacancy.isActive ? t('employability.activeFem') : t('employability.inactiveFem')
+              }
             />
           </DetailField>
-          <DetailField icon={Settings} label="Publicada">
+          <DetailField icon={Settings} label={t('employability.publishedFem')}>
             <StateBadge
               state={vacancy.isPublished ? 'published' : 'draft'}
-              label={vacancy.isPublished ? 'Publicada' : 'Borrador'}
+              label={
+                vacancy.isPublished ? t('employability.publishedFem') : t('employability.draft')
+              }
             />
           </DetailField>
         </div>
 
         <div className="flex flex-col gap-1">
-          <SectionLabel>Fechas</SectionLabel>
-          <DetailField icon={Calendar} label="Publicación">
+          <SectionLabel>{t('common.dates')}</SectionLabel>
+          <DetailField icon={Calendar} label={t('employability.publishDate')}>
             {vacancy.publicationDate ? formatDate(vacancy.publicationDate) : '—'}
           </DetailField>
-          <DetailField icon={Calendar} label="Cierre">
+          <DetailField icon={Calendar} label={t('employability.closing')}>
             {vacancy.closingDate ? formatDate(vacancy.closingDate) : '—'}
           </DetailField>
         </div>
 
         <div className="flex flex-col gap-1">
-          <SectionLabel>Auditoría</SectionLabel>
-          <DetailField icon={User} label="Creador">
+          <SectionLabel>{t('employability.audit')}</SectionLabel>
+          <DetailField icon={User} label={t('employability.creator')}>
             {vacancy.creator.username}
           </DetailField>
-          <DetailField icon={Calendar} label="Creado">
+          <DetailField icon={Calendar} label={t('common.created')}>
             {formatRelativeTime(vacancy.createdAt)}
           </DetailField>
-          <DetailField icon={Calendar} label="Actualizado">
+          <DetailField icon={Calendar} label={t('common.updated')}>
             {formatRelativeTime(vacancy.updatedAt)}
           </DetailField>
         </div>
@@ -128,6 +134,7 @@ function ViewMode({ vacancy }: { vacancy: JobVacancyResponse }) {
 }
 
 export function VacancySheet({ open, onOpenChange, vacancyId, onSuccess }: VacancySheetProps) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { vacancy, loading, error: queryError, refetch } = useVacancy(vacancyId);
   const [editing, setEditing] = useState(false);
@@ -150,7 +157,7 @@ export function VacancySheet({ open, onOpenChange, vacancyId, onSuccess }: Vacan
     mutationFn: (data: UpdateJobVacancyRequest) => updateVacancy(vacancyId as string, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.employability.vacancies.all });
-      toast.success('Vacante actualizada');
+      toast.success(t('employability.vacancyUpdated'));
       dirtyRef.current = false;
       setEditing(false);
       refetch();
@@ -226,12 +233,12 @@ export function VacancySheet({ open, onOpenChange, vacancyId, onSuccess }: Vacan
                   <ArrowLeft />
                 </Button>
               )}
-              {loading && <SheetTitle className="sr-only">Vacante</SheetTitle>}
+              {loading && <SheetTitle className="sr-only">{t('employability.vacancy')}</SheetTitle>}
               {showViewHeader && (
                 <SheetTitle className="flex-1 truncate">{vacancy.title}</SheetTitle>
               )}
               {!showViewHeader && !loading && (
-                <SheetTitle>{editing ? 'Editar vacante' : 'Vacante'}</SheetTitle>
+                <SheetTitle>{editing ? t('common.edit') : t('employability.vacancy')}</SheetTitle>
               )}
             </div>
             <div className="flex items-center gap-1">
@@ -266,7 +273,7 @@ export function VacancySheet({ open, onOpenChange, vacancyId, onSuccess }: Vacan
               onSubmit={handleSubmit}
               isPending={mutation.isPending}
               error={formError}
-              submitLabel="Guardar"
+              submitLabel={t('common.save')}
               onDirtyChange={handleDirtyChange}
             />
           ) : (

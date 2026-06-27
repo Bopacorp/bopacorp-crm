@@ -1,5 +1,5 @@
 import type { AdvisorMetricResponse } from '@bopacorp/shared/reports';
-import { Briefcase, CalendarCheck, Clock, Users } from 'lucide-react';
+import { CalendarCheck, Clock } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button.js';
@@ -21,6 +21,7 @@ import {
 import { ActivityFeed } from '../components/ActivityFeed.js';
 import { AdvisorDetailSheet } from '../components/AdvisorDetailSheet.js';
 import { FunnelChart } from '../components/FunnelChart.js';
+import { aggregateStateCounts, collectStates, getStateCount } from '../utils.js';
 
 function advisorName(item: AdvisorMetricResponse) {
   const profile = item.advisor.profile;
@@ -63,75 +64,70 @@ export default function OverviewPage() {
     return metrics;
   }, [metrics, isAdvisorOnly, user]);
 
-  const totals = useMemo(
-    () =>
-      displayMetrics.reduce(
-        (acc, item) => ({
-          contacted: acc.contacted + item.clientsContacted,
-          visited: acc.visited + item.clientsVisited,
-          closed: acc.closed + item.clientsClosed,
-          avgDaysToClose: acc.avgDaysToClose + (item.avgDaysToClose ?? 0),
-          avgCount: acc.avgCount + (item.avgDaysToClose != null ? 1 : 0),
-        }),
-        { contacted: 0, visited: 0, closed: 0, avgDaysToClose: 0, avgCount: 0 },
-      ),
-    [displayMetrics],
-  );
+  const states = useMemo(() => collectStates(displayMetrics), [displayMetrics]);
 
-  const avgDays = totals.avgCount > 0 ? (totals.avgDaysToClose / totals.avgCount).toFixed(1) : null;
+  const totals = useMemo(() => {
+    const stateTotals = aggregateStateCounts(displayMetrics);
+    const visited = displayMetrics.reduce((sum, m) => sum + m.clientsVisited, 0);
+    let avgDaysSum = 0;
+    let avgDaysCount = 0;
+    for (const m of displayMetrics) {
+      if (m.avgDaysToClose != null) {
+        avgDaysSum += m.avgDaysToClose;
+        avgDaysCount++;
+      }
+    }
+    return { stateTotals, visited, avgDaysSum, avgDaysCount };
+  }, [displayMetrics]);
 
-  const columns = [
-    {
-      id: 'advisor',
-      header: t('common.advisor'),
-      accessor: (item: AdvisorMetricResponse) => (
-        <span className="font-medium text-foreground hover:underline">{advisorName(item)}</span>
-      ),
-    },
-    {
-      id: 'contacted',
-      header: t('overview.contacted'),
-      accessor: (item: AdvisorMetricResponse) => item.clientsContacted,
-    },
-    {
-      id: 'visited',
-      header: t('overview.visited'),
-      accessor: (item: AdvisorMetricResponse) => item.clientsVisited,
-    },
-    {
-      id: 'inNegotiation',
-      header: t('overview.inNegotiation'),
-      accessor: (item: AdvisorMetricResponse) => item.clientsInNegotiation,
-    },
-    {
-      id: 'closed',
-      header: t('overview.closed'),
-      accessor: (item: AdvisorMetricResponse) => item.clientsClosed,
-    },
-    {
-      id: 'postSale',
-      header: t('overview.postSale'),
-      accessor: (item: AdvisorMetricResponse) => item.clientsPostSale,
-    },
-    {
-      id: 'billed',
-      header: t('overview.billed'),
-      accessor: (item: AdvisorMetricResponse) => formatCurrency(item.totalBilledAmount),
-    },
-    {
-      id: 'avgPerService',
-      header: t('overview.avgPerService'),
-      accessor: (item: AdvisorMetricResponse) => formatCurrency(item.averageBillingPerService),
-    },
-    {
-      id: 'daysToClose',
-      header: t('overview.daysToClose'),
-      accessor: (item: AdvisorMetricResponse) =>
-        item.avgDaysToClose?.toFixed(1) ?? t('overview.noData'),
-    },
-  ];
+  const avgDays =
+    totals.avgDaysCount > 0 ? (totals.avgDaysSum / totals.avgDaysCount).toFixed(1) : null;
 
-  if (loading) return <TableSkeleton columns={columns.length} />;
+  const columns = useMemo(() => {
+    const base = [
+      {
+        id: 'advisor',
+        header: t('common.advisor'),
+        accessor: (item: AdvisorMetricResponse) => (
+          <span className="font-medium text-foreground hover:underline">{advisorName(item)}</span>
+        ),
+      },
+    ];
+
+    const stateCols = states.map((s) => ({
+      id: s.code,
+      header: s.name,
+      accessor: (item: AdvisorMetricResponse) => getStateCount(item, s.code),
+    }));
+
+    const tail = [
+      {
+        id: 'visited',
+        header: t('overview.visited'),
+        accessor: (item: AdvisorMetricResponse) => item.clientsVisited,
+      },
+      {
+        id: 'billed',
+        header: t('overview.billed'),
+        accessor: (item: AdvisorMetricResponse) => formatCurrency(item.totalBilledAmount),
+      },
+      {
+        id: 'avgPerService',
+        header: t('overview.avgPerService'),
+        accessor: (item: AdvisorMetricResponse) => formatCurrency(item.averageBillingPerService),
+      },
+      {
+        id: 'daysToClose',
+        header: t('overview.daysToClose'),
+        accessor: (item: AdvisorMetricResponse) =>
+          item.avgDaysToClose?.toFixed(1) ?? t('overview.noData'),
+      },
+    ];
+
+    return [...base, ...stateCols, ...tail];
+  }, [states, t]);
+
+  if (loading) return <TableSkeleton columns={6} />;
   if (error) return <ErrorState error={error} onRetry={refetch} />;
 
   return (
@@ -147,23 +143,19 @@ export default function OverviewPage() {
       />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <KpiCard
-          title={t('overview.initialContact')}
-          value={totals.contacted}
-          subtitle={t('overview.initialContactSub')}
-          icon={Briefcase}
-        />
+        {states.slice(0, 2).map((s) => (
+          <KpiCard
+            key={s.code}
+            title={s.name}
+            value={totals.stateTotals.get(s.code)?.count ?? 0}
+            subtitle={s.name}
+          />
+        ))}
         <KpiCard
           title={t('overview.clientsVisited')}
           value={totals.visited}
           subtitle={t('overview.clientsVisitedSub')}
           icon={CalendarCheck}
-        />
-        <KpiCard
-          title={t('overview.closing')}
-          value={totals.closed}
-          subtitle={t('overview.closingSub')}
-          icon={Users}
         />
         <KpiCard
           title={t('overview.avgDaysToClose')}

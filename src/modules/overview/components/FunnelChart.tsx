@@ -10,6 +10,14 @@ import {
   ChartTooltipContent,
 } from '@/components/ui/chart';
 
+const CHART_COLORS = [
+  'var(--chart-1)',
+  'var(--chart-2)',
+  'var(--chart-3)',
+  'var(--chart-4)',
+  'var(--chart-5)',
+];
+
 interface FunnelChartProps {
   data: AdvisorMetricResponse[];
 }
@@ -22,29 +30,25 @@ export function FunnelChart({ data }: FunnelChartProps) {
   } satisfies ChartConfig;
 
   const chartData = useMemo(() => {
-    const totals = data.reduce(
-      (acc, item) => ({
-        contacted: acc.contacted + item.clientsContacted,
-        visited: acc.visited + item.clientsVisited,
-        inNegotiation: acc.inNegotiation + item.clientsInNegotiation,
-        closed: acc.closed + item.clientsClosed,
-        postSale: acc.postSale + item.clientsPostSale,
-      }),
-      { contacted: 0, visited: 0, inNegotiation: 0, closed: 0, postSale: 0 },
-    );
+    const stateMap = new Map<string, { name: string; count: number }>();
 
-    return [
-      { stage: t('overview.contacted'), value: totals.contacted, fill: 'var(--chart-1)' },
-      { stage: t('overview.visited'), value: totals.visited, fill: 'var(--chart-2)' },
-      {
-        stage: t('overview.inNegotiation'),
-        value: totals.inNegotiation,
-        fill: 'var(--chart-3)',
-      },
-      { stage: t('overview.closed'), value: totals.closed, fill: 'var(--chart-4)' },
-      { stage: t('overview.postSale'), value: totals.postSale, fill: 'var(--chart-5)' },
-    ];
-  }, [data, t]);
+    for (const advisor of data) {
+      for (const sc of advisor.stateCounts) {
+        const existing = stateMap.get(sc.stateCode);
+        if (existing) {
+          existing.count += sc.count;
+        } else {
+          stateMap.set(sc.stateCode, { name: sc.stateName, count: sc.count });
+        }
+      }
+    }
+
+    return Array.from(stateMap.values()).map((entry, i) => ({
+      stage: entry.name,
+      value: entry.count,
+      fill: CHART_COLORS[i % CHART_COLORS.length],
+    }));
+  }, [data]);
 
   return (
     <Card>
@@ -58,7 +62,27 @@ export function FunnelChart({ data }: FunnelChartProps) {
             <CartesianGrid vertical={false} />
             <XAxis dataKey="stage" tickLine={false} axisLine={false} tickMargin={8} />
             <YAxis allowDecimals={false} tickLine={false} axisLine={false} width={40} />
-            <ChartTooltip content={<ChartTooltipContent hideLabel nameKey="stage" />} />
+            <ChartTooltip
+              content={
+                <ChartTooltipContent
+                  hideLabel
+                  formatter={(value, _name, item) => (
+                    <>
+                      <div
+                        className="size-2.5 shrink-0 rounded-[2px]"
+                        style={{ backgroundColor: item.payload?.fill }}
+                      />
+                      <div className="flex flex-1 items-center justify-between gap-4 leading-none">
+                        <span className="text-muted-foreground">{item.payload?.stage}</span>
+                        <span className="font-mono font-medium text-foreground tabular-nums">
+                          {typeof value === 'number' ? value.toLocaleString() : value}
+                        </span>
+                      </div>
+                    </>
+                  )}
+                />
+              }
+            />
             <Bar dataKey="value" radius={[4, 4, 0, 0]} />
           </BarChart>
         </ChartContainer>

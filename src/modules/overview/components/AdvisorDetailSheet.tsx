@@ -1,5 +1,5 @@
 import type { AdvisorMetricResponse } from '@bopacorp/shared/reports';
-import { Briefcase, CalendarCheck, Clock, Users, XIcon } from 'lucide-react';
+import { CalendarCheck, Clock, XIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button.js';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet.js';
@@ -34,34 +34,18 @@ export function AdvisorDetailSheet({ advisor, onClose }: AdvisorDetailSheetProps
         {advisor && (
           <div className="flex flex-col gap-6 p-4">
             <div className="grid gap-4 sm:grid-cols-2">
-              <KpiCard
-                title={t('overview.contacted')}
-                value={advisor.clientsContacted}
-                subtitle={t('overview.accountsInContact')}
-                icon={Briefcase}
-              />
+              {advisor.stateCounts.map((sc) => (
+                <KpiCard
+                  key={sc.stateCode}
+                  title={sc.stateName}
+                  value={sc.count}
+                  subtitle={sc.stateName}
+                />
+              ))}
               <KpiCard
                 title={t('overview.visited')}
                 value={advisor.clientsVisited}
                 subtitle={t('overview.clientsVisitedSub')}
-                icon={CalendarCheck}
-              />
-              <KpiCard
-                title={t('overview.inNegotiation')}
-                value={advisor.clientsInNegotiation}
-                subtitle={t('overview.activeNegotiations')}
-                icon={Users}
-              />
-              <KpiCard
-                title={t('overview.closed')}
-                value={advisor.clientsClosed}
-                subtitle={t('overview.dealsClosed')}
-                icon={Briefcase}
-              />
-              <KpiCard
-                title={t('overview.postSale')}
-                value={advisor.clientsPostSale}
-                subtitle={t('overview.clientsInPostSale')}
                 icon={CalendarCheck}
               />
               <KpiCard

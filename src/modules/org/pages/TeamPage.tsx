@@ -1,6 +1,7 @@
 import type { EmployeeListItemResponse } from '@bopacorp/shared/core';
 import { Plus } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { formatDate } from '@/lib/format.js';
 import { cn } from '@/lib/utils';
@@ -26,13 +27,8 @@ function fullName(emp: EmployeeListItemResponse) {
   return firstName && lastName ? `${firstName} ${lastName}` : username;
 }
 
-const STATUS_OPTIONS = [
-  { value: 'all', label: 'Todos' },
-  { value: 'true', label: 'Activos' },
-  { value: 'false', label: 'Inactivos' },
-];
-
 export default function TeamPage() {
+  const { t } = useTranslation();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [isActiveFilter, setIsActiveFilter] = useState<string>('all');
@@ -60,14 +56,23 @@ export default function TeamPage() {
   usePageReset([search, isActiveFilter, orgRoleFilter, sortBy, sortOrder, pageSize], setPage);
 
   const roleFilterOptions = useMemo(
-    () => [{ value: 'all', label: 'Todos' }, ...orgRoleOptions],
-    [orgRoleOptions],
+    () => [{ value: 'all', label: t('common.all') }, ...orgRoleOptions],
+    [orgRoleOptions, t],
+  );
+
+  const statusOptions = useMemo(
+    () => [
+      { value: 'all', label: t('common.all') },
+      { value: 'true', label: t('common.actives') },
+      { value: 'false', label: t('common.inactives') },
+    ],
+    [t],
   );
 
   const columns = [
     {
       id: 'name',
-      header: 'Nombre',
+      header: t('common.name'),
       accessor: (item: EmployeeListItemResponse) => (
         <span className="font-medium">{fullName(item)}</span>
       ),
@@ -75,32 +80,32 @@ export default function TeamPage() {
     },
     {
       id: 'email',
-      header: 'Email',
+      header: t('common.email'),
       accessor: (item: EmployeeListItemResponse) => item.user.email,
     },
     {
       id: 'orgRole',
-      header: 'Rol',
+      header: t('org.role'),
       accessor: (item: EmployeeListItemResponse) => item.orgRole.name,
     },
     {
       id: 'territory',
-      header: 'Territorio',
+      header: t('org.territory'),
       accessor: (item: EmployeeListItemResponse) => item.territory ?? '—',
     },
     {
       id: 'status',
-      header: 'Estado',
+      header: t('common.status'),
       accessor: (item: EmployeeListItemResponse) => (
         <StateBadge
           state={item.isActive ? 'active' : 'inactive'}
-          label={item.isActive ? 'Activo' : 'Inactivo'}
+          label={item.isActive ? t('common.active') : t('common.inactive')}
         />
       ),
     },
     {
       id: 'createdAt',
-      header: 'Creado',
+      header: t('common.created'),
       accessor: (item: EmployeeListItemResponse) => formatDate(item.createdAt),
       sortable: true,
     },
@@ -117,13 +122,13 @@ export default function TeamPage() {
       )}
     >
       <SectionHeader
-        title="Equipo"
-        description="Gestión de empleados y asignaciones"
+        title={t('org.title')}
+        description={t('org.description')}
         actions={
           <Can permission="employees.create">
             <Button onClick={() => setCreateOpen(true)}>
               <Plus data-icon="inline-start" />
-              Nuevo miembro
+              {t('org.newMember')}
             </Button>
           </Can>
         }
@@ -132,21 +137,21 @@ export default function TeamPage() {
       <FilterBar
         searchValue={search}
         onSearchChange={setSearch}
-        searchPlaceholder="Buscar por nombre o email..."
+        searchPlaceholder={t('org.searchPlaceholder')}
         filters={[
           {
             id: 'orgRole',
-            label: 'Rol',
-            placeholder: 'Rol',
+            label: t('org.role'),
+            placeholder: t('org.role'),
             options: roleFilterOptions,
             value: orgRoleFilter,
             onChange: setOrgRoleFilter,
           },
           {
             id: 'isActive',
-            label: 'Estado',
-            placeholder: 'Estado',
-            options: STATUS_OPTIONS,
+            label: t('common.status'),
+            placeholder: t('common.status'),
+            options: statusOptions,
             value: isActiveFilter,
             onChange: setIsActiveFilter,
           },
@@ -156,13 +161,15 @@ export default function TeamPage() {
       {employees.length === 0 ? (
         search || isActive !== undefined || orgRoleId ? (
           <EmptyState
-            title="Sin resultados"
-            description="No se encontraron empleados con los filtros aplicados"
+            title={t('common.noResults')}
+            description={t('common.noFilterResults', {
+              entities: t('org.employee').toLowerCase(),
+            })}
           />
         ) : (
           <EmptyState
-            title="No hay empleados"
-            description="Crea tu primer miembro del equipo para comenzar"
+            title={t('common.noEntities', { entities: t('org.employee').toLowerCase() })}
+            description={t('common.createFirstEntity', { entity: t('org.employee').toLowerCase() })}
           />
         )
       ) : (

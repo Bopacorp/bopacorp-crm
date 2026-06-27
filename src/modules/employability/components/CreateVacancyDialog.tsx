@@ -1,6 +1,7 @@
 import type { CreateJobVacancyRequest } from '@bopacorp/shared/employability';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { queryKeys } from '@/lib/query-keys.js';
@@ -28,6 +29,7 @@ const EMPTY_VALUES: VacancyFormValues = {
 };
 
 export function CreateVacancyDialog({ open, onOpenChange, onSuccess }: CreateVacancyDialogProps) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [key, setKey] = useState(0);
   const [error, setError] = useState('');
@@ -45,7 +47,7 @@ export function CreateVacancyDialog({ open, onOpenChange, onSuccess }: CreateVac
     mutationFn: (data: CreateJobVacancyRequest) => createVacancy(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.employability.vacancies.all });
-      toast.success('Vacante creada');
+      toast.success(t('employability.vacancyCreated'));
       dirtyRef.current = false;
       forceClose();
       onSuccess();
@@ -78,7 +80,7 @@ export function CreateVacancyDialog({ open, onOpenChange, onSuccess }: CreateVac
     <Sheet open={open} onOpenChange={handleOpenChange}>
       <SheetContent>
         <SheetHeader>
-          <SheetTitle>Nueva vacante</SheetTitle>
+          <SheetTitle>{t('employability.newVacancy')}</SheetTitle>
         </SheetHeader>
         <VacancyForm
           key={key}
@@ -86,7 +88,7 @@ export function CreateVacancyDialog({ open, onOpenChange, onSuccess }: CreateVac
           onSubmit={handleSubmit}
           isPending={mutation.isPending}
           error={error}
-          submitLabel="Crear"
+          submitLabel={t('common.create')}
           onDirtyChange={handleDirtyChange}
         />
       </SheetContent>
