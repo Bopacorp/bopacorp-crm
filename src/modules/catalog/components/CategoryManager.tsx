@@ -1,27 +1,32 @@
 import { FolderTree, Plus } from 'lucide-react';
 import { useCallback, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Can } from '@/modules/auth/components/Can.js';
-import { EmptyState, ErrorState } from '@/shared/ui';
+import { DiscardChangesDialog, EmptyState, ErrorState } from '@/shared/ui';
 import { useCategoryTree } from '../hooks/useCategoryTree.js';
 import { CategoryDetailPanel } from './CategoryDetailPanel.js';
 import { CategoryTreeNode } from './CategoryTreeNode.js';
 import { CreateCategoryDialog } from './CreateCategoryDialog.js';
 
 export function CategoryManager() {
+  const { t } = useTranslation();
   const { tree, loading, error, refetch } = useCategoryTree();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
+  const [showDiscard, setShowDiscard] = useState(false);
+  const [pendingSelectedId, setPendingSelectedId] = useState<string | null>(null);
   const detailDirtyRef = useRef(false);
 
   const handleSelect = useCallback(
     (id: string) => {
       if (id === selectedId) return;
       if (detailDirtyRef.current) {
-        const discard = window.confirm('Tienes cambios sin guardar. ¿Deseas descartarlos?');
-        if (!discard) return;
+        setPendingSelectedId(id);
+        setShowDiscard(true);
+        return;
       }
       detailDirtyRef.current = false;
       setSelectedId(id);
@@ -37,7 +42,9 @@ export function CategoryManager() {
         {/* Left panel — tree */}
         <div className="w-72 shrink-0 flex flex-col gap-3 border-r border-border pr-6">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-muted-foreground">Estructura</span>
+            <span className="text-sm font-medium text-muted-foreground">
+              {t('common.structure')}
+            </span>
             <Can permission="categories.create">
               <Button variant="ghost" size="icon-sm" onClick={() => setCreateOpen(true)}>
                 <Plus />
@@ -53,11 +60,11 @@ export function CategoryManager() {
             </div>
           ) : tree.length === 0 ? (
             <EmptyState
-              title="Sin categorías"
-              description="Crea tu primera categoría para organizar el catálogo"
+              title={t('catalog.noCategories')}
+              description={t('catalog.noCategoriesDesc')}
               icon={FolderTree}
               action={{
-                label: 'Crear primera categoría',
+                label: t('catalog.createFirstCategory'),
                 onClick: () => setCreateOpen(true),
               }}
             />
@@ -90,8 +97,8 @@ export function CategoryManager() {
           ) : (
             <div className="flex items-center justify-center h-full">
               <EmptyState
-                title="Selecciona una categoría"
-                description="Haz clic en una categoría del árbol para ver sus detalles"
+                title={t('catalog.selectCategory')}
+                description={t('catalog.selectCategoryDesc')}
                 icon={FolderTree}
               />
             </div>
@@ -105,6 +112,22 @@ export function CategoryManager() {
         onCreated={(newId) => {
           refetch();
           setSelectedId(newId);
+        }}
+      />
+
+      <DiscardChangesDialog
+        open={showDiscard}
+        onCancel={() => {
+          setShowDiscard(false);
+          setPendingSelectedId(null);
+        }}
+        onDiscard={() => {
+          detailDirtyRef.current = false;
+          setShowDiscard(false);
+          if (pendingSelectedId) {
+            setSelectedId(pendingSelectedId);
+            setPendingSelectedId(null);
+          }
         }}
       />
     </>

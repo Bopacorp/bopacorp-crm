@@ -2,6 +2,7 @@ import type { NegotiationListItemResponse, NegotiationStateResponse } from '@bop
 import { DragDropContext, Draggable, Droppable, type DropResult } from '@hello-pangea/dnd';
 import { CalendarClock, Clock, Loader2, UserCheck } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -14,6 +15,7 @@ import { ChangeStateDialog } from './ChangeStateDialog.js';
 interface KanbanFilters {
   search?: string;
   advisorId?: string;
+  tierCode?: string;
 }
 
 interface NegotiationKanbanBoardProps {
@@ -100,6 +102,7 @@ interface KanbanColumnProps {
 }
 
 function KanbanColumn({ state, filters, onCardClick, onClientClick }: KanbanColumnProps) {
+  const { t } = useTranslation();
   const [page, setPage] = useState(1);
   const [items, setItems] = useState<NegotiationListItemResponse[]>([]);
   const prevFiltersRef = useRef(filters);
@@ -109,6 +112,7 @@ function KanbanColumn({ state, filters, onCardClick, onClientClick }: KanbanColu
     stateId: state.id,
     search: filters.search,
     advisorId: filters.advisorId,
+    tierCode: filters.tierCode,
     sortBy: 'updatedAt',
     sortOrder: 'desc',
     limit: COLUMN_PAGE_SIZE,
@@ -117,7 +121,8 @@ function KanbanColumn({ state, filters, onCardClick, onClientClick }: KanbanColu
   useEffect(() => {
     const filtersChanged =
       prevFiltersRef.current.search !== filters.search ||
-      prevFiltersRef.current.advisorId !== filters.advisorId;
+      prevFiltersRef.current.advisorId !== filters.advisorId ||
+      prevFiltersRef.current.tierCode !== filters.tierCode;
 
     if (filtersChanged) {
       setPage(1);
@@ -168,7 +173,9 @@ function KanbanColumn({ state, filters, onCardClick, onClientClick }: KanbanColu
                 <Skeleton className="h-20 rounded-md" />
               </div>
             ) : items.length === 0 ? (
-              <p className="py-8 text-center text-xs text-muted-foreground">Sin negociaciones</p>
+              <p className="py-8 text-center text-xs text-muted-foreground">
+                {t('negotiations.noNegotiations')}
+              </p>
             ) : (
               items.map((neg, index) => (
                 <Draggable key={neg.id} draggableId={neg.id} index={index}>
@@ -234,7 +241,7 @@ function KanbanColumn({ state, filters, onCardClick, onClientClick }: KanbanColu
                 {fetching ? (
                   <Loader2 className="size-3 animate-spin" />
                 ) : (
-                  `Cargar más (${items.length}/${totalItems})`
+                  t('negotiations.loadMore', { current: items.length, total: totalItems })
                 )}
               </Button>
             )}

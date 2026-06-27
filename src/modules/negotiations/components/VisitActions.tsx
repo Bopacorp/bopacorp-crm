@@ -2,6 +2,7 @@ import type { VisitListItemResponse } from '@bopacorp/shared/crm';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { CheckCircle, Loader2, MoreHorizontal, Trash2 } from 'lucide-react';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import {
   AlertDialog,
@@ -34,6 +35,7 @@ interface VisitActionsProps {
 type ActionState = 'idle' | 'loading' | 'success';
 
 export function VisitActions({ visit, onSuccess }: VisitActionsProps) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { hasPermission } = usePermission();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -69,7 +71,7 @@ export function VisitActions({ visit, onSuccess }: VisitActionsProps) {
     mutationFn: () => deleteVisit(visit.id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.visits.all });
-      toast.success('Visita eliminada');
+      toast.success(t('visits.deleted'));
       setDeleteOpen(false);
       onSuccess?.();
     },
@@ -103,27 +105,27 @@ export function VisitActions({ visit, onSuccess }: VisitActionsProps) {
           {verifyState === 'success' && (
             <CheckCircle data-icon="inline-start" className="size-4 text-green-600" />
           )}
-          {verifyState === 'success' ? 'Verificada' : 'Verificando'}
+          {verifyState === 'success' ? t('visits.verified') : t('visits.verifying')}
         </Button>
       ) : (
         <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
           <DropdownMenuTrigger asChild>
             <Button size="sm" variant="outline">
               <MoreHorizontal data-icon="inline-start" className="size-4" />
-              Acciones
+              {t('visits.actions')}
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             {canVerify && (
               <DropdownMenuItem onClick={handleVerifyClick}>
                 <CheckCircle className="size-4" />
-                Verificar
+                {t('visits.verify')}
               </DropdownMenuItem>
             )}
             {canDelete && (
               <DropdownMenuItem onClick={handleDeleteClick} variant="destructive">
                 <Trash2 className="size-4" />
-                Eliminar
+                {t('common.delete')}
               </DropdownMenuItem>
             )}
           </DropdownMenuContent>
@@ -141,21 +143,21 @@ export function VisitActions({ visit, onSuccess }: VisitActionsProps) {
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Verificar visita</AlertDialogTitle>
-            <AlertDialogDescription>
-              Confirma que esta visita fue realizada correctamente.
-            </AlertDialogDescription>
+            <AlertDialogTitle>{t('visits.verifyTitle')}</AlertDialogTitle>
+            <AlertDialogDescription>{t('visits.verifyDesc')}</AlertDialogDescription>
           </AlertDialogHeader>
           <div className="py-2">
             <Textarea
               value={supervisorComment}
               onChange={(e) => setSupervisorComment(e.target.value)}
-              placeholder="Comentario del supervisor (opcional)"
+              placeholder={t('visits.supervisorComment')}
               maxLength={500}
             />
           </div>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={verifyMutation.isPending}>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel disabled={verifyMutation.isPending}>
+              {t('common.cancel')}
+            </AlertDialogCancel>
             <AlertDialogAction
               onClick={(e) => {
                 e.preventDefault();
@@ -167,10 +169,10 @@ export function VisitActions({ visit, onSuccess }: VisitActionsProps) {
               {verifyMutation.isPending ? (
                 <>
                   <Loader2 className="animate-spin" />
-                  Verificando…
+                  {t('visits.verifying')}
                 </>
               ) : (
-                'Verificar'
+                t('visits.verify')
               )}
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -180,13 +182,13 @@ export function VisitActions({ visit, onSuccess }: VisitActionsProps) {
       <AlertDialog open={deleteOpen} onOpenChange={(v) => !v && setDeleteOpen(false)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>¿Eliminar visita?</AlertDialogTitle>
-            <AlertDialogDescription>
-              La visita será eliminada permanentemente. Esta acción no se puede deshacer.
-            </AlertDialogDescription>
+            <AlertDialogTitle>{t('visits.deleteTitle')}</AlertDialogTitle>
+            <AlertDialogDescription>{t('visits.deleteDesc')}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleteMutation.isPending}>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel disabled={deleteMutation.isPending}>
+              {t('common.cancel')}
+            </AlertDialogCancel>
             <AlertDialogAction
               variant="destructive"
               onClick={(e) => {
@@ -198,10 +200,10 @@ export function VisitActions({ visit, onSuccess }: VisitActionsProps) {
               {deleteMutation.isPending ? (
                 <>
                   <Loader2 className="animate-spin" />
-                  Eliminando…
+                  {t('common.deleting')}
                 </>
               ) : (
-                'Eliminar'
+                t('common.delete')
               )}
             </AlertDialogAction>
           </AlertDialogFooter>

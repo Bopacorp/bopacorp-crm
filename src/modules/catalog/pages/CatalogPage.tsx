@@ -1,8 +1,8 @@
 import type { CatalogItemListItemResponse } from '@bopacorp/shared/catalog';
 import { Plus } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { formatCurrency } from '@/lib/format.js';
 import { cn } from '@/lib/utils';
@@ -18,46 +18,26 @@ import {
   StateBadge,
   TableSkeleton,
 } from '@/shared/ui';
+import { CatalogItemCreateSheet } from '../components/CatalogItemCreateSheet.js';
 import { useCatalogItems } from '../hooks/useCatalogItems.js';
 import { useCategoryOptions } from '../hooks/useCategoryOptions.js';
-import { useItemTypes } from '../hooks/useItemTypes.js';
-
-const STATUS_OPTIONS = [
-  { value: 'all', label: 'Todos' },
-  { value: 'true', label: 'Activos' },
-  { value: 'false', label: 'Inactivos' },
-];
-
-const PUBLISHED_OPTIONS = [
-  { value: 'all', label: 'Todos' },
-  { value: 'true', label: 'Publicados' },
-  { value: 'false', label: 'No publicados' },
-];
 
 export default function CatalogPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
 
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [categoryId, setCategoryId] = useState('all');
-  const [itemTypeId, setItemTypeId] = useState('all');
   const [isActiveFilter, setIsActiveFilter] = useState('all');
   const [isPublishedFilter, setIsPublishedFilter] = useState('all');
   const [sortBy, setSortBy] = useState<string | undefined>();
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [pageSize, setPageSize] = useState(10);
+  const [createOpen, setCreateOpen] = useState(false);
 
   usePageReset(
-    [
-      search,
-      categoryId,
-      itemTypeId,
-      isActiveFilter,
-      isPublishedFilter,
-      sortBy,
-      sortOrder,
-      pageSize,
-    ],
+    [search, categoryId, isActiveFilter, isPublishedFilter, sortBy, sortOrder, pageSize],
     setPage,
   );
 
@@ -67,7 +47,6 @@ export default function CatalogPage() {
   const { items, meta, loading, fetching, error, refetch } = useCatalogItems(page, {
     search,
     categoryId: categoryId === 'all' ? undefined : categoryId,
-    itemTypeId: itemTypeId === 'all' ? undefined : itemTypeId,
     isActive,
     isPublished,
     sortBy,
@@ -76,53 +55,43 @@ export default function CatalogPage() {
   });
 
   const { options: categoryOptions } = useCategoryOptions();
-  const { itemTypes } = useItemTypes();
-
-  const itemTypeOptions = useMemo(
-    () => itemTypes.map((t) => ({ value: t.id, label: t.name })),
-    [itemTypes],
-  );
 
   const hasFilters =
-    search !== '' ||
-    categoryId !== 'all' ||
-    itemTypeId !== 'all' ||
-    isActive !== undefined ||
-    isPublished !== undefined;
+    search !== '' || categoryId !== 'all' || isActive !== undefined || isPublished !== undefined;
+
+  const statusOptions = [
+    { value: 'all', label: t('common.all') },
+    { value: 'true', label: t('common.actives') },
+    { value: 'false', label: t('common.inactives') },
+  ];
+
+  const publishedOptions = [
+    { value: 'all', label: t('common.all') },
+    { value: 'true', label: t('common.publishedPlural') },
+    { value: 'false', label: t('common.unpublished') },
+  ];
 
   const columns = [
     {
       id: 'name',
-      header: 'Nombre',
+      header: t('common.name'),
       accessor: (item: CatalogItemListItemResponse) => (
-        <div className="flex items-center gap-2">
-          {item.imagePath && (
-            <img src={item.imagePath} alt="" className="size-8 rounded object-cover" />
-          )}
-          <span className="font-medium">{item.name}</span>
-        </div>
+        <span className="font-medium">{item.name}</span>
       ),
     },
     {
       id: 'category',
-      header: 'Categoría',
+      header: t('common.category'),
       accessor: (item: CatalogItemListItemResponse) => item.category.name,
     },
     {
-      id: 'itemType',
-      header: 'Tipo',
-      accessor: (item: CatalogItemListItemResponse) => (
-        <Badge variant="outline">{item.itemType.name}</Badge>
-      ),
-    },
-    {
       id: 'contractType',
-      header: 'Contrato',
+      header: t('common.contract'),
       accessor: (item: CatalogItemListItemResponse) => item.contractType.name,
     },
     {
       id: 'price',
-      header: 'Precio',
+      header: t('common.price'),
       sortable: true,
       accessor: (item: CatalogItemListItemResponse) => (
         <span className="tabular-nums">{formatCurrency(item.price)}</span>
@@ -130,17 +99,17 @@ export default function CatalogPage() {
     },
     {
       id: 'state',
-      header: 'Estado',
+      header: t('common.status'),
       accessor: (item: CatalogItemListItemResponse) => (
         <StateBadge
           state={item.isActive ? 'active' : 'inactive'}
-          label={item.isActive ? 'Activo' : 'Inactivo'}
+          label={item.isActive ? t('common.active') : t('common.inactive')}
         />
       ),
     },
     {
       id: 'published',
-      header: 'Publicado',
+      header: t('common.published'),
       accessor: (item: CatalogItemListItemResponse) => (
         <div className="flex items-center gap-1.5">
           <span
@@ -149,7 +118,9 @@ export default function CatalogPage() {
               item.isPublished ? 'bg-primary' : 'bg-muted-foreground/30',
             )}
           />
-          <span className="text-xs text-muted-foreground">{item.isPublished ? 'Sí' : 'No'}</span>
+          <span className="text-xs text-muted-foreground">
+            {item.isPublished ? t('common.yes') : t('common.no')}
+          </span>
         </div>
       ),
     },
@@ -158,11 +129,8 @@ export default function CatalogPage() {
   if (loading) {
     return (
       <div className="flex flex-col gap-6">
-        <SectionHeader
-          title="Catálogo de productos"
-          description="Gestión de planes, servicios y dispositivos"
-        />
-        <TableSkeleton columns={7} />
+        <SectionHeader title={t('catalog.title')} description={t('catalog.description')} />
+        <TableSkeleton columns={6} />
       </div>
     );
   }
@@ -170,10 +138,7 @@ export default function CatalogPage() {
   if (error) {
     return (
       <div className="flex flex-col gap-6">
-        <SectionHeader
-          title="Catálogo de productos"
-          description="Gestión de planes, servicios y dispositivos"
-        />
+        <SectionHeader title={t('catalog.title')} description={t('catalog.description')} />
         <ErrorState error={error} onRetry={refetch} />
       </div>
     );
@@ -187,13 +152,13 @@ export default function CatalogPage() {
       )}
     >
       <SectionHeader
-        title="Catálogo de productos"
-        description="Gestión de planes, servicios y dispositivos"
+        title={t('catalog.title')}
+        description={t('catalog.description')}
         actions={
           <Can permission="catalog_items.create">
-            <Button onClick={() => navigate('/catalogo/nuevo')}>
+            <Button onClick={() => setCreateOpen(true)}>
               <Plus data-icon="inline-start" />
-              Nuevo producto
+              {t('catalog.newProduct')}
             </Button>
           </Can>
         }
@@ -202,37 +167,29 @@ export default function CatalogPage() {
       <FilterBar
         searchValue={search}
         onSearchChange={setSearch}
-        searchPlaceholder="Buscar por nombre..."
+        searchPlaceholder={t('catalog.searchPlaceholder')}
         filters={[
           {
             id: 'category',
-            label: 'Categoría',
-            placeholder: 'Categoría',
-            options: [{ value: 'all', label: 'Todas' }, ...categoryOptions],
+            label: t('common.category'),
+            placeholder: t('common.category'),
+            options: [{ value: 'all', label: t('common.allFeminine') }, ...categoryOptions],
             value: categoryId,
             onChange: setCategoryId,
           },
           {
-            id: 'itemType',
-            label: 'Tipo',
-            placeholder: 'Tipo de item',
-            options: [{ value: 'all', label: 'Todos' }, ...itemTypeOptions],
-            value: itemTypeId,
-            onChange: setItemTypeId,
-          },
-          {
             id: 'isActive',
-            label: 'Estado',
-            placeholder: 'Estado',
-            options: STATUS_OPTIONS,
+            label: t('common.status'),
+            placeholder: t('common.status'),
+            options: statusOptions,
             value: isActiveFilter,
             onChange: setIsActiveFilter,
           },
           {
             id: 'isPublished',
-            label: 'Publicación',
-            placeholder: 'Publicado',
-            options: PUBLISHED_OPTIONS,
+            label: t('common.publication'),
+            placeholder: t('common.published'),
+            options: publishedOptions,
             value: isPublishedFilter,
             onChange: setIsPublishedFilter,
           },
@@ -242,13 +199,13 @@ export default function CatalogPage() {
       {items.length === 0 ? (
         hasFilters ? (
           <EmptyState
-            title="Sin resultados"
-            description="No se encontraron productos con los filtros aplicados"
+            title={t('common.noResults')}
+            description={t('common.noFilterResults', { entities: t('catalog.product') })}
           />
         ) : (
           <EmptyState
-            title="No hay productos"
-            description="Crea tu primer producto para comenzar"
+            title={t('common.noEntities', { entities: t('catalog.product') })}
+            description={t('common.createFirstEntity', { entity: t('catalog.product') })}
           />
         )
       ) : (
@@ -274,6 +231,8 @@ export default function CatalogPage() {
           />
         </>
       )}
+
+      <CatalogItemCreateSheet open={createOpen} onOpenChange={setCreateOpen} />
     </div>
   );
 }

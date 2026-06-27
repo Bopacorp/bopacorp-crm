@@ -1,4 +1,8 @@
 export const LOGIN_ERRORS: Record<string, string> = {
-  UNAUTHORIZED: 'Correo o contraseña incorrectos.',
-  FORBIDDEN: 'Tu cuenta está desactivada. Contacta al administrador.',
+  UNAUTHORIZED: 'error.invalidCredentials',
+  INVALID_CREDENTIALS: 'error.invalidCredentials',
+  FORBIDDEN: 'error.accountDisabled',
+  ACCOUNT_DISABLED: 'error.accountDisabled',
+  ACCOUNT_LOCKED: 'error.accountLocked',
+  RATE_LIMITED: 'error.rateLimited',
 };

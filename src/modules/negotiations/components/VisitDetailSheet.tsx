@@ -13,6 +13,7 @@ import {
   XIcon,
 } from 'lucide-react';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import {
   AlertDialog,
@@ -64,6 +65,7 @@ function verifierName(verifier: {
 }
 
 export function VisitDetailSheet({ open, onOpenChange, visitId }: VisitDetailSheetProps) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { visit, loading, error, refetch } = useVisit(visitId);
   const [showDelete, setShowDelete] = useState(false);
@@ -72,7 +74,7 @@ export function VisitDetailSheet({ open, onOpenChange, visitId }: VisitDetailShe
     mutationFn: () => deleteVisit(visitId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.visits.all });
-      toast.success('Visita eliminada');
+      toast.success(t('visits.deleted'));
       setShowDelete(false);
       onOpenChange(false);
     },
@@ -90,8 +92,8 @@ export function VisitDetailSheet({ open, onOpenChange, visitId }: VisitDetailShe
         <SheetHeader className="flex flex-col gap-3">
           <div className="flex items-center justify-between">
             <div>
-              {loading && <SheetTitle className="sr-only">Visita</SheetTitle>}
-              {showHeader && <SheetTitle>Detalle de visita</SheetTitle>}
+              {loading && <SheetTitle className="sr-only">{t('visits.title')}</SheetTitle>}
+              {showHeader && <SheetTitle>{t('visits.detail')}</SheetTitle>}
             </div>
             <div className="flex items-center gap-1">
               {showHeader && (
@@ -116,21 +118,21 @@ export function VisitDetailSheet({ open, onOpenChange, visitId }: VisitDetailShe
           <div className="flex-1 overflow-y-auto p-4">
             <div className="flex flex-col gap-5">
               <div className="flex flex-col gap-1">
-                <SectionLabel>Información</SectionLabel>
-                <DetailField icon={Tag} label="Tipo">
+                <SectionLabel>{t('common.information')}</SectionLabel>
+                <DetailField icon={Tag} label={t('common.type')}>
                   {visit.visitType.name}
                 </DetailField>
-                <DetailField icon={Calendar} label="Fecha">
+                <DetailField icon={Calendar} label={t('common.date')}>
                   {formatDateTime(visit.visitDate)}
                 </DetailField>
-                <DetailField icon={User} label="Asesor">
+                <DetailField icon={User} label={t('common.advisor')}>
                   {advisorName(visit.advisor)}
                 </DetailField>
-                <DetailField icon={Building2} label="Cliente">
+                <DetailField icon={Building2} label={t('negotiations.client')}>
                   {visit.client.businessName}
                 </DetailField>
                 {visit.observations && (
-                  <DetailField icon={MessageSquare} label="Observaciones">
+                  <DetailField icon={MessageSquare} label={t('common.observations')}>
                     {visit.observations}
                   </DetailField>
                 )}
@@ -138,15 +140,15 @@ export function VisitDetailSheet({ open, onOpenChange, visitId }: VisitDetailShe
 
               {(visit.gpsLatitude != null || visit.gpsLongitude != null) && (
                 <div className="flex flex-col gap-1">
-                  <SectionLabel>GPS</SectionLabel>
-                  <DetailField icon={MapPin} label="Latitud">
+                  <SectionLabel>{t('visits.gps')}</SectionLabel>
+                  <DetailField icon={MapPin} label={t('visits.latitude')}>
                     {visit.gpsLatitude}
                   </DetailField>
-                  <DetailField icon={MapPin} label="Longitud">
+                  <DetailField icon={MapPin} label={t('visits.longitude')}>
                     {visit.gpsLongitude}
                   </DetailField>
                   {visit.gpsAccuracy != null && (
-                    <DetailField icon={MapPin} label="Precisión">
+                    <DetailField icon={MapPin} label={t('visits.precision')}>
                       {visit.gpsAccuracy} m
                     </DetailField>
                   )}
@@ -154,24 +156,24 @@ export function VisitDetailSheet({ open, onOpenChange, visitId }: VisitDetailShe
               )}
 
               <div className="flex flex-col gap-2">
-                <SectionLabel>Verificación</SectionLabel>
+                <SectionLabel>{t('visits.verification')}</SectionLabel>
                 <div className="px-2 py-1.5">
                   {visit.isVerified ? (
                     <Badge variant="outline" className="gap-1 border-emerald-200 text-emerald-600">
                       <CheckCircle className="size-3" />
-                      Verificada
+                      {t('visits.verified')}
                     </Badge>
                   ) : (
-                    <Badge variant="secondary">Pendiente</Badge>
+                    <Badge variant="secondary">{t('common.pending')}</Badge>
                   )}
                 </div>
                 {visit.isVerified && visit.verifiedBy && (
                   <>
-                    <DetailField icon={User} label="Verificó">
+                    <DetailField icon={User} label={t('visits.verifiedBy')}>
                       {verifierName(visit.verifiedBy)}
                     </DetailField>
                     {visit.supervisorComment && (
-                      <DetailField icon={MessageSquare} label="Comentario">
+                      <DetailField icon={MessageSquare} label={t('visits.comment')}>
                         {visit.supervisorComment}
                       </DetailField>
                     )}
@@ -180,11 +182,11 @@ export function VisitDetailSheet({ open, onOpenChange, visitId }: VisitDetailShe
               </div>
 
               <div className="flex flex-col gap-1">
-                <SectionLabel>Auditoría</SectionLabel>
-                <DetailField icon={Clock} label="Creado">
+                <SectionLabel>{t('visits.audit')}</SectionLabel>
+                <DetailField icon={Clock} label={t('common.created')}>
                   {formatRelativeTime(visit.createdAt)}
                 </DetailField>
-                <DetailField icon={Clock} label="Actualizado">
+                <DetailField icon={Clock} label={t('common.updated')}>
                   {formatRelativeTime(visit.updatedAt)}
                 </DetailField>
               </div>
@@ -196,13 +198,13 @@ export function VisitDetailSheet({ open, onOpenChange, visitId }: VisitDetailShe
       <AlertDialog open={showDelete} onOpenChange={(v) => !v && setShowDelete(false)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>¿Eliminar visita?</AlertDialogTitle>
-            <AlertDialogDescription>
-              La visita será eliminada permanentemente. Esta acción no se puede deshacer.
-            </AlertDialogDescription>
+            <AlertDialogTitle>{t('visits.deleteTitle')}</AlertDialogTitle>
+            <AlertDialogDescription>{t('visits.deleteDesc')}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleteMutation.isPending}>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel disabled={deleteMutation.isPending}>
+              {t('common.cancel')}
+            </AlertDialogCancel>
             <AlertDialogAction
               variant="destructive"
               onClick={(e) => {
@@ -214,10 +216,10 @@ export function VisitDetailSheet({ open, onOpenChange, visitId }: VisitDetailShe
               {deleteMutation.isPending ? (
                 <>
                   <Loader2 className="animate-spin" />
-                  Eliminando…
+                  {t('common.deleting')}
                 </>
               ) : (
-                'Eliminar'
+                t('common.delete')
               )}
             </AlertDialogAction>
           </AlertDialogFooter>

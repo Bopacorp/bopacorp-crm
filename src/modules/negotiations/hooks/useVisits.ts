@@ -9,6 +9,7 @@ export interface VisitFilters {
   isVerified?: boolean;
   dateFrom?: string;
   dateTo?: string;
+  limit?: number;
 }
 
 export function useVisits(page: number, filters: VisitFilters) {
@@ -17,7 +18,7 @@ export function useVisits(page: number, filters: VisitFilters) {
     queryFn: () =>
       listVisits({
         page,
-        limit: 10,
+        limit: filters.limit ?? 10,
         sortOrder: 'asc',
         clientId: filters.clientId,
         advisorId: filters.advisorId,

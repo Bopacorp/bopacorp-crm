@@ -10,6 +10,7 @@ import {
   XIcon,
 } from 'lucide-react';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
@@ -68,6 +69,7 @@ export function ApplicationDetailSheet({
   applicationId,
   onSuccess,
 }: ApplicationDetailSheetProps) {
+  const { t } = useTranslation();
   const { application, loading, error, refetch } = useJobApplication(applicationId);
   const [changeStateOpen, setChangeStateOpen] = useState(false);
   const [downloading, setDownloading] = useState(false);
@@ -94,7 +96,11 @@ export function ApplicationDetailSheet({
         <SheetContent showCloseButton={false}>
           <SheetHeader>
             <div className="flex items-center justify-between">
-              <SheetTitle>{loading ? 'Aplicación' : (candidateName ?? 'Aplicación')}</SheetTitle>
+              <SheetTitle>
+                {loading
+                  ? t('employability.application')
+                  : (candidateName ?? t('employability.application'))}
+              </SheetTitle>
               <div className="flex items-center gap-1">
                 {!loading && application && (
                   <Can permission="job_applications.update">
@@ -118,11 +124,11 @@ export function ApplicationDetailSheet({
             <div className="flex-1 overflow-y-auto p-4">
               <div className="flex flex-col gap-5">
                 <div className="flex flex-col gap-1">
-                  <SectionLabel>Candidato</SectionLabel>
-                  <DetailField icon={User} label="Nombre">
+                  <SectionLabel>{t('employability.candidate')}</SectionLabel>
+                  <DetailField icon={User} label={t('common.name')}>
                     {application.candidate.firstName} {application.candidate.lastName}
                   </DetailField>
-                  <DetailField icon={Mail} label="Email">
+                  <DetailField icon={Mail} label={t('common.email')}>
                     <a
                       href={`mailto:${application.candidate.email}`}
                       className="text-primary hover:underline"
@@ -133,33 +139,35 @@ export function ApplicationDetailSheet({
                 </div>
 
                 <div className="flex flex-col gap-1">
-                  <SectionLabel>Vacante</SectionLabel>
-                  <DetailField icon={Briefcase} label="Título">
+                  <SectionLabel>{t('employability.vacancy')}</SectionLabel>
+                  <DetailField icon={Briefcase} label={t('employability.vacancyTitle')}>
                     {application.vacancy.title}
                   </DetailField>
                 </div>
 
                 <div className="flex flex-col gap-1">
-                  <SectionLabel>Aplicación</SectionLabel>
-                  <DetailField icon={Settings} label="Estado">
+                  <SectionLabel>{t('employability.application')}</SectionLabel>
+                  <DetailField icon={Settings} label={t('common.status')}>
                     <StateBadge
                       state={application.state}
                       label={applicationStateLabel(application.state)}
                       variant={applicationStateVariant(application.state)}
                     />
                   </DetailField>
-                  <DetailField icon={Calendar} label="Fecha">
+                  <DetailField icon={Calendar} label={t('employability.applicationDate')}>
                     {application.appliedAt ? formatDateTime(application.appliedAt) : '—'}
                   </DetailField>
-                  <DetailField icon={User} label="Revisor">
+                  <DetailField icon={User} label={t('employability.reviewer')}>
                     {application.reviewer ? application.reviewer.username : '—'}
                   </DetailField>
-                  <DetailField icon={Calendar} label="Revisión">
+                  <DetailField icon={Calendar} label={t('employability.reviewDate')}>
                     {application.reviewDate ? formatDateTime(application.reviewDate) : '—'}
                   </DetailField>
                   {application.reviewNotes && (
                     <div className="flex flex-col gap-1 px-2 py-1.5">
-                      <span className="text-sm text-muted-foreground">Notas de revisión</span>
+                      <span className="text-sm text-muted-foreground">
+                        {t('employability.reviewNotes')}
+                      </span>
                       <span className="whitespace-pre-wrap break-words text-sm text-foreground">
                         {application.reviewNotes}
                       </span>
@@ -167,7 +175,9 @@ export function ApplicationDetailSheet({
                   )}
                   {application.coverLetter && (
                     <div className="flex flex-col gap-1 px-2 py-1.5">
-                      <span className="text-sm text-muted-foreground">Carta de presentación</span>
+                      <span className="text-sm text-muted-foreground">
+                        {t('employability.coverLetter')}
+                      </span>
                       <span className="whitespace-pre-wrap break-words text-sm text-foreground">
                         {application.coverLetter}
                       </span>
@@ -176,13 +186,13 @@ export function ApplicationDetailSheet({
                 </div>
 
                 <div className="flex flex-col gap-1">
-                  <SectionLabel>Hoja de vida</SectionLabel>
+                  <SectionLabel>{t('employability.resume')}</SectionLabel>
                   {application.resume ? (
                     <>
-                      <DetailField icon={FileText} label="Archivo">
+                      <DetailField icon={FileText} label={t('employability.file')}>
                         {application.resume.filename}
                       </DetailField>
-                      <DetailField icon={FileText} label="Tamaño">
+                      <DetailField icon={FileText} label={t('employability.size')}>
                         {application.resume.fileSizeMb.toFixed(2)} MB
                       </DetailField>
                       <Can permission="candidate_resumes.read">
@@ -194,7 +204,9 @@ export function ApplicationDetailSheet({
                             disabled={downloading}
                           >
                             <Download data-icon="inline-start" />
-                            {downloading ? 'Descargando...' : 'Descargar CV'}
+                            {downloading
+                              ? t('employability.downloading')
+                              : t('employability.downloadCV')}
                           </Button>
                         </div>
                       </Can>
@@ -202,7 +214,7 @@ export function ApplicationDetailSheet({
                   ) : (
                     <div className="flex items-center gap-2 px-2 py-1.5 text-muted-foreground">
                       <FileText className="size-4" />
-                      <span className="text-sm">Sin hoja de vida adjunta</span>
+                      <span className="text-sm">{t('employability.noResume')}</span>
                     </div>
                   )}
                 </div>

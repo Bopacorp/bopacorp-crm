@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import {
   Pagination,
   PaginationContent,
@@ -25,12 +26,16 @@ export function PaginationFooter({
   onPageSizeChange,
   meta,
 }: PaginationFooterProps) {
+  const { t } = useTranslation();
+
   return (
     <>
       <div className="flex items-center justify-between">
         <PageSizeSelect value={pageSize} onChange={onPageSizeChange} />
         {meta && (
-          <span className="text-sm text-muted-foreground">{meta.totalItems} resultados</span>
+          <span className="text-sm text-muted-foreground">
+            {t('common.totalResults', { count: meta.totalItems })}
+          </span>
         )}
       </div>
 
@@ -39,7 +44,7 @@ export function PaginationFooter({
           <PaginationContent>
             <PaginationItem>
               <PaginationPrevious
-                text="Anterior"
+                text={t('common.previous')}
                 onClick={() => onPageChange(Math.max(1, page - 1))}
                 aria-disabled={page === 1}
                 className={page === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
@@ -66,7 +71,7 @@ export function PaginationFooter({
 
             <PaginationItem>
               <PaginationNext
-                text="Siguiente"
+                text={t('common.next')}
                 onClick={() => onPageChange(Math.min(meta.totalPages, page + 1))}
                 aria-disabled={page === meta.totalPages}
                 className={

@@ -2,6 +2,7 @@ import type { ContactRequestResponse } from '@bopacorp/shared/catalog';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { CheckCircle2, Loader2 } from 'lucide-react';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { formatDate } from '@/lib/format.js';
@@ -23,30 +24,25 @@ import { updateContactRequest } from '../catalog.service.js';
 import { ContactRequestDetailSheet } from '../components/ContactRequestDetailSheet.js';
 import { useContactRequests } from '../hooks/useContactRequests.js';
 
-const ATTENDED_OPTIONS = [
-  { value: 'all', label: 'Todos' },
-  { value: 'true', label: 'Atendidos' },
-  { value: 'false', label: 'Pendientes' },
-];
-
-const PAGE_SIZE = 10;
-
 export default function ContactRequestsPage() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { hasPermission } = usePermission();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [isAttendedFilter, setIsAttendedFilter] = useState('all');
+  const [pageSize, setPageSize] = useState(10);
   const [selectedRequestId, setSelectedRequestId] = useState('');
   const [detailOpen, setDetailOpen] = useState(false);
 
-  usePageReset([search, isAttendedFilter], setPage);
+  usePageReset([search, isAttendedFilter, pageSize], setPage);
 
   const isAttended = isAttendedFilter === 'all' ? undefined : isAttendedFilter === 'true';
 
   const { contactRequests, meta, loading, error, refetch } = useContactRequests(page, {
     search,
     isAttended,
+    limit: pageSize,
   });
 
   const canUpdate = hasPermission('contact_requests.update');
@@ -61,43 +57,68 @@ export default function ContactRequestsPage() {
     },
   });
 
+  const attendedOptions = [
+    { value: 'all', label: t('common.all') },
+    { value: 'true', label: t('common.attendedPlural') },
+    { value: 'false', label: t('common.pendingPlural') },
+  ];
+
   const columns = [
     {
       id: 'clientName',
-      header: 'Nombre',
+      header: t('common.name'),
       accessor: (item: ContactRequestResponse) => (
         <span className="font-medium text-foreground hover:underline">{item.clientName}</span>
       ),
     },
     {
       id: 'clientEmail',
-      header: 'Correo',
-      accessor: (item: ContactRequestResponse) => item.clientEmail,
+      header: t('common.email'),
+      accessor: (item: ContactRequestResponse) => (
+        <a
+          href={`mailto:${item.clientEmail}`}
+          className="font-medium text-foreground hover:underline"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {item.clientEmail}
+        </a>
+      ),
     },
     {
       id: 'clientPhone',
-      header: 'Teléfono',
-      accessor: (item: ContactRequestResponse) => item.clientPhone ?? '—',
+      header: t('common.phone'),
+      accessor: (item: ContactRequestResponse) =>
+        item.clientPhone ? (
+          <a
+            href={`tel:${item.clientPhone}`}
+            className="font-medium text-foreground hover:underline"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {item.clientPhone}
+          </a>
+        ) : (
+          '—'
+        ),
     },
     {
       id: 'receivedAt',
-      header: 'Recibido',
+      header: t('common.received'),
       accessor: (item: ContactRequestResponse) => formatDate(item.createdAt),
     },
     {
       id: 'status',
-      header: 'Estado',
+      header: t('common.status'),
       accessor: (item: ContactRequestResponse) => (
         <StateBadge
           state={item.isAttended ? 'ATTENDED' : 'PENDING'}
-          label={item.isAttended ? 'Atendido' : 'Pendiente'}
+          label={item.isAttended ? t('common.attended') : t('common.pending')}
           variant={item.isAttended ? 'default' : 'secondary'}
         />
       ),
     },
     {
       id: 'actions',
-      header: 'Acciones',
+      header: t('common.actions'),
       accessor: (item: ContactRequestResponse) =>
         !item.isAttended &&
         canUpdate && (
@@ -118,8 +139,8 @@ export default function ContactRequestsPage() {
                 <CheckCircle2 data-icon="inline-start" className="size-4" />
               )}
               {attendMutation.isPending && attendMutation.variables === item.id
-                ? 'Atendiendo…'
-                : 'Marcar atendida'}
+                ? t('common.attending')
+                : t('common.markAttended')}
             </Button>
           </div>
         ),
@@ -130,8 +151,8 @@ export default function ContactRequestsPage() {
     return (
       <div className="flex flex-col gap-6">
         <SectionHeader
-          title="Solicitudes de contacto"
-          description="Mensajes de clientes interesados en los planes"
+          title={t('contactRequests.title')}
+          description={t('contactRequests.description')}
         />
         <TableSkeleton columns={6} />
       </div>
@@ -142,8 +163,8 @@ export default function ContactRequestsPage() {
     return (
       <div className="flex flex-col gap-6">
         <SectionHeader
-          title="Solicitudes de contacto"
-          description="Mensajes de clientes interesados en los planes"
+          title={t('contactRequests.title')}
+          description={t('contactRequests.description')}
         />
         <ErrorState error={error} onRetry={refetch} />
       </div>
@@ -153,20 +174,20 @@ export default function ContactRequestsPage() {
   return (
     <div className="flex flex-col gap-6">
       <SectionHeader
-        title="Solicitudes de contacto"
-        description="Mensajes de clientes interesados en los planes"
+        title={t('contactRequests.title')}
+        description={t('contactRequests.description')}
       />
 
       <FilterBar
         searchValue={search}
         onSearchChange={setSearch}
-        searchPlaceholder="Buscar por nombre, correo o teléfono..."
+        searchPlaceholder={t('contactRequests.searchPlaceholder')}
         filters={[
           {
             id: 'isAttended',
-            label: 'Estado',
-            placeholder: 'Estado',
-            options: ATTENDED_OPTIONS,
+            label: t('common.status'),
+            placeholder: t('common.status'),
+            options: attendedOptions,
             value: isAttendedFilter,
             onChange: setIsAttendedFilter,
           },
@@ -174,10 +195,19 @@ export default function ContactRequestsPage() {
       />
 
       {contactRequests.length === 0 ? (
-        <EmptyState
-          title="No hay solicitudes"
-          description="Las solicitudes de contacto del sitio web aparecerán aquí"
-        />
+        search || isAttended !== undefined ? (
+          <EmptyState
+            title={t('common.noResults')}
+            description={t('common.noFilterResults', {
+              entities: t('contactRequests.title').toLowerCase(),
+            })}
+          />
+        ) : (
+          <EmptyState
+            title={t('contactRequests.noRequests')}
+            description={t('contactRequests.noRequestsDesc')}
+          />
+        )
       ) : (
         <>
           <EntityTable
@@ -192,8 +222,8 @@ export default function ContactRequestsPage() {
           <PaginationFooter
             page={page}
             onPageChange={setPage}
-            pageSize={PAGE_SIZE}
-            onPageSizeChange={() => {}}
+            pageSize={pageSize}
+            onPageSizeChange={setPageSize}
             meta={meta}
           />
         </>

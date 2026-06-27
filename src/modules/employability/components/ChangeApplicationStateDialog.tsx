@@ -5,6 +5,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
 import { useEffect } from 'react';
 import { Controller, useForm } from 'react-hook-form';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import type { z } from 'zod';
 import { Button } from '@/components/ui/button';
@@ -50,6 +51,7 @@ export function ChangeApplicationStateDialog({
   currentState,
   onSuccess,
 }: ChangeApplicationStateDialogProps) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const availableStates = STATES.filter((s) => s !== currentState);
 
@@ -79,7 +81,7 @@ export function ChangeApplicationStateDialog({
     mutationFn: (data: FormValues) => updateJobApplication(applicationId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.employability.applications.all });
-      toast.success('Estado actualizado');
+      toast.success(t('employability.stateUpdated'));
       onOpenChange(false);
       onSuccess();
     },
@@ -105,21 +107,21 @@ export function ChangeApplicationStateDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Cambiar estado</DialogTitle>
+          <DialogTitle>{t('employability.changeState')}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">
           {errors.root && <FormAlert message={errors.root.message ?? ''} />}
 
           <FieldGroup>
             <Field data-invalid={errors.state ? true : undefined}>
-              <FieldLabel>Nuevo estado</FieldLabel>
+              <FieldLabel>{t('employability.newState')}</FieldLabel>
               <Controller
                 control={control}
                 name="state"
                 render={({ field }) => (
                   <Select value={field.value} onValueChange={field.onChange}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Seleccionar estado" />
+                      <SelectValue placeholder={t('employability.selectState')} />
                     </SelectTrigger>
                     <SelectContent>
                       {availableStates.map((s) => (
@@ -135,19 +137,22 @@ export function ChangeApplicationStateDialog({
             </Field>
 
             <Field data-invalid={errors.reviewNotes ? true : undefined}>
-              <FieldLabel>Notas de revisión (opcional)</FieldLabel>
-              <Textarea {...register('reviewNotes')} placeholder="Motivo del cambio..." />
+              <FieldLabel>{t('employability.reviewNotes')}</FieldLabel>
+              <Textarea
+                {...register('reviewNotes')}
+                placeholder={t('employability.reviewNotesPlaceholder')}
+              />
               <FieldError>{errors.reviewNotes?.message}</FieldError>
             </Field>
           </FieldGroup>
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancelar
+              {t('common.cancel')}
             </Button>
             <Button type="submit" disabled={mutation.isPending}>
               {mutation.isPending && <Loader2 data-icon="inline-start" className="animate-spin" />}
-              Guardar
+              {t('common.save')}
             </Button>
           </DialogFooter>
         </form>

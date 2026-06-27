@@ -1,5 +1,6 @@
 import { Fragment } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import { Link, matchPath, useLocation } from 'react-router-dom';
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -16,62 +17,112 @@ interface BreadcrumbSegment {
   href?: string;
 }
 
-const routeLabels: Record<string, string> = {
-  overview: 'Overview',
-  clientes: 'Clientes',
-  negociaciones: 'Negociaciones',
-  documentacion: 'Documentación',
-  catalogo: 'Catálogo',
-  reportes: 'Reportes',
-  empleabilidad: 'Empleabilidad',
-  aplicantes: 'Aplicantes',
-  mensajes: 'Solicitudes',
-  matrices: 'Matrices',
-  organizacion: 'Organización',
-  equipo: 'Equipo',
-};
-
-function isUuid(segment: string): boolean {
-  return segment.length > 10 && segment.includes('-');
+interface BreadcrumbRouteItem {
+  labelKey?: string;
+  href?: string;
+  fromTitle?: boolean;
 }
 
-function getSegments(pathname: string, dynamicTitle: string | null): BreadcrumbSegment[] {
-  const paths = pathname.split('/').filter(Boolean);
+const breadcrumbRoutes: Array<{ path: string; items: BreadcrumbRouteItem[] }> = [
+  { path: '/', items: [{ labelKey: 'breadcrumb.overview' }] },
+  { path: '/overview', items: [{ labelKey: 'breadcrumb.overview' }] },
+  { path: '/clientes', items: [{ labelKey: 'breadcrumb.clients' }] },
+  { path: '/negociaciones', items: [{ labelKey: 'breadcrumb.negotiations' }] },
+  {
+    path: '/negociaciones/:id',
+    items: [{ labelKey: 'breadcrumb.negotiations', href: '/negociaciones' }, { fromTitle: true }],
+  },
+  { path: '/documentacion', items: [{ labelKey: 'breadcrumb.documentation' }] },
+  { path: '/catalogo', items: [{ labelKey: 'breadcrumb.catalog' }] },
+  {
+    path: '/catalogo/configuracion',
+    items: [
+      { labelKey: 'breadcrumb.catalog', href: '/catalogo' },
+      { labelKey: 'breadcrumb.settings' },
+    ],
+  },
+  {
+    path: '/catalogo/solicitudes',
+    items: [
+      { labelKey: 'breadcrumb.catalog', href: '/catalogo' },
+      { labelKey: 'breadcrumb.requests' },
+    ],
+  },
+  {
+    path: '/catalogo/nuevo',
+    items: [
+      { labelKey: 'breadcrumb.catalog', href: '/catalogo' },
+      { labelKey: 'breadcrumb.newProduct' },
+    ],
+  },
+  {
+    path: '/catalogo/:id',
+    items: [{ labelKey: 'breadcrumb.catalog', href: '/catalogo' }, { fromTitle: true }],
+  },
+  {
+    path: '/organizacion/equipo',
+    items: [
+      { labelKey: 'breadcrumb.organization', href: '/organizacion/equipo' },
+      { labelKey: 'breadcrumb.team' },
+    ],
+  },
+  {
+    path: '/organizacion/configuracion',
+    items: [
+      { labelKey: 'breadcrumb.organization', href: '/organizacion/equipo' },
+      { labelKey: 'breadcrumb.settings' },
+    ],
+  },
+  { path: '/reportes', items: [{ labelKey: 'breadcrumb.reports' }] },
+  {
+    path: '/empleabilidad/vacantes',
+    items: [
+      { labelKey: 'breadcrumb.employability', href: '/empleabilidad/vacantes' },
+      { labelKey: 'breadcrumb.vacancies' },
+    ],
+  },
+  {
+    path: '/empleabilidad/aplicantes',
+    items: [
+      { labelKey: 'breadcrumb.employability', href: '/empleabilidad/vacantes' },
+      { labelKey: 'breadcrumb.applicants' },
+    ],
+  },
+];
 
-  if (paths.length === 0 || pathname === '/') {
-    return [{ label: 'Overview' }];
+function getSegments(
+  pathname: string,
+  dynamicTitle: string | null,
+  t: (key: string) => string,
+): BreadcrumbSegment[] {
+  const route = breadcrumbRoutes.find((candidate) =>
+    matchPath({ path: candidate.path, end: true }, pathname),
+  );
+
+  if (!route) {
+    return [];
   }
 
-  const segments: BreadcrumbSegment[] = [];
-  let currentPath = '';
+  if (route.items.some((item) => item.fromTitle) && !dynamicTitle) {
+    return [];
+  }
 
-  for (let i = 0; i < paths.length; i++) {
-    const segment = paths[i];
-    currentPath += `/${segment}`;
-    const isLast = i === paths.length - 1;
-
-    if (isUuid(segment)) {
-      segments.push({ label: dynamicTitle ?? '...' });
-      continue;
+  return route.items.map((item) => {
+    if (item.fromTitle) {
+      return { label: dynamicTitle ?? '', href: item.href };
     }
 
-    const label = routeLabels[segment] || segment;
-
-    segments.push({
-      label,
-      href: isLast ? undefined : currentPath,
-    });
-  }
-
-  return segments;
+    return { label: t(item.labelKey ?? ''), href: item.href };
+  });
 }
 
 export function AppBreadcrumb() {
   const location = useLocation();
   const dynamicTitle = useBreadcrumbTitleValue();
-  const segments = getSegments(location.pathname, dynamicTitle);
+  const { t } = useTranslation();
+  const segments = getSegments(location.pathname, dynamicTitle, t);
 
-  if (segments.length <= 1) {
+  if (segments.length === 0) {
     return null;
   }
 
@@ -81,7 +132,7 @@ export function AppBreadcrumb() {
       <Breadcrumb>
         <BreadcrumbList>
           {segments.map((segment, index) => (
-            <Fragment key={segment.label}>
+            <Fragment key={segment.href ?? segment.label}>
               <BreadcrumbItem>
                 {segment.href ? (
                   <BreadcrumbLink asChild>

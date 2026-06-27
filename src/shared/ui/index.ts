@@ -18,7 +18,7 @@ export type {
   LookupUpdateData,
 } from './LookupTableManager';
 export { LookupTableManager } from './LookupTableManager';
-export { LookupTableSheet } from './LookupTableSheet';
+export { LookupTableSheet } from './LookupTableSheet.js';
 export { ModeToggle } from './ModeToggle';
 export { PageLoader } from './PageLoader';
 export { PageSizeSelect } from './PageSizeSelect';

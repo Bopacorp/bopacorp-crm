@@ -52,6 +52,12 @@ export const queryKeys = {
   reports: {
     advisorMetrics: (filters: Record<string, unknown>) =>
       ['reports', 'advisor-metrics', filters] as const,
+    recentActivity: (filters: Record<string, unknown>) =>
+      ['reports', 'recent-activity', filters] as const,
+    targets: () => ['reports', 'targets'] as const,
+    advisorPerformance: (filters: Record<string, unknown>) =>
+      ['reports', 'advisor-performance', filters] as const,
+    exports: (filters: Record<string, unknown>) => ['reports', 'exports', filters] as const,
   },
   documents: {
     all: ['documents'] as const,
@@ -59,6 +65,13 @@ export const queryKeys = {
       ['documents', 'list', page, filters] as const,
     detail: (id: string) => ['documents', 'detail', id] as const,
     history: (id: string) => ['documents', 'history', id] as const,
+    pendingSummary: () => ['documents', 'pending-summary'] as const,
+    types: {
+      all: ['documents', 'types'] as const,
+      list: (page: number, filters: Record<string, unknown>) =>
+        ['documents', 'types', 'list', page, filters] as const,
+      detail: (id: string) => ['documents', 'types', 'detail', id] as const,
+    },
   },
   employability: {
     vacancies: {
@@ -80,6 +93,12 @@ export const queryKeys = {
       ['matrices', 'list', page, filters] as const,
     detail: (id: string) => ['matrices', 'detail', id] as const,
     attachments: (matrixId: string) => ['matrices', 'attachments', matrixId] as const,
+  },
+  notifications: {
+    all: ['notifications'] as const,
+    list: (page: number, filters: Record<string, unknown>) =>
+      ['notifications', 'list', page, filters] as const,
+    unread: ['notifications', 'unread'] as const,
   },
   catalog: {
     all: ['catalog'] as const,

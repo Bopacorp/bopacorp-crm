@@ -1,6 +1,7 @@
 import type { JobVacancyListItemResponse } from '@bopacorp/shared/employability';
 import { Plus, Users } from 'lucide-react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { formatDate } from '@/lib/format.js';
@@ -21,19 +22,8 @@ import { CreateVacancyDialog } from '../components/CreateVacancyDialog.js';
 import { VacancySheet } from '../components/VacancySheet.js';
 import { useVacancies } from '../hooks/useVacancies.js';
 
-const STATUS_OPTIONS = [
-  { value: 'all', label: 'Todos' },
-  { value: 'true', label: 'Activas' },
-  { value: 'false', label: 'Inactivas' },
-];
-
-const PUBLISHED_OPTIONS = [
-  { value: 'all', label: 'Todos' },
-  { value: 'true', label: 'Publicadas' },
-  { value: 'false', label: 'Borrador' },
-];
-
 export default function VacanciesPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
@@ -54,54 +44,71 @@ export default function VacanciesPage() {
 
   usePageReset([search, isActiveFilter, isPublishedFilter, pageSize], setPage);
 
+  const statusOptions = useMemo(
+    () => [
+      { value: 'all', label: t('common.all') },
+      { value: 'true', label: t('employability.activeFem') },
+      { value: 'false', label: t('employability.inactiveFem') },
+    ],
+    [t],
+  );
+  const publishedOptions = useMemo(
+    () => [
+      { value: 'all', label: t('common.all') },
+      { value: 'true', label: t('employability.publishedFem') },
+      { value: 'false', label: t('employability.draft') },
+    ],
+    [t],
+  );
+
   const columns = [
     {
       id: 'title',
-      header: 'Título',
+      header: t('employability.vacancyTitle'),
       accessor: (item: JobVacancyListItemResponse) => (
         <span className="font-medium text-foreground hover:underline">{item.title}</span>
       ),
     },
     {
       id: 'creator',
-      header: 'Creador',
+      header: t('employability.creator'),
       accessor: (item: JobVacancyListItemResponse) => item.creator.username,
     },
     {
       id: 'isActive',
-      header: 'Activa',
+      header: t('employability.activeFem'),
       accessor: (item: JobVacancyListItemResponse) => (
         <StateBadge
           state={item.isActive ? 'active' : 'inactive'}
-          label={item.isActive ? 'Activa' : 'Inactiva'}
+          label={item.isActive ? t('employability.activeFem') : t('employability.inactiveFem')}
         />
       ),
     },
     {
       id: 'isPublished',
-      header: 'Publicada',
+      header: t('employability.publishedFem'),
       accessor: (item: JobVacancyListItemResponse) => (
         <StateBadge
           state={item.isPublished ? 'published' : 'draft'}
-          label={item.isPublished ? 'Publicada' : 'Borrador'}
+          label={item.isPublished ? t('employability.publishedFem') : t('employability.draft')}
         />
       ),
     },
     {
       id: 'publicationDate',
-      header: 'Publicación',
+      header: t('employability.publishDate'),
       accessor: (item: JobVacancyListItemResponse) => formatDate(item.publicationDate),
       sortable: true,
     },
     {
       id: 'closingDate',
-      header: 'Cierre',
+      header: t('employability.closing'),
       accessor: (item: JobVacancyListItemResponse) => formatDate(item.closingDate),
       sortable: true,
     },
     {
       id: 'applications',
-      header: 'Aplicantes',
+      header: t('employability.applicants'),
       accessor: (item: JobVacancyListItemResponse) => (
         <Button
           size="sm"
@@ -112,7 +119,7 @@ export default function VacanciesPage() {
           }}
         >
           <Users data-icon="inline-start" className="size-4" />
-          Ver aplicantes
+          {t('employability.viewApplicants')}
         </Button>
       ),
     },
@@ -129,13 +136,13 @@ export default function VacanciesPage() {
       )}
     >
       <SectionHeader
-        title="Vacantes"
-        description="Gestión de vacantes de empleo"
+        title={t('employability.vacancies')}
+        description={t('employability.vacanciesDesc')}
         actions={
           <Can permission="job_vacancies.create">
             <Button onClick={() => setCreateOpen(true)}>
               <Plus data-icon="inline-start" />
-              Nueva vacante
+              {t('employability.newVacancy')}
             </Button>
           </Can>
         }
@@ -144,21 +151,21 @@ export default function VacanciesPage() {
       <FilterBar
         searchValue={search}
         onSearchChange={setSearch}
-        searchPlaceholder="Buscar vacantes..."
+        searchPlaceholder={t('employability.searchVacancies')}
         filters={[
           {
             id: 'isActive',
-            label: 'Estado',
-            placeholder: 'Estado',
-            options: STATUS_OPTIONS,
+            label: t('common.status'),
+            placeholder: t('common.status'),
+            options: statusOptions,
             value: isActiveFilter,
             onChange: setIsActiveFilter,
           },
           {
             id: 'isPublished',
-            label: 'Publicación',
-            placeholder: 'Publicación',
-            options: PUBLISHED_OPTIONS,
+            label: t('employability.publishedFem'),
+            placeholder: t('employability.publishedFem'),
+            options: publishedOptions,
             value: isPublishedFilter,
             onChange: setIsPublishedFilter,
           },
@@ -168,11 +175,14 @@ export default function VacanciesPage() {
       {vacancies.length === 0 ? (
         search || isActive !== undefined || isPublished !== undefined ? (
           <EmptyState
-            title="Sin resultados"
-            description="No se encontraron vacantes con los filtros aplicados"
+            title={t('common.noResults')}
+            description={t('common.noResultsDescription')}
           />
         ) : (
-          <EmptyState title="No hay vacantes" description="Crea tu primera vacante para comenzar" />
+          <EmptyState
+            title={t('employability.noVacancies')}
+            description={t('employability.noVacanciesDesc')}
+          />
         )
       ) : (
         <>

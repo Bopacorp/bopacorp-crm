@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Field, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 
@@ -23,6 +24,7 @@ interface DeviceDetailFieldsProps {
 }
 
 export function DeviceDetailFields({ values, onChange }: DeviceDetailFieldsProps) {
+  const { t } = useTranslation();
   const set = <K extends keyof DeviceDetailFormValues>(key: K, val: DeviceDetailFormValues[K]) =>
     onChange({ ...values, [key]: val });
 
@@ -30,7 +32,7 @@ export function DeviceDetailFields({ values, onChange }: DeviceDetailFieldsProps
     <FieldGroup>
       <div className="grid gap-5 md:grid-cols-2">
         <Field>
-          <FieldLabel>Marca</FieldLabel>
+          <FieldLabel>{t('catalog.brand')}</FieldLabel>
           <Input
             value={values.brand}
             onChange={(e) => set('brand', e.target.value)}
@@ -38,7 +40,7 @@ export function DeviceDetailFields({ values, onChange }: DeviceDetailFieldsProps
           />
         </Field>
         <Field>
-          <FieldLabel>Modelo</FieldLabel>
+          <FieldLabel>{t('catalog.model')}</FieldLabel>
           <Input
             value={values.model}
             onChange={(e) => set('model', e.target.value)}
@@ -46,7 +48,7 @@ export function DeviceDetailFields({ values, onChange }: DeviceDetailFieldsProps
           />
         </Field>
         <Field>
-          <FieldLabel>Almacenamiento (GB)</FieldLabel>
+          <FieldLabel>{t('catalog.storageGb')}</FieldLabel>
           <Input
             type="number"
             min={0}
@@ -55,7 +57,7 @@ export function DeviceDetailFields({ values, onChange }: DeviceDetailFieldsProps
           />
         </Field>
         <Field>
-          <FieldLabel>Financiamiento (meses)</FieldLabel>
+          <FieldLabel>{t('catalog.financingMonths')}</FieldLabel>
           <Input
             type="number"
             min={0}
@@ -64,7 +66,7 @@ export function DeviceDetailFields({ values, onChange }: DeviceDetailFieldsProps
           />
         </Field>
         <Field>
-          <FieldLabel>Cuota mensual ($)</FieldLabel>
+          <FieldLabel>{t('catalog.monthlyPaymentField')}</FieldLabel>
           <Input
             type="number"
             min={0}

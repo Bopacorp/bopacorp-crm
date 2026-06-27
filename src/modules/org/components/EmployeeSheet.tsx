@@ -15,6 +15,7 @@ import {
   XIcon,
 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import {
   AlertDialog,
@@ -54,13 +55,7 @@ import {
   StateBadge,
 } from '@/shared/ui';
 import { useOrgRoleOptions } from '../hooks/useOrgRoleOptions.js';
-import {
-  getEmployee,
-  listAdvisors,
-  listSupervisors,
-  removeEmployee,
-  updateEmployee,
-} from '../org.service.js';
+import { getEmployee, removeEmployee, updateEmployee } from '../org.service.js';
 
 interface EmployeeSheetProps {
   open: boolean;
@@ -113,6 +108,7 @@ const SKELETON_SECTIONS = [
 ];
 
 export function EmployeeSheet({ open, onOpenChange, userId }: EmployeeSheetProps) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
@@ -134,26 +130,11 @@ export function EmployeeSheet({ open, onOpenChange, userId }: EmployeeSheetProps
     enabled: !!userId && open,
   });
 
-  const { data: supervisorsData } = useQuery({
-    queryKey: queryKeys.employees.supervisors(userId ?? ''),
-    queryFn: () => listSupervisors(userId as string, { page: 1, limit: 100, sortOrder: 'asc' }),
-    enabled: !!userId && open && employee?.orgRole.code === 'advisor',
-  });
-
-  const { data: advisorsData } = useQuery({
-    queryKey: queryKeys.employees.advisors(userId ?? ''),
-    queryFn: () => listAdvisors(userId as string, { page: 1, limit: 100, sortOrder: 'asc' }),
-    enabled:
-      !!userId &&
-      open &&
-      (employee?.orgRole.code === 'supervisor' || employee?.orgRole.code === 'manager'),
-  });
-
   const deleteMutation = useMutation({
     mutationFn: () => removeEmployee(userId as string),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.employees.all });
-      toast.success('Empleado eliminado');
+      toast.success(t('org.employeeDeleted'));
       setShowDelete(false);
       onOpenChange(false);
     },
@@ -198,9 +179,9 @@ export function EmployeeSheet({ open, onOpenChange, userId }: EmployeeSheetProps
                   <ArrowLeft />
                 </Button>
               )}
-              {loading && <SheetTitle className="sr-only">Empleado</SheetTitle>}
+              {loading && <SheetTitle className="sr-only">{t('common.loading')}</SheetTitle>}
               {!showViewHeader && !loading && (
-                <SheetTitle>{editing ? 'Editar empleado' : 'Empleado'}</SheetTitle>
+                <SheetTitle>{editing ? t('org.editEmployee') : t('org.employee')}</SheetTitle>
               )}
             </div>
             <div className="flex items-center gap-1">
@@ -265,11 +246,7 @@ export function EmployeeSheet({ open, onOpenChange, userId }: EmployeeSheetProps
             onDirtyChange={handleDirtyChange}
           />
         ) : (
-          <ViewMode
-            employee={employee}
-            supervisors={supervisorsData?.data}
-            advisees={advisorsData?.data}
-          />
+          <ViewMode employee={employee} />
         )}
       </SheetContent>
 
@@ -278,14 +255,17 @@ export function EmployeeSheet({ open, onOpenChange, userId }: EmployeeSheetProps
       <AlertDialog open={showDelete} onOpenChange={(v) => !v && setShowDelete(false)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>¿Eliminar empleado?</AlertDialogTitle>
+            <AlertDialogTitle>{t('org.deleteEmployee')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Se eliminará a {employee ? displayName(employee.user) : 'este empleado'}. Esta acción
-              no se puede deshacer.
+              {t('org.deleteEmployeeDesc', {
+                name: employee ? displayName(employee.user) : t('org.employee'),
+              })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleteMutation.isPending}>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel disabled={deleteMutation.isPending}>
+              {t('common.cancel')}
+            </AlertDialogCancel>
             <AlertDialogAction
               variant="destructive"
               onClick={(e) => {
@@ -297,10 +277,10 @@ export function EmployeeSheet({ open, onOpenChange, userId }: EmployeeSheetProps
               {deleteMutation.isPending ? (
                 <>
                   <Loader2 className="animate-spin" />
-                  Eliminando…
+                  {t('common.deleting')}
                 </>
               ) : (
-                'Eliminar'
+                t('common.delete')
               )}
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -312,88 +292,66 @@ export function EmployeeSheet({ open, onOpenChange, userId }: EmployeeSheetProps
 
 // ─── View Mode ───────────────────────────────────────────────────────────────
 
-interface RelatedPerson {
-  id: string;
-  username: string;
-  email: string;
-  profile: { firstName: string; lastName: string } | null;
-  orgRole: { id: string; name: string };
-}
-
-interface AdvisorSupervisorItem {
-  advisor: RelatedPerson;
-  supervisor: RelatedPerson;
-}
-
-function ViewMode({
-  employee,
-  supervisors,
-  advisees,
-}: {
-  employee: EmployeeResponse;
-  supervisors?: AdvisorSupervisorItem[];
-  advisees?: AdvisorSupervisorItem[];
-}) {
-  const personName = (u: RelatedPerson) =>
-    u.profile ? `${u.profile.firstName} ${u.profile.lastName}` : u.username;
+function ViewMode({ employee }: { employee: EmployeeResponse }) {
+  const { t } = useTranslation();
 
   return (
     <div className="flex-1 overflow-y-auto p-4">
       <div className="flex flex-col gap-5">
         <div className="flex flex-col gap-1">
-          <SectionLabel>Cuenta</SectionLabel>
-          <DetailField icon={User} label="Usuario">
+          <SectionLabel>{t('org.accountSection')}</SectionLabel>
+          <DetailField icon={User} label={t('org.user')}>
             {employee.user.username}
           </DetailField>
-          <DetailField icon={Mail} label="Email">
+          <DetailField icon={Mail} label={t('common.email')}>
             <a href={`mailto:${employee.user.email}`} className="text-primary hover:underline">
               {employee.user.email}
             </a>
           </DetailField>
-          <DetailField icon={Settings} label="Estado">
+          <DetailField icon={Settings} label={t('common.status')}>
             <StateBadge
               state={employee.isActive ? 'active' : 'inactive'}
-              label={employee.isActive ? 'Activo' : 'Inactivo'}
+              label={employee.isActive ? t('common.active') : t('common.inactive')}
             />
           </DetailField>
         </div>
 
         <div className="flex flex-col gap-1">
-          <SectionLabel>Organización</SectionLabel>
-          <DetailField icon={Briefcase} label="Rol">
+          <SectionLabel>{t('org.orgSection')}</SectionLabel>
+          <DetailField icon={Briefcase} label={t('org.orgRole')}>
             {employee.orgRole.name}
           </DetailField>
-          <DetailField icon={Building2} label="Departamento">
-            {employee.orgRole.department?.name ?? '—'}
+          <DetailField icon={Building2} label={t('org.department')}>
+            {employee.orgRole.department?.name ?? t('org.noDepartment')}
           </DetailField>
-          <DetailField icon={MapPin} label="Territorio">
+          <DetailField icon={MapPin} label={t('org.territory')}>
             {employee.territory ?? '—'}
           </DetailField>
-          <DetailField icon={Calendar} label="Contratación">
+          <DetailField icon={Calendar} label={t('org.hireDate')}>
             {employee.hiredAt ? formatDate(employee.hiredAt) : '—'}
           </DetailField>
         </div>
 
-        {supervisors && supervisors.length > 0 && (
+        {employee.supervisors.length > 0 && (
           <div className="flex flex-col gap-2">
-            <SectionLabel>Supervisores</SectionLabel>
+            <SectionLabel>{t('org.supervisorsSection')}</SectionLabel>
             <div className="flex flex-wrap gap-1.5 px-2">
-              {supervisors.map((s) => (
-                <Badge key={s.supervisor.id} variant="secondary">
-                  {personName(s.supervisor)}
+              {employee.supervisors.map((s) => (
+                <Badge key={s.userId} variant="secondary">
+                  {s.firstName} {s.lastName}
                 </Badge>
               ))}
             </div>
           </div>
         )}
 
-        {advisees && advisees.length > 0 && (
+        {employee.advisors.length > 0 && (
           <div className="flex flex-col gap-2">
-            <SectionLabel>Asesores a cargo</SectionLabel>
+            <SectionLabel>{t('org.advisorsInCharge')}</SectionLabel>
             <div className="flex flex-wrap gap-1.5 px-2">
-              {advisees.map((a) => (
-                <Badge key={a.advisor.id} variant="secondary">
-                  {personName(a.advisor)}
+              {employee.advisors.map((a) => (
+                <Badge key={a.userId} variant="secondary">
+                  {a.firstName} {a.lastName}
                 </Badge>
               ))}
             </div>
@@ -401,11 +359,11 @@ function ViewMode({
         )}
 
         <div className="flex flex-col gap-1">
-          <SectionLabel>Fechas</SectionLabel>
-          <DetailField icon={Calendar} label="Creado">
+          <SectionLabel>{t('common.dates')}</SectionLabel>
+          <DetailField icon={Calendar} label={t('common.created')}>
             {formatRelativeTime(employee.createdAt)}
           </DetailField>
-          <DetailField icon={Calendar} label="Actualizado">
+          <DetailField icon={Calendar} label={t('common.updated')}>
             {formatRelativeTime(employee.updatedAt)}
           </DetailField>
         </div>
@@ -425,6 +383,7 @@ function EditForm({
   onSaved: () => void;
   onDirtyChange: (dirty: boolean) => void;
 }) {
+  const { t } = useTranslation();
   const { orgRoleOptions } = useOrgRoleOptions();
   const [orgRoleId, setOrgRoleId] = useState(employee.orgRole.id);
   const [territory, setTerritory] = useState(employee.territory ?? '');
@@ -451,7 +410,7 @@ function EditForm({
         isActive,
       }),
     onSuccess: () => {
-      toast.success('Empleado actualizado');
+      toast.success(t('org.employeeUpdated'));
       onSaved();
     },
     onError: (err) => setFormError(getErrorMessage(err)),
@@ -463,10 +422,10 @@ function EditForm({
         <FieldGroup>
           {formError && <FormAlert message={formError} />}
           <Field>
-            <FieldLabel>Rol organizacional</FieldLabel>
+            <FieldLabel>{t('org.orgRole')}</FieldLabel>
             <Select value={orgRoleId} onValueChange={setOrgRoleId}>
               <SelectTrigger>
-                <SelectValue placeholder="Seleccionar rol" />
+                <SelectValue placeholder={t('org.selectRole')} />
               </SelectTrigger>
               <SelectContent>
                 {orgRoleOptions.map((r) => (
@@ -478,20 +437,20 @@ function EditForm({
             </Select>
           </Field>
           <Field>
-            <FieldLabel>Territorio</FieldLabel>
+            <FieldLabel>{t('org.territory')}</FieldLabel>
             <Input
               value={territory}
               onChange={(e) => setTerritory(e.target.value)}
-              placeholder="Zona o territorio asignado"
+              placeholder={t('org.territoryPlaceholder')}
               maxLength={50}
             />
           </Field>
           <Field>
-            <FieldLabel>Fecha de contratación</FieldLabel>
+            <FieldLabel>{t('org.hireDate')}</FieldLabel>
             <Input type="date" value={hiredAt} onChange={(e) => setHiredAt(e.target.value)} />
           </Field>
           <Field orientation="horizontal">
-            <FieldLabel>Activo</FieldLabel>
+            <FieldLabel>{t('common.active')}</FieldLabel>
             <Switch checked={isActive} onCheckedChange={setIsActive} />
           </Field>
         </FieldGroup>
@@ -503,7 +462,7 @@ function EditForm({
           disabled={!isDirty || mutation.isPending}
         >
           {mutation.isPending && <Loader2 data-icon="inline-start" className="animate-spin" />}
-          Guardar
+          {t('common.save')}
         </Button>
       </SheetFooter>
     </>

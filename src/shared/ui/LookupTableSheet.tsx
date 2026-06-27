@@ -1,5 +1,8 @@
+import { CreateItemTypeRequestSchema } from '@bopacorp/shared/catalog';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
+  AlertTriangle,
   ArrowLeft,
   Calendar,
   Code,
@@ -11,15 +14,29 @@ import {
   XIcon,
 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
+import { Controller, useForm } from 'react-hook-form';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
+import { z } from 'zod';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
-import { Field, FieldGroup, FieldLabel } from '@/components/ui/field';
+import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { formatRelativeTime } from '@/lib/format.js';
 import { Can } from '@/modules/auth/components/Can.js';
+import { ApiError } from '@/services/api.js';
 import { getErrorMessage } from '@/shared/errors/index.js';
 import { useUnsavedGuard } from '@/shared/hooks/useUnsavedGuard.js';
 import {
@@ -30,6 +47,8 @@ import {
   StateBadge,
 } from '@/shared/ui';
 import type { LookupTableConfig } from './LookupTableManager';
+
+type FormValues = z.input<typeof CreateItemTypeRequestSchema>;
 
 interface LookupTableSheetProps {
   open: boolean;
@@ -48,9 +67,11 @@ export function LookupTableSheet({
   config,
   mode: initialMode,
 }: LookupTableSheetProps) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState(false);
   const [formKey, setFormKey] = useState(0);
+  const [showDisable, setShowDisable] = useState(false);
   const isCreate = initialMode === 'create';
 
   const onClose = useCallback(() => onOpenChange(false), [onOpenChange]);
@@ -73,10 +94,28 @@ export function LookupTableSheet({
   useEffect(() => {
     if (!open) {
       setEditing(false);
+      setShowDisable(false);
       dirtyRef.current = false;
       if (isCreate) setFormKey((k) => k + 1);
     }
   }, [open, dirtyRef, isCreate]);
+
+  const invalidate = () => {
+    queryClient.invalidateQueries({ queryKey: config.queryKey });
+  };
+
+  const disableMutation = useMutation({
+    mutationFn: () => config.disableFn(entityId as string),
+    onSuccess: () => {
+      toast.success(t('common.entityDisabled', { entity: config.entityName }));
+      setShowDisable(false);
+      invalidate();
+    },
+    onError: (err) => {
+      toast.error(getErrorMessage(err));
+      setShowDisable(false);
+    },
+  });
 
   const handleOpenChange = (value: boolean) => {
     if (!value) {
@@ -86,80 +125,120 @@ export function LookupTableSheet({
     }
   };
 
-  const invalidate = () => {
-    queryClient.invalidateQueries({ queryKey: config.queryKey });
-  };
-
   const showViewHeader = !isCreate && !isLoading && !error && entity && !editing;
 
   return (
-    <Sheet open={open} onOpenChange={handleOpenChange}>
-      <SheetContent showCloseButton={false}>
-        <SheetHeader className="flex flex-col gap-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              {editing && (
-                <Button variant="ghost" size="icon-sm" onClick={() => guardedAction('back')}>
-                  <ArrowLeft />
-                </Button>
-              )}
-              <SheetTitle>
-                {isCreate
-                  ? `Nuevo ${config.entityName.toLowerCase()}`
-                  : editing
-                    ? `Editar ${config.entityName.toLowerCase()}`
-                    : isLoading
-                      ? config.entityName
-                      : (entity?.name ?? config.entityName)}
-              </SheetTitle>
-            </div>
-            <div className="flex items-center gap-1">
-              {showViewHeader && (
-                <Can permission={`${config.permissionPrefix}.update`}>
-                  <Button variant="ghost" size="icon-sm" onClick={() => setEditing(true)}>
-                    <Pencil />
+    <>
+      <Sheet open={open} onOpenChange={handleOpenChange}>
+        <SheetContent showCloseButton={false}>
+          <SheetHeader className="flex flex-col gap-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                {editing && (
+                  <Button variant="ghost" size="icon-sm" onClick={() => guardedAction('back')}>
+                    <ArrowLeft />
                   </Button>
-                </Can>
-              )}
-              <Button variant="ghost" size="icon-sm" onClick={() => guardedAction('close')}>
-                <XIcon />
-              </Button>
+                )}
+                <SheetTitle>
+                  {isCreate
+                    ? t('common.newEntity', { entity: config.entityName.toLowerCase() })
+                    : editing
+                      ? t('common.editEntity', { entity: config.entityName.toLowerCase() })
+                      : isLoading
+                        ? config.entityName
+                        : (entity?.name ?? config.entityName)}
+                </SheetTitle>
+              </div>
+              <div className="flex items-center gap-1">
+                {showViewHeader && (
+                  <>
+                    <Can permission={`${config.permissionPrefix}.update`}>
+                      <Button variant="ghost" size="icon-sm" onClick={() => setEditing(true)}>
+                        <Pencil />
+                      </Button>
+                    </Can>
+                    {entity?.isActive && (
+                      <Can permission={`${config.permissionPrefix}.update`}>
+                        <Button variant="ghost" size="icon-sm" onClick={() => setShowDisable(true)}>
+                          <AlertTriangle />
+                        </Button>
+                      </Can>
+                    )}
+                  </>
+                )}
+                <Button variant="ghost" size="icon-sm" onClick={() => guardedAction('close')}>
+                  <XIcon />
+                </Button>
+              </div>
             </div>
-          </div>
-        </SheetHeader>
+          </SheetHeader>
 
-        {isCreate ? (
-          <CreateForm
-            key={formKey}
-            config={config}
-            onSuccess={() => {
-              dirtyRef.current = false;
-              invalidate();
-              onOpenChange(false);
-            }}
-            onDirtyChange={handleDirtyChange}
-          />
-        ) : isLoading ? (
-          <SheetDetailSkeleton sections={SKELETON_SECTIONS} />
-        ) : error || !entity ? (
-          <ErrorState error={error} onRetry={refetch} />
-        ) : editing ? (
-          <EditForm
-            entity={entity}
-            config={config}
-            onSaved={() => {
-              setEditing(false);
-              invalidate();
-            }}
-            onDirtyChange={handleDirtyChange}
-          />
-        ) : (
-          <ViewMode entity={entity} config={config} onDisabled={invalidate} />
-        )}
-      </SheetContent>
+          {isCreate ? (
+            <CreateForm
+              key={formKey}
+              config={config}
+              onSuccess={() => {
+                dirtyRef.current = false;
+                invalidate();
+                onOpenChange(false);
+              }}
+              onDirtyChange={handleDirtyChange}
+            />
+          ) : isLoading ? (
+            <SheetDetailSkeleton sections={SKELETON_SECTIONS} />
+          ) : error || !entity ? (
+            <ErrorState error={error} onRetry={refetch} />
+          ) : editing ? (
+            <EditForm
+              entity={entity}
+              config={config}
+              onSaved={() => {
+                dirtyRef.current = false;
+                setEditing(false);
+                invalidate();
+              }}
+              onDirtyChange={handleDirtyChange}
+            />
+          ) : (
+            <ViewMode entity={entity} />
+          )}
+        </SheetContent>
 
-      <DiscardChangesDialog open={showDiscard} onCancel={cancelDiscard} onDiscard={handleDiscard} />
-    </Sheet>
+        <DiscardChangesDialog
+          open={showDiscard}
+          onCancel={cancelDiscard}
+          onDiscard={handleDiscard}
+        />
+      </Sheet>
+
+      <AlertDialog open={showDisable} onOpenChange={setShowDisable}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {t('common.disableEntity', { entity: config.entityName.toLowerCase() })}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {t('common.disableEntityDesc', { entity: config.entityName.toLowerCase() })}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={disableMutation.isPending}>
+              {t('common.cancel')}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              disabled={disableMutation.isPending}
+              onClick={() => disableMutation.mutate()}
+            >
+              {disableMutation.isPending && (
+                <Loader2 data-icon="inline-start" className="animate-spin" />
+              )}
+              {t('common.disable')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
 
@@ -173,6 +252,47 @@ interface ViewEntity {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+}
+
+function ViewMode({ entity }: { entity: ViewEntity }) {
+  const { t } = useTranslation();
+
+  return (
+    <div className="flex-1 overflow-y-auto p-4">
+      <div className="flex flex-col gap-5">
+        <div className="flex flex-col gap-1">
+          <SectionLabel>{t('common.information')}</SectionLabel>
+          <DetailField icon={Code} label={t('common.code')}>
+            <span className="font-mono text-xs">{entity.code}</span>
+          </DetailField>
+          <DetailField icon={Tag} label={t('common.name')}>
+            {entity.name}
+          </DetailField>
+          {entity.description && (
+            <DetailField icon={FileText} label={t('common.description')}>
+              {entity.description}
+            </DetailField>
+          )}
+          <DetailField icon={Settings} label={t('common.status')}>
+            <StateBadge
+              state={entity.isActive ? 'active' : 'inactive'}
+              label={entity.isActive ? t('common.active') : t('common.inactive')}
+            />
+          </DetailField>
+        </div>
+
+        <div className="flex flex-col gap-1">
+          <SectionLabel>{t('common.dates')}</SectionLabel>
+          <DetailField icon={Calendar} label={t('common.created')}>
+            {formatRelativeTime(entity.createdAt)}
+          </DetailField>
+          <DetailField icon={Calendar} label={t('common.updated')}>
+            {formatRelativeTime(entity.updatedAt)}
+          </DetailField>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function DetailField({
@@ -201,51 +321,6 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
-function ViewMode({
-  entity,
-}: {
-  entity: ViewEntity;
-  config: LookupTableConfig;
-  onDisabled: () => void;
-}) {
-  return (
-    <div className="flex-1 overflow-y-auto p-4">
-      <div className="flex flex-col gap-5">
-        <div className="flex flex-col gap-1">
-          <SectionLabel>Información</SectionLabel>
-          <DetailField icon={Code} label="Código">
-            <span className="font-mono text-xs">{entity.code}</span>
-          </DetailField>
-          <DetailField icon={Tag} label="Nombre">
-            {entity.name}
-          </DetailField>
-          {entity.description && (
-            <DetailField icon={FileText} label="Descripción">
-              {entity.description}
-            </DetailField>
-          )}
-          <DetailField icon={Settings} label="Estado">
-            <StateBadge
-              state={entity.isActive ? 'active' : 'inactive'}
-              label={entity.isActive ? 'Activo' : 'Inactivo'}
-            />
-          </DetailField>
-        </div>
-
-        <div className="flex flex-col gap-1">
-          <SectionLabel>Fechas</SectionLabel>
-          <DetailField icon={Calendar} label="Creado">
-            {formatRelativeTime(entity.createdAt)}
-          </DetailField>
-          <DetailField icon={Calendar} label="Actualizado">
-            {formatRelativeTime(entity.updatedAt)}
-          </DetailField>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // ─── Create Form ─────────────────────────────────────────────────────────────
 
 function CreateForm({
@@ -257,75 +332,111 @@ function CreateForm({
   onSuccess: () => void;
   onDirtyChange: (dirty: boolean) => void;
 }) {
-  const [code, setCode] = useState('');
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const [formError, setFormError] = useState('');
-
-  const isDirty = code !== '' || name !== '' || description !== '';
+  const { t } = useTranslation();
+  const {
+    register,
+    handleSubmit,
+    setError,
+    formState: { errors, isDirty, isSubmitted, isValid },
+  } = useForm<FormValues>({
+    resolver: zodResolver(CreateItemTypeRequestSchema),
+    defaultValues: { code: '', name: '', description: '', isActive: true },
+    mode: 'onTouched',
+  });
 
   useEffect(() => {
     onDirtyChange(isDirty);
   }, [isDirty, onDirtyChange]);
 
   const mutation = useMutation({
-    mutationFn: () =>
-      config.createFn({ code, name, isActive: true, description: description || undefined }),
+    mutationFn: (values: FormValues) =>
+      config.createFn({
+        code: values.code.toUpperCase(),
+        name: values.name,
+        description: values.description || undefined,
+        isActive: values.isActive ?? true,
+      }),
     onSuccess: () => {
-      toast.success(`${config.entityName} creado`);
+      toast.success(t('common.entityCreated', { entity: config.entityName }));
       onSuccess();
     },
-    onError: (err) => setFormError(getErrorMessage(err)),
+    onError: (err) => {
+      if (err instanceof ApiError && err.details?.length) {
+        for (const detail of err.details) {
+          setError(detail.field as keyof FormValues, { type: 'server', message: detail.message });
+        }
+        return;
+      }
+      setError('root', { type: 'server', message: getErrorMessage(err) });
+    },
   });
 
-  const canSubmit = code.trim() !== '' && name.trim() !== '';
+  const isBusy = mutation.isPending;
 
   return (
-    <>
+    <form
+      onSubmit={handleSubmit((values) => mutation.mutate(values))}
+      noValidate
+      className="flex flex-col gap-4"
+    >
       <div className="flex-1 overflow-y-auto p-4">
         <FieldGroup>
-          {formError && <FormAlert message={formError} />}
-          <Field>
-            <FieldLabel>Código</FieldLabel>
+          {errors.root?.message && <FormAlert message={errors.root.message} />}
+          <Field data-invalid={errors.code ? true : undefined}>
+            <FieldLabel htmlFor="code">
+              {t('common.code')}{' '}
+              <span aria-hidden="true" className="text-destructive">
+                *
+              </span>
+            </FieldLabel>
             <Input
-              value={code}
-              onChange={(e) => setCode(e.target.value.toUpperCase())}
-              placeholder="CODIGO"
+              id="code"
+              {...register('code', {
+                setValueAs: (value) => String(value ?? '').toUpperCase(),
+              })}
+              placeholder={t('common.codePlaceholder')}
               maxLength={30}
+              disabled={isBusy}
             />
+            <FieldError>{errors.code?.message}</FieldError>
           </Field>
-          <Field>
-            <FieldLabel>Nombre</FieldLabel>
+          <Field data-invalid={errors.name ? true : undefined}>
+            <FieldLabel htmlFor="name">
+              {t('common.name')}{' '}
+              <span aria-hidden="true" className="text-destructive">
+                *
+              </span>
+            </FieldLabel>
             <Input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Nombre del registro"
+              id="name"
+              {...register('name')}
+              placeholder={t('common.namePlaceholder')}
               maxLength={100}
+              disabled={isBusy}
             />
+            <FieldError>{errors.name?.message}</FieldError>
           </Field>
-          <Field>
-            <FieldLabel>Descripción</FieldLabel>
+          <Field data-invalid={errors.description ? true : undefined}>
+            <FieldLabel htmlFor="description">{t('common.description')}</FieldLabel>
             <Textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Descripción opcional"
+              id="description"
+              {...register('description')}
+              placeholder={t('common.descriptionPlaceholder')}
               maxLength={255}
               rows={3}
+              disabled={isBusy}
             />
+            <FieldError>{errors.description?.message}</FieldError>
           </Field>
         </FieldGroup>
       </div>
       <SheetFooter>
-        <Button
-          type="button"
-          onClick={() => mutation.mutate()}
-          disabled={!canSubmit || mutation.isPending}
-        >
-          {mutation.isPending && <Loader2 data-icon="inline-start" className="animate-spin" />}
-          Crear
+        <Button type="submit" disabled={isBusy || (isSubmitted && !isValid)}>
+          {isBusy && <Loader2 data-icon="inline-start" className="animate-spin" />}
+          {t('common.create')}
         </Button>
       </SheetFooter>
-    </>
+    </form>
   );
 }
 
@@ -342,74 +453,109 @@ function EditForm({
   onSaved: () => void;
   onDirtyChange: (dirty: boolean) => void;
 }) {
-  const [name, setName] = useState(entity.name);
-  const [description, setDescription] = useState(entity.description ?? '');
-  const [isActive, setIsActive] = useState(entity.isActive);
-  const [formError, setFormError] = useState('');
-
-  const isDirty =
-    name !== entity.name ||
-    description !== (entity.description ?? '') ||
-    isActive !== entity.isActive;
+  const { t } = useTranslation();
+  const {
+    register,
+    control,
+    handleSubmit,
+    setError,
+    formState: { errors, isDirty, isSubmitted, isValid },
+  } = useForm<FormValues>({
+    resolver: zodResolver(CreateItemTypeRequestSchema),
+    defaultValues: {
+      code: entity.code,
+      name: entity.name,
+      description: entity.description ?? '',
+      isActive: entity.isActive,
+    },
+    mode: 'onTouched',
+  });
 
   useEffect(() => {
     onDirtyChange(isDirty);
   }, [isDirty, onDirtyChange]);
 
   const mutation = useMutation({
-    mutationFn: () =>
+    mutationFn: (values: FormValues) =>
       config.updateFn(entity.id, {
-        name,
-        description: description || undefined,
-        isActive,
+        name: values.name,
+        description: values.description || undefined,
+        isActive: values.isActive,
       }),
     onSuccess: () => {
-      toast.success(`${config.entityName} actualizado`);
+      toast.success(t('common.entityUpdated', { entity: config.entityName }));
       onSaved();
     },
-    onError: (err) => setFormError(getErrorMessage(err)),
+    onError: (err) => {
+      if (err instanceof ApiError && err.details?.length) {
+        for (const detail of err.details) {
+          setError(detail.field as keyof FormValues, { type: 'server', message: detail.message });
+        }
+        return;
+      }
+      setError('root', { type: 'server', message: getErrorMessage(err) });
+    },
   });
 
-  const canSubmit = name.trim() !== '' && isDirty;
+  const isBusy = mutation.isPending;
 
   return (
-    <>
+    <form
+      onSubmit={handleSubmit((values) => mutation.mutate(values))}
+      noValidate
+      className="flex flex-col gap-4"
+    >
       <div className="flex-1 overflow-y-auto p-4">
         <FieldGroup>
-          {formError && <FormAlert message={formError} />}
+          {errors.root?.message && <FormAlert message={errors.root.message} />}
           <Field>
-            <FieldLabel>Código</FieldLabel>
-            <Input value={entity.code} disabled className="font-mono" />
+            <FieldLabel htmlFor="code">{t('common.code')}</FieldLabel>
+            <Input id="code" value={entity.code} disabled className="font-mono" />
           </Field>
-          <Field>
-            <FieldLabel>Nombre</FieldLabel>
-            <Input value={name} onChange={(e) => setName(e.target.value)} maxLength={100} />
+          <Field data-invalid={errors.name ? true : undefined}>
+            <FieldLabel htmlFor="name">
+              {t('common.name')}{' '}
+              <span aria-hidden="true" className="text-destructive">
+                *
+              </span>
+            </FieldLabel>
+            <Input id="name" {...register('name')} maxLength={100} disabled={isBusy} />
+            <FieldError>{errors.name?.message}</FieldError>
           </Field>
-          <Field>
-            <FieldLabel>Descripción</FieldLabel>
+          <Field data-invalid={errors.description ? true : undefined}>
+            <FieldLabel htmlFor="description">{t('common.description')}</FieldLabel>
             <Textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
+              id="description"
+              {...register('description')}
               maxLength={255}
               rows={3}
+              disabled={isBusy}
             />
+            <FieldError>{errors.description?.message}</FieldError>
           </Field>
           <Field orientation="horizontal">
-            <FieldLabel>Activo</FieldLabel>
-            <Switch checked={isActive} onCheckedChange={setIsActive} />
+            <FieldLabel htmlFor="isActive">{t('common.active')}</FieldLabel>
+            <Controller
+              control={control}
+              name="isActive"
+              render={({ field }) => (
+                <Switch
+                  id="isActive"
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                  disabled={isBusy}
+                />
+              )}
+            />
           </Field>
         </FieldGroup>
       </div>
       <SheetFooter>
-        <Button
-          type="button"
-          onClick={() => mutation.mutate()}
-          disabled={!canSubmit || mutation.isPending}
-        >
-          {mutation.isPending && <Loader2 data-icon="inline-start" className="animate-spin" />}
-          Guardar
+        <Button type="submit" disabled={isBusy || (isSubmitted && !isValid)}>
+          {isBusy && <Loader2 data-icon="inline-start" className="animate-spin" />}
+          {t('common.save')}
         </Button>
       </SheetFooter>
-    </>
+    </form>
   );
 }

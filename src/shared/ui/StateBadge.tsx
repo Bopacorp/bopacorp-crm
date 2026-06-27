@@ -29,6 +29,9 @@ const stateVariants: Record<string, 'default' | 'secondary' | 'destructive' | 'o
   draft: 'secondary',
   inactive: 'outline',
   published: 'default',
+  // Document types
+  mandatory: 'default',
+  optional: 'outline',
   // General
   active: 'default',
   completed: 'default',

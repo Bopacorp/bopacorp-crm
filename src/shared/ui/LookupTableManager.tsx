@@ -2,6 +2,7 @@ import type { PaginationMeta } from '@bopacorp/shared/common';
 import { useQuery } from '@tanstack/react-query';
 import { Plus } from 'lucide-react';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useDebounce } from 'use-debounce';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -16,7 +17,7 @@ import {
   StateBadge,
   TableSkeleton,
 } from '@/shared/ui';
-import { LookupTableSheet } from './LookupTableSheet';
+import { LookupTableSheet } from './LookupTableSheet.js';
 
 export interface LookupListItem {
   id: string;
@@ -65,59 +66,69 @@ interface LookupTableManagerProps {
   config: LookupTableConfig;
 }
 
-const STATUS_OPTIONS = [
-  { value: 'all', label: 'Todos' },
-  { value: 'true', label: 'Activos' },
-  { value: 'false', label: 'Inactivos' },
-];
-
 export function LookupTableManager({ config }: LookupTableManagerProps) {
+  const { t } = useTranslation();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [isActiveFilter, setIsActiveFilter] = useState<string>('all');
   const [pageSize, setPageSize] = useState(10);
+  const [sortBy, setSortBy] = useState<string | undefined>();
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
 
   const [debouncedSearch] = useDebounce(search, 400);
-
   const isActive = isActiveFilter === 'all' ? undefined : isActiveFilter === 'true';
 
-  usePageReset([debouncedSearch, isActiveFilter, pageSize], setPage);
+  usePageReset([debouncedSearch, isActiveFilter, pageSize, sortBy ?? '', sortOrder], setPage);
 
   const { data, isLoading, isFetching, error, refetch } = useQuery({
-    queryKey: [...config.queryKey, 'list', page, { search: debouncedSearch, isActive, pageSize }],
+    queryKey: [
+      ...config.queryKey,
+      'list',
+      page,
+      { search: debouncedSearch, isActive, pageSize, sortBy, sortOrder },
+    ],
     queryFn: () =>
       config.listFn({
         page,
         limit: pageSize,
         search: debouncedSearch || undefined,
         isActive,
-        sortOrder: 'asc',
+        sortBy,
+        sortOrder,
       }),
   });
 
   const items = data?.data ?? [];
   const meta = data?.meta ?? null;
 
+  const statusOptions = [
+    { value: 'all', label: t('common.all') },
+    { value: 'true', label: t('common.actives') },
+    { value: 'false', label: t('common.inactives') },
+  ];
+
   const columns = [
     {
       id: 'code',
-      header: 'Código',
+      header: t('common.code'),
+      sortable: true,
       accessor: (item: LookupListItem) => <span className="font-mono text-xs">{item.code}</span>,
     },
     {
       id: 'name',
-      header: 'Nombre',
+      header: t('common.name'),
+      sortable: true,
       accessor: (item: LookupListItem) => item.name,
     },
     {
       id: 'state',
-      header: 'Estado',
+      header: t('common.status'),
       accessor: (item: LookupListItem) => (
         <StateBadge
           state={item.isActive ? 'active' : 'inactive'}
-          label={item.isActive ? 'Activo' : 'Inactivo'}
+          label={item.isActive ? t('common.active') : t('common.inactive')}
         />
       ),
     },
@@ -136,13 +147,15 @@ export function LookupTableManager({ config }: LookupTableManagerProps) {
       <FilterBar
         searchValue={search}
         onSearchChange={setSearch}
-        searchPlaceholder={`Buscar ${config.entityNamePlural.toLowerCase()}...`}
+        searchPlaceholder={t('common.searchEntities', {
+          entities: config.entityNamePlural.toLowerCase(),
+        })}
         filters={[
           {
             id: 'isActive',
-            label: 'Estado',
-            placeholder: 'Estado',
-            options: STATUS_OPTIONS,
+            label: t('common.status'),
+            placeholder: t('common.status'),
+            options: statusOptions,
             value: isActiveFilter,
             onChange: setIsActiveFilter,
           },
@@ -151,7 +164,7 @@ export function LookupTableManager({ config }: LookupTableManagerProps) {
           <Can permission={`${config.permissionPrefix}.create`}>
             <Button onClick={() => setCreateOpen(true)}>
               <Plus data-icon="inline-start" />
-              {`Nuevo ${config.entityName.toLowerCase()}`}
+              {t('common.newEntity', { entity: config.entityName.toLowerCase() })}
             </Button>
           </Can>
         }
@@ -160,13 +173,19 @@ export function LookupTableManager({ config }: LookupTableManagerProps) {
       {items.length === 0 ? (
         debouncedSearch || isActive !== undefined ? (
           <EmptyState
-            title="Sin resultados"
-            description={`No se encontraron ${config.entityNamePlural.toLowerCase()} con los filtros aplicados`}
+            title={t('common.noResults')}
+            description={t('common.noFilterResults', {
+              entities: config.entityNamePlural.toLowerCase(),
+            })}
           />
         ) : (
           <EmptyState
-            title={`No hay ${config.entityNamePlural.toLowerCase()}`}
-            description={`Crea tu primer ${config.entityName.toLowerCase()} para comenzar`}
+            title={t('common.noEntities', {
+              entities: config.entityNamePlural.toLowerCase(),
+            })}
+            description={t('common.createFirstEntity', {
+              entity: config.entityName.toLowerCase(),
+            })}
           />
         )
       ) : (
@@ -175,6 +194,12 @@ export function LookupTableManager({ config }: LookupTableManagerProps) {
             data={items}
             columns={columns}
             keyExtractor={(item) => item.id}
+            sortBy={sortBy}
+            sortOrder={sortOrder}
+            onSortChange={(columnId, nextOrder) => {
+              setSortBy(columnId);
+              setSortOrder(nextOrder);
+            }}
             onRowClick={(item) => setSelectedId(item.id)}
           />
           <PaginationFooter

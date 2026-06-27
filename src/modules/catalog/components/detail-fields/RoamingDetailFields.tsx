@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Field, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import {
@@ -30,6 +31,7 @@ interface RoamingDetailFieldsProps {
 }
 
 export function RoamingDetailFields({ values, onChange }: RoamingDetailFieldsProps) {
+  const { t } = useTranslation();
   const { options: geoZoneOptions } = useGeoZoneOptions();
 
   const set = <K extends keyof RoamingDetailFormValues>(key: K, val: RoamingDetailFormValues[K]) =>
@@ -39,10 +41,10 @@ export function RoamingDetailFields({ values, onChange }: RoamingDetailFieldsPro
     <FieldGroup>
       <div className="grid gap-5 md:grid-cols-2">
         <Field>
-          <FieldLabel>Zona geográfica</FieldLabel>
+          <FieldLabel>{t('catalog.geoZone')}</FieldLabel>
           <Select value={values.geoZoneId} onValueChange={(v) => set('geoZoneId', v)}>
             <SelectTrigger>
-              <SelectValue placeholder="Seleccionar zona" />
+              <SelectValue placeholder={t('common.selectZone')} />
             </SelectTrigger>
             <SelectContent>
               {geoZoneOptions.map((opt) => (
@@ -54,7 +56,7 @@ export function RoamingDetailFields({ values, onChange }: RoamingDetailFieldsPro
           </Select>
         </Field>
         <Field>
-          <FieldLabel>Datos (MB)</FieldLabel>
+          <FieldLabel>{t('catalog.dataMb')}</FieldLabel>
           <Input
             type="number"
             min={0}
@@ -63,7 +65,7 @@ export function RoamingDetailFields({ values, onChange }: RoamingDetailFieldsPro
           />
         </Field>
         <Field>
-          <FieldLabel>Duración (días)</FieldLabel>
+          <FieldLabel>{t('catalog.durationDays')}</FieldLabel>
           <Input
             type="number"
             min={0}
@@ -72,7 +74,7 @@ export function RoamingDetailFields({ values, onChange }: RoamingDetailFieldsPro
           />
         </Field>
         <Field orientation="horizontal">
-          <FieldLabel>Throttle</FieldLabel>
+          <FieldLabel>{t('catalog.throttle')}</FieldLabel>
           <Switch checked={values.hasThrottle} onCheckedChange={(v) => set('hasThrottle', v)} />
         </Field>
       </div>

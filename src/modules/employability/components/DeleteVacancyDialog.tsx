@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import {
   AlertDialog,
@@ -30,13 +31,14 @@ export function DeleteVacancyDialog({
   vacancyTitle,
   onSuccess,
 }: DeleteVacancyDialogProps) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
     mutationFn: () => removeVacancy(vacancyId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.employability.vacancies.all });
-      toast.success('Vacante eliminada');
+      toast.success(t('employability.vacancyDeleted'));
       onOpenChange(false);
       onSuccess();
     },
@@ -47,13 +49,13 @@ export function DeleteVacancyDialog({
     <AlertDialog open={open} onOpenChange={(v) => !v && onOpenChange(false)}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>¿Eliminar vacante?</AlertDialogTitle>
+          <AlertDialogTitle>{t('employability.deleteVacancy')}</AlertDialogTitle>
           <AlertDialogDescription>
-            Se eliminará {vacancyTitle}. Esta acción no se puede deshacer.
+            {t('employability.deleteVacancyDesc', { name: vacancyTitle })}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={mutation.isPending}>Cancelar</AlertDialogCancel>
+          <AlertDialogCancel disabled={mutation.isPending}>{t('common.cancel')}</AlertDialogCancel>
           <AlertDialogAction
             variant="destructive"
             onClick={(e) => {
@@ -65,10 +67,10 @@ export function DeleteVacancyDialog({
             {mutation.isPending ? (
               <>
                 <Loader2 className="animate-spin" />
-                Eliminando…
+                {t('common.deleting')}
               </>
             ) : (
-              'Eliminar'
+              t('common.delete')
             )}
           </AlertDialogAction>
         </AlertDialogFooter>

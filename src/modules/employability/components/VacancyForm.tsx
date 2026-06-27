@@ -3,6 +3,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2 } from 'lucide-react';
 import { useEffect } from 'react';
 import { Controller, useForm } from 'react-hook-form';
+import { useTranslation } from 'react-i18next';
 import type { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field';
@@ -11,19 +12,6 @@ import { SheetFooter } from '@/components/ui/sheet';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { DateTimePicker, FormAlert } from '@/shared/ui';
-
-const VacancyFormSchema = CreateJobVacancyRequestSchema.refine(
-  (data) => {
-    if (data.publicationDate && data.closingDate) {
-      return new Date(data.closingDate) >= new Date(data.publicationDate);
-    }
-    return true;
-  },
-  {
-    message: 'La fecha de cierre debe ser posterior o igual a la fecha de publicación',
-    path: ['closingDate'],
-  },
-);
 
 type InternalFormValues = z.input<typeof CreateJobVacancyRequestSchema>;
 
@@ -54,6 +42,20 @@ export function VacancyForm({
   submitLabel,
   onDirtyChange,
 }: VacancyFormProps) {
+  const { t } = useTranslation();
+  const VacancyFormSchema = CreateJobVacancyRequestSchema.refine(
+    (data) => {
+      if (data.publicationDate && data.closingDate) {
+        return new Date(data.closingDate) >= new Date(data.publicationDate);
+      }
+      return true;
+    },
+    {
+      message: t('employability.closeDateValidation'),
+      path: ['closingDate'],
+    },
+  );
+
   const {
     register,
     control,
@@ -98,29 +100,37 @@ export function VacancyForm({
 
         <FieldGroup>
           <Field data-invalid={errors.title ? true : undefined}>
-            <FieldLabel>Título</FieldLabel>
-            <Input {...register('title')} placeholder="Título de la vacante" maxLength={50} />
+            <FieldLabel>{t('employability.vacancyTitle')}</FieldLabel>
+            <Input
+              {...register('title')}
+              placeholder={t('employability.vacancyTitlePlaceholder')}
+              maxLength={50}
+            />
             <FieldError>{errors.title?.message}</FieldError>
           </Field>
 
           <Field data-invalid={errors.description ? true : undefined}>
-            <FieldLabel>Descripción</FieldLabel>
+            <FieldLabel>{t('common.description')}</FieldLabel>
             <Textarea
               {...register('description')}
-              placeholder="Descripción general de la vacante"
+              placeholder={t('employability.vacancyDescPlaceholder')}
               rows={4}
             />
             <FieldError>{errors.description?.message}</FieldError>
           </Field>
 
           <Field data-invalid={errors.requirements ? true : undefined}>
-            <FieldLabel>Requisitos</FieldLabel>
-            <Textarea {...register('requirements')} placeholder="Requisitos del cargo" rows={4} />
+            <FieldLabel>{t('employability.requirements')}</FieldLabel>
+            <Textarea
+              {...register('requirements')}
+              placeholder={t('employability.requirementsPlaceholder')}
+              rows={4}
+            />
             <FieldError>{errors.requirements?.message}</FieldError>
           </Field>
 
           <Field>
-            <FieldLabel>Fecha de publicación</FieldLabel>
+            <FieldLabel>{t('employability.publishDate')}</FieldLabel>
             <Controller
               control={control}
               name="publicationDate"
@@ -131,7 +141,7 @@ export function VacancyForm({
           </Field>
 
           <Field data-invalid={errors.closingDate ? true : undefined}>
-            <FieldLabel>Fecha de cierre</FieldLabel>
+            <FieldLabel>{t('employability.closeDate')}</FieldLabel>
             <Controller
               control={control}
               name="closingDate"
@@ -143,7 +153,7 @@ export function VacancyForm({
           </Field>
 
           <Field orientation="horizontal">
-            <FieldLabel>Activa</FieldLabel>
+            <FieldLabel>{t('employability.activeFem')}</FieldLabel>
             <Controller
               control={control}
               name="isActive"
@@ -154,7 +164,7 @@ export function VacancyForm({
           </Field>
 
           <Field orientation="horizontal">
-            <FieldLabel>Publicada</FieldLabel>
+            <FieldLabel>{t('employability.publishedFem')}</FieldLabel>
             <Controller
               control={control}
               name="isPublished"

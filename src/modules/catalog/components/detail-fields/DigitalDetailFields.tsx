@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Field, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 
@@ -15,10 +16,11 @@ interface DigitalDetailFieldsProps {
 }
 
 export function DigitalDetailFields({ values, onChange }: DigitalDetailFieldsProps) {
+  const { t } = useTranslation();
   return (
     <FieldGroup>
       <Field>
-        <FieldLabel>Proveedor</FieldLabel>
+        <FieldLabel>{t('catalog.provider')}</FieldLabel>
         <Input
           value={values.provider}
           onChange={(e) => onChange({ provider: e.target.value })}

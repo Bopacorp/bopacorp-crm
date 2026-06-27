@@ -9,6 +9,7 @@ import {
   UserCheck,
 } from 'lucide-react';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useParams } from 'react-router-dom';
 import { useBreadcrumbTitle } from '@/app/BreadcrumbTitleContext.js';
 import { Button } from '@/components/ui/button';
@@ -36,6 +37,7 @@ function advisorName(advisor: {
 }
 
 export default function NegotiationDetailPage() {
+  const { t } = useTranslation();
   const { id = '' } = useParams<{ id: string }>();
   const { negotiation, loading, error, refetch } = useNegotiation(id);
   const { states } = useNegotiationStates();
@@ -59,21 +61,23 @@ export default function NegotiationDetailPage() {
         <StateBadge state={negotiation.state.code} label={negotiation.state.name} />
         {states.length > 0 && (
           <span className="text-xs text-muted-foreground">
-            Etapa {states.find((s) => s.id === negotiation.state.id)?.position ?? '?'} de{' '}
-            {states.length}
+            {t('negotiations.stageOf', {
+              current: states.find((s) => s.id === negotiation.state.id)?.position ?? '?',
+              total: states.length,
+            })}
           </span>
         )}
         <div className="ml-auto flex items-center gap-2">
           <Can permission="negotiations.update">
             <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
               <Pencil data-icon="inline-start" />
-              Editar
+              {t('common.edit')}
             </Button>
           </Can>
           <Can permission="negotiations.change_state">
             <Button variant="outline" size="sm" onClick={() => setChangeStateOpen(true)}>
               <RefreshCw data-icon="inline-start" />
-              Cambiar estado
+              {t('negotiations.changeState')}
             </Button>
           </Can>
         </div>
@@ -82,26 +86,26 @@ export default function NegotiationDetailPage() {
       <Card>
         <CardHeader>
           <span className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-            Detalles
+            {t('negotiations.details')}
           </span>
         </CardHeader>
         <CardContent>
           <div className="grid gap-1 md:grid-cols-2">
-            <DetailField icon={User} label="Contacto">
+            <DetailField icon={User} label={t('common.contact')}>
               {negotiation.client.contactName}
             </DetailField>
-            <DetailField icon={UserCheck} label="Asesor">
+            <DetailField icon={UserCheck} label={t('common.advisor')}>
               {advisorName(negotiation.advisor)}
             </DetailField>
-            <DetailField icon={Calendar} label="Fecha inicio">
+            <DetailField icon={Calendar} label={t('common.startDate')}>
               {formatDate(negotiation.startDate)}
             </DetailField>
-            <DetailField icon={CalendarClock} label="Cierre est.">
+            <DetailField icon={CalendarClock} label={t('common.estimatedClose')}>
               {formatDate(negotiation.estimatedCloseDate)}
             </DetailField>
             {negotiation.observations && (
               <div className="md:col-span-2">
-                <DetailField icon={MessageSquare} label="Observaciones">
+                <DetailField icon={MessageSquare} label={t('common.observations')}>
                   {negotiation.observations}
                 </DetailField>
               </div>
@@ -112,10 +116,10 @@ export default function NegotiationDetailPage() {
 
       <Tabs defaultValue="history">
         <TabsList>
-          <TabsTrigger value="history">Historial</TabsTrigger>
-          <TabsTrigger value="visits">Visitas</TabsTrigger>
-          <TabsTrigger value="documents">Documentos</TabsTrigger>
-          <TabsTrigger value="matrices">Matriz</TabsTrigger>
+          <TabsTrigger value="history">{t('negotiations.history')}</TabsTrigger>
+          <TabsTrigger value="visits">{t('visits.title')}</TabsTrigger>
+          <TabsTrigger value="documents">{t('negotiations.documents')}</TabsTrigger>
+          <TabsTrigger value="matrices">{t('negotiations.matrix')}</TabsTrigger>
         </TabsList>
         <TabsContent value="history" className="mt-4">
           <HistoryTab negotiationId={id} />

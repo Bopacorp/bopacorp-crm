@@ -1,5 +1,7 @@
 import { useMemo } from "react"
 import { cva, type VariantProps } from "class-variance-authority"
+import { resolveValidationMessage, es, en, type LocaleMessages } from "@bopacorp/shared/i18n"
+import { useTranslation } from "react-i18next"
 
 import { cn } from "@/lib/utils"
 import { Label } from "@/components/ui/label"
@@ -179,9 +181,14 @@ function FieldError({
 }: React.ComponentProps<"div"> & {
   errors?: Array<{ message?: string } | undefined>
 }) {
+  const { i18n } = useTranslation()
+  const validationLocales: Record<string, LocaleMessages> = { es, en }
+  const locale = validationLocales[i18n.language] ?? es
+  const resolve = (msg: string) => resolveValidationMessage(msg, locale)
+
   const content = useMemo(() => {
     if (children) {
-      return children
+      return typeof children === 'string' ? resolve(children) : children
     }
 
     if (!errors?.length) {
@@ -193,14 +200,14 @@ function FieldError({
     ]
 
     if (uniqueErrors?.length == 1) {
-      return uniqueErrors[0]?.message
+      return resolve(uniqueErrors[0]?.message ?? '')
     }
 
     return (
       <ul className="ml-4 flex list-disc flex-col gap-1">
         {uniqueErrors.map(
           (error, index) =>
-            error?.message && <li key={index}>{error.message}</li>
+            error?.message && <li key={index}>{resolve(error.message)}</li>
         )}
       </ul>
     )

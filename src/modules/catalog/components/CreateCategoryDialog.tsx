@@ -5,6 +5,7 @@ import { useMutation } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import type { z } from 'zod';
 import { Button } from '@/components/ui/button';
@@ -42,6 +43,7 @@ interface CreateCategoryDialogProps {
 }
 
 export function CreateCategoryDialog({ open, onOpenChange, onCreated }: CreateCategoryDialogProps) {
+  const { t } = useTranslation();
   const [formKey, setFormKey] = useState(0);
 
   const onClose = useCallback(() => onOpenChange(false), [onOpenChange]);
@@ -68,10 +70,11 @@ export function CreateCategoryDialog({ open, onOpenChange, onCreated }: CreateCa
       <Dialog open={open} onOpenChange={handleOpenChange}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Nueva categoría</DialogTitle>
+            <DialogTitle>{t('catalog.newCategory')}</DialogTitle>
           </DialogHeader>
           <CreateForm
             key={formKey}
+            onCancel={() => guardedAction('close')}
             onDirtyChange={handleDirtyChange}
             onSuccess={(id) => {
               dirtyRef.current = false;
@@ -87,12 +90,15 @@ export function CreateCategoryDialog({ open, onOpenChange, onCreated }: CreateCa
 }
 
 function CreateForm({
+  onCancel,
   onDirtyChange,
   onSuccess,
 }: {
+  onCancel: () => void;
   onDirtyChange: (dirty: boolean) => void;
   onSuccess: (id: string) => void;
 }) {
+  const { t } = useTranslation();
   const { options } = useCategoryOptions();
 
   const {
@@ -100,7 +106,7 @@ function CreateForm({
     control,
     handleSubmit,
     setError,
-    formState: { errors, isDirty },
+    formState: { errors, isDirty, isSubmitted, isValid, isSubmitting },
   } = useForm<FormValues>({
     resolver: zodResolver(CreateCategoryRequestSchema),
     defaultValues: { name: '', parentId: undefined, description: '', sortOrder: 0, isActive: true },
@@ -112,16 +118,24 @@ function CreateForm({
   }, [isDirty, onDirtyChange]);
 
   const mutation = useMutation({
-    mutationFn: (data: FormValues) =>
-      createCategory({
+    mutationFn: (data: FormValues) => {
+      const slug = data.name
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[̀-ͯ]/g, '')
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-|-$/g, '');
+      return createCategory({
         name: data.name,
+        slug,
         parentId: data.parentId || undefined,
         description: data.description || undefined,
         sortOrder: data.sortOrder ?? 0,
         isActive: data.isActive ?? true,
-      }),
+      });
+    },
     onSuccess: (data: CategoryResponse) => {
-      toast.success('Categoría creada');
+      toast.success(t('catalog.categoryCreated'));
       onSuccess(data.id);
     },
     onError: (err) => {
@@ -138,6 +152,7 @@ function CreateForm({
   const onSubmit = (data: FormValues) => {
     mutation.mutate(data);
   };
+  const isBusy = mutation.isPending || isSubmitting;
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} noValidate>
@@ -146,13 +161,24 @@ function CreateForm({
           {errors.root && <FormAlert message={errors.root.message ?? ''} />}
 
           <Field data-invalid={errors.name ? true : undefined}>
-            <FieldLabel>Nombre</FieldLabel>
-            <Input {...register('name')} placeholder="Nombre de la categoría" maxLength={30} />
+            <FieldLabel htmlFor="name">
+              {t('common.name')}{' '}
+              <span aria-hidden="true" className="text-destructive">
+                *
+              </span>
+            </FieldLabel>
+            <Input
+              id="name"
+              {...register('name')}
+              placeholder={t('catalog.categoryName')}
+              maxLength={100}
+              disabled={isBusy}
+            />
             <FieldError>{errors.name?.message}</FieldError>
           </Field>
 
           <Field data-invalid={errors.parentId ? true : undefined}>
-            <FieldLabel>Categoría padre</FieldLabel>
+            <FieldLabel htmlFor="parentId">{t('catalog.parentCategory')}</FieldLabel>
             <Controller
               control={control}
               name="parentId"
@@ -161,11 +187,11 @@ function CreateForm({
                   value={field.value ?? '__none__'}
                   onValueChange={(v) => field.onChange(v === '__none__' ? undefined : v)}
                 >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Sin padre (raíz)" />
+                  <SelectTrigger id="parentId" disabled={isBusy}>
+                    <SelectValue placeholder={t('common.noParent')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="__none__">Sin padre (raíz)</SelectItem>
+                    <SelectItem value="__none__">{t('common.noParent')}</SelectItem>
                     {options.map((opt) => (
                       <SelectItem key={opt.value} value={opt.value}>
                         {opt.label}
@@ -179,38 +205,60 @@ function CreateForm({
           </Field>
 
           <Field data-invalid={errors.description ? true : undefined}>
-            <FieldLabel>Descripción</FieldLabel>
+            <FieldLabel htmlFor="description">{t('common.description')}</FieldLabel>
             <Textarea
+              id="description"
               {...register('description')}
-              placeholder="Descripción opcional"
-              maxLength={150}
+              placeholder={t('common.descriptionPlaceholder')}
+              maxLength={255}
               rows={3}
+              disabled={isBusy}
             />
             <FieldError>{errors.description?.message}</FieldError>
           </Field>
 
           <Field data-invalid={errors.sortOrder ? true : undefined}>
-            <FieldLabel>Orden</FieldLabel>
-            <Input type="number" {...register('sortOrder', { valueAsNumber: true })} min={0} />
+            <FieldLabel htmlFor="sortOrder">{t('common.order')}</FieldLabel>
+            <Input
+              id="sortOrder"
+              type="number"
+              {...register('sortOrder', {
+                setValueAs: (value) => {
+                  if (value === '' || value == null) return undefined;
+                  const parsed = Number(value);
+                  return Number.isFinite(parsed) ? parsed : undefined;
+                },
+              })}
+              min={0}
+              disabled={isBusy}
+            />
             <FieldError>{errors.sortOrder?.message}</FieldError>
           </Field>
 
           <Field orientation="horizontal">
-            <FieldLabel>Activo</FieldLabel>
+            <FieldLabel htmlFor="isActive">{t('common.active')}</FieldLabel>
             <Controller
               control={control}
               name="isActive"
               render={({ field }) => (
-                <Switch checked={field.value} onCheckedChange={field.onChange} />
+                <Switch
+                  id="isActive"
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                  disabled={isBusy}
+                />
               )}
             />
           </Field>
         </FieldGroup>
       </div>
       <DialogFooter>
-        <Button type="submit" disabled={mutation.isPending}>
-          {mutation.isPending && <Loader2 data-icon="inline-start" className="animate-spin" />}
-          Crear
+        <Button type="button" variant="outline" onClick={onCancel}>
+          {t('common.cancel')}
+        </Button>
+        <Button type="submit" disabled={isBusy || (isSubmitted && !isValid)}>
+          {isBusy && <Loader2 data-icon="inline-start" className="animate-spin" />}
+          {t('common.create')}
         </Button>
       </DialogFooter>
     </form>

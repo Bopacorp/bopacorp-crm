@@ -1,7 +1,9 @@
 import type { NegotiationDocumentListItemResponse } from '@bopacorp/shared/documents';
 import { FileUp } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
+import { formatDateTime } from '@/lib/format.js';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/modules/auth/context/AuthContext.js';
 import { useAdvisors } from '@/modules/org/hooks/useAdvisors.js';
@@ -18,6 +20,7 @@ import {
 } from '@/shared/ui';
 import { DocumentActions } from '../components/DocumentActions.js';
 import { DocumentUploadDialog } from '../components/DocumentUploadDialog.js';
+import { PendingSummary } from '../components/PendingSummary.js';
 import { useDocuments } from '../hooks/useDocuments.js';
 import { documentStateLabel } from '../lib/state.js';
 
@@ -26,13 +29,6 @@ interface DocumentFilters {
   state: string;
   advisorId?: string;
 }
-
-const STATE_OPTIONS = [
-  { value: 'all', label: 'Todos' },
-  { value: 'PENDING_APPROVAL', label: 'Pendientes' },
-  { value: 'ACCEPTED', label: 'Aceptados' },
-  { value: 'REJECTED', label: 'Rechazados' },
-];
 
 function employeeName(emp: {
   user: { firstName: string | null; lastName: string | null; username: string };
@@ -43,6 +39,7 @@ function employeeName(emp: {
 }
 
 export default function DocumentationPage() {
+  const { t } = useTranslation();
   const { user, hasRole } = useAuth();
   const isAdvisor = hasRole('advisor');
   const { advisors } = useAdvisors();
@@ -64,35 +61,44 @@ export default function DocumentationPage() {
     [advisors],
   );
 
+  const stateOptions = useMemo(
+    () => [
+      { value: 'all', label: t('common.all') },
+      { value: 'PENDING_APPROVAL', label: t('documentation.statePendingApproval') },
+      { value: 'ACCEPTED', label: t('documentation.stateAccepted') },
+      { value: 'REJECTED', label: t('documentation.stateRejected') },
+    ],
+    [t],
+  );
+
   const columns = [
     {
       id: 'company',
-      header: 'Empresa',
+      header: t('documentation.company'),
       accessor: (item: NegotiationDocumentListItemResponse) => (
         <span className="font-medium">{item.negotiation.client.businessName}</span>
       ),
     },
     {
       id: 'type',
-      header: 'Tipo de documento',
+      header: t('documentation.documentType'),
       accessor: (item: NegotiationDocumentListItemResponse) => item.documentType.name,
     },
     {
       id: 'state',
-      header: 'Estado',
+      header: t('common.status'),
       accessor: (item: NegotiationDocumentListItemResponse) => (
         <StateBadge state={item.state} label={documentStateLabel(item.state)} />
       ),
     },
     {
       id: 'uploaded',
-      header: 'Fecha de carga',
-      accessor: (item: NegotiationDocumentListItemResponse) =>
-        new Date(item.uploadedAt).toLocaleString('es-EC'),
+      header: t('documentation.uploadedAt'),
+      accessor: (item: NegotiationDocumentListItemResponse) => formatDateTime(item.uploadedAt),
     },
     {
       id: 'actions',
-      header: 'Acciones',
+      header: t('documentation.actions'),
       accessor: (item: NegotiationDocumentListItemResponse) => (
         <DocumentActions document={item} onSuccess={refetch} />
       ),
@@ -110,37 +116,51 @@ export default function DocumentationPage() {
       )}
     >
       <SectionHeader
-        title="Documentación"
-        description="Gestión de documentos comerciales y flujo de aprobación"
+        title={t('documentation.title')}
+        description={t('documentation.description')}
         actions={
           <Button onClick={() => setUploadOpen(true)}>
             <FileUp data-icon="inline-start" />
-            Subir documento
+            {t('documentation.uploadDocument')}
           </Button>
         }
       />
 
+      {!isAdvisor && (
+        <PendingSummary
+          onAdvisorClick={(advisorId) =>
+            setFilters((f) => ({
+              ...f,
+              advisorId: f.advisorId === advisorId ? undefined : advisorId,
+            }))
+          }
+          selectedAdvisorId={filters.advisorId}
+        />
+      )}
+
       <FilterBar
         searchValue={filters.search}
         onSearchChange={(search) => setFilters((f) => ({ ...f, search }))}
-        searchPlaceholder="Buscar por empresa..."
+        searchPlaceholder={t('documentation.searchPlaceholder')}
         filters={[
           {
             id: 'state',
-            placeholder: 'Estado',
+            label: t('common.status'),
+            placeholder: t('common.status'),
             value: filters.state,
             onChange: (state) => setFilters((f) => ({ ...f, state })),
-            options: STATE_OPTIONS,
+            options: stateOptions,
           },
           ...(!isAdvisor
             ? [
                 {
                   id: 'advisor',
-                  placeholder: 'Asesor',
+                  label: t('common.advisor'),
+                  placeholder: t('common.advisor'),
                   value: filters.advisorId ?? 'all',
                   onChange: (value: string) =>
                     setFilters((f) => ({ ...f, advisorId: value === 'all' ? undefined : value })),
-                  options: [{ value: 'all', label: 'Todos' }, ...advisorOptions],
+                  options: [{ value: 'all', label: t('common.all') }, ...advisorOptions],
                   searchable: true,
                 },
               ]
@@ -151,13 +171,13 @@ export default function DocumentationPage() {
       {documents.length === 0 ? (
         filters.search || filters.state !== 'all' || (!isAdvisor && filters.advisorId) ? (
           <EmptyState
-            title="Sin resultados"
-            description="No se encontraron documentos con los filtros aplicados"
+            title={t('common.noResults')}
+            description={t('documentation.noFilterResults')}
           />
         ) : (
           <EmptyState
-            title="No hay documentos"
-            description="Los documentos pendientes de aprobación aparecerán aquí"
+            title={t('documentation.noDocuments')}
+            description={t('documentation.noDocumentsDesc')}
           />
         )
       ) : (

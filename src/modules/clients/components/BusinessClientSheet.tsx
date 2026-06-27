@@ -17,6 +17,7 @@ import {
   XIcon,
 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import {
   AlertDialog,
@@ -36,6 +37,7 @@ import { formatRelativeTime } from '@/lib/format.js';
 import { queryKeys } from '@/lib/query-keys.js';
 import { Can } from '@/modules/auth/components/Can.js';
 
+import { ApiError, type ApiErrorDetail } from '@/services/api.js';
 import { getErrorMessage } from '@/shared/errors/index.js';
 import { useUnsavedGuard } from '@/shared/hooks/useUnsavedGuard.js';
 import { DiscardChangesDialog, ErrorState, SheetDetailSkeleton, StateBadge } from '@/shared/ui';
@@ -102,6 +104,7 @@ const CLIENT_SKELETON_SECTIONS = [
 ];
 
 export function BusinessClientSheet({ open, onOpenChange, clientId }: BusinessClientSheetProps) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { client, loading, error, refetch } = useBusinessClient(clientId);
   const [editing, setEditing] = useState(false);
@@ -117,7 +120,7 @@ export function BusinessClientSheet({ open, onOpenChange, clientId }: BusinessCl
     mutationFn: () => deleteBusinessClient(clientId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.businessClients.all });
-      toast.success('Cliente eliminado');
+      toast.success(t('common.entityDeleted', { entity: t('negotiations.client') }));
       setShowDelete(false);
       onOpenChange(false);
     },
@@ -155,9 +158,11 @@ export function BusinessClientSheet({ open, onOpenChange, clientId }: BusinessCl
                   <ArrowLeft />
                 </Button>
               )}
-              {loading && <SheetTitle className="sr-only">Cliente</SheetTitle>}
+              {loading && <SheetTitle className="sr-only">{t('negotiations.client')}</SheetTitle>}
               {!showViewHeader && !loading && (
-                <SheetTitle>{editing ? 'Editar cliente' : 'Cliente'}</SheetTitle>
+                <SheetTitle>
+                  {editing ? t('clients.editClient') : t('negotiations.client')}
+                </SheetTitle>
               )}
             </div>
             <div className="flex items-center gap-1">
@@ -200,7 +205,7 @@ export function BusinessClientSheet({ open, onOpenChange, clientId }: BusinessCl
                 <SheetTitle className="text-lg">{client.businessName}</SheetTitle>
                 {client.createdAt && (
                   <span className="text-xs text-muted-foreground">
-                    Creado {formatRelativeTime(client.createdAt)}
+                    {t('common.created')} {formatRelativeTime(client.createdAt)}
                   </span>
                 )}
               </div>
@@ -215,7 +220,10 @@ export function BusinessClientSheet({ open, onOpenChange, clientId }: BusinessCl
         ) : editing ? (
           <EditForm
             client={client}
-            onSaved={() => setEditing(false)}
+            onSaved={() => {
+              dirtyRef.current = false;
+              setEditing(false);
+            }}
             onDirtyChange={handleDirtyChange}
           />
         ) : (
@@ -228,14 +236,15 @@ export function BusinessClientSheet({ open, onOpenChange, clientId }: BusinessCl
       <AlertDialog open={showDelete} onOpenChange={(v) => !v && setShowDelete(false)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>¿Eliminar cliente?</AlertDialogTitle>
+            <AlertDialogTitle>{t('clients.deleteTitle')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Se eliminará {client?.businessName ?? 'este cliente'}. Esta acción no se puede
-              deshacer.
+              {t('clients.deleteDesc', { name: client?.businessName ?? '' })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleteMutation.isPending}>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel disabled={deleteMutation.isPending}>
+              {t('common.cancel')}
+            </AlertDialogCancel>
             <AlertDialogAction
               variant="destructive"
               onClick={(e) => {
@@ -247,10 +256,10 @@ export function BusinessClientSheet({ open, onOpenChange, clientId }: BusinessCl
               {deleteMutation.isPending ? (
                 <>
                   <Loader2 className="animate-spin" />
-                  Eliminando…
+                  {t('common.deleting')}
                 </>
               ) : (
-                'Eliminar'
+                t('common.delete')
               )}
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -261,31 +270,33 @@ export function BusinessClientSheet({ open, onOpenChange, clientId }: BusinessCl
 }
 
 function ViewMode({ client }: { client: BusinessClientResponse }) {
+  const { t } = useTranslation();
+
   return (
     <div className="flex-1 overflow-y-auto p-4">
       <div className="flex flex-col gap-5">
         <div className="flex flex-col gap-1">
-          <SectionLabel>Información</SectionLabel>
-          <DetailField icon={FileText} label="RUC">
+          <SectionLabel>{t('common.information')}</SectionLabel>
+          <DetailField icon={FileText} label={t('clients.ruc')}>
             {client.ruc}
           </DetailField>
-          <DetailField icon={Building2} label="Empresa">
+          <DetailField icon={Building2} label={t('common.company')}>
             {client.businessName}
           </DetailField>
-          <DetailField icon={Settings} label="Estado">
+          <DetailField icon={Settings} label={t('common.status')}>
             <StateBadge
               state={client.isActive ? 'active' : 'inactive'}
-              label={client.isActive ? 'Activo' : 'Inactivo'}
+              label={client.isActive ? t('common.active') : t('common.inactive')}
             />
           </DetailField>
         </div>
 
         <div className="flex flex-col gap-1">
-          <SectionLabel>Contacto</SectionLabel>
-          <DetailField icon={User} label="Nombre">
+          <SectionLabel>{t('common.contact')}</SectionLabel>
+          <DetailField icon={User} label={t('common.name')}>
             {client.contactName}
           </DetailField>
-          <DetailField icon={Phone} label="Teléfono">
+          <DetailField icon={Phone} label={t('common.phone')}>
             {client.contactPhone ? (
               <a href={`tel:${client.contactPhone}`} className="text-primary hover:underline">
                 {client.contactPhone}
@@ -294,7 +305,7 @@ function ViewMode({ client }: { client: BusinessClientResponse }) {
               '—'
             )}
           </DetailField>
-          <DetailField icon={Mail} label="Email">
+          <DetailField icon={Mail} label={t('common.email')}>
             {client.contactEmail ? (
               <a href={`mailto:${client.contactEmail}`} className="text-primary hover:underline">
                 {client.contactEmail}
@@ -303,20 +314,20 @@ function ViewMode({ client }: { client: BusinessClientResponse }) {
               '—'
             )}
           </DetailField>
-          <DetailField icon={MapPin} label="Dirección">
+          <DetailField icon={MapPin} label={t('common.address')}>
             {client.address || '—'}
           </DetailField>
         </div>
 
         <div className="flex flex-col gap-1">
-          <SectionLabel>Métricas</SectionLabel>
-          <DetailField icon={Settings} label="Servicios">
+          <SectionLabel>{t('clients.metrics')}</SectionLabel>
+          <DetailField icon={Settings} label={t('clients.lines')}>
             {client.activeServicesCount}
           </DetailField>
-          <DetailField icon={DollarSign} label="Facturación">
+          <DetailField icon={DollarSign} label={t('clients.monthlyBilling')}>
             {formatCurrency(client.currentMonthlyBilling)}
           </DetailField>
-          <DetailField icon={UserCheck} label="Asesor">
+          <DetailField icon={UserCheck} label={t('common.advisor')}>
             {advisorDisplayName(client.advisor)}
           </DetailField>
         </div>
@@ -334,32 +345,50 @@ function EditForm({
   onSaved: () => void;
   onDirtyChange: (dirty: boolean) => void;
 }) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [formError, setFormError] = useState('');
+  const [serverFieldErrors, setServerFieldErrors] = useState<ApiErrorDetail[]>([]);
 
   const mutation = useMutation({
     mutationFn: (data: UpdateBusinessClientRequest) => updateBusinessClient(client.id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.businessClients.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.negotiations.all });
-      toast.success('Cliente actualizado');
+      toast.success(t('common.entityUpdated', { entity: t('negotiations.client') }));
       onSaved();
     },
-    onError: (err) => setFormError(getErrorMessage(err)),
+    onError: (err) => {
+      if (err instanceof ApiError && err.details?.length) {
+        setServerFieldErrors(err.details);
+        setFormError('');
+        return;
+      }
+
+      setServerFieldErrors([]);
+      setFormError(getErrorMessage(err));
+    },
   });
 
-  const handleSubmit = (values: BusinessClientFormValues) => {
+  const handleSubmit = async (values: BusinessClientFormValues) => {
     setFormError('');
-    mutation.mutate({
-      ruc: values.ruc,
-      advisorId: values.advisorId || undefined,
-      businessName: values.businessName,
-      contactName: values.contactName,
-      contactPhone: values.contactPhone || undefined,
-      contactEmail: values.contactEmail || undefined,
-      address: values.address || undefined,
-      isActive: values.isActive,
-    });
+    setServerFieldErrors([]);
+    try {
+      await mutation.mutateAsync({
+        ruc: values.ruc,
+        advisorId: values.advisorId || undefined,
+        businessName: values.businessName,
+        contactName: values.contactName,
+        contactPhone: values.contactPhone || undefined,
+        contactEmail: values.contactEmail || undefined,
+        address: values.address || undefined,
+        activeServicesCount: values.activeServicesCount,
+        currentMonthlyBilling: values.currentMonthlyBilling,
+        isActive: values.isActive ?? true,
+      });
+    } catch {
+      // mutation.onError already maps server errors into form state
+    }
   };
 
   return (
@@ -368,16 +397,19 @@ function EditForm({
         ruc: client.ruc,
         businessName: client.businessName,
         contactName: client.contactName,
-        contactPhone: client.contactPhone ?? '',
-        contactEmail: client.contactEmail ?? '',
-        address: client.address ?? '',
-        advisorId: client.advisor?.id ?? '',
+        contactPhone: client.contactPhone ?? undefined,
+        contactEmail: client.contactEmail ?? undefined,
+        address: client.address ?? undefined,
+        activeServicesCount: client.activeServicesCount,
+        currentMonthlyBilling: client.currentMonthlyBilling,
+        advisorId: client.advisor?.id ?? undefined,
         isActive: client.isActive,
       }}
       onSubmit={handleSubmit}
       isPending={mutation.isPending}
       error={formError}
-      submitLabel="Guardar"
+      serverFieldErrors={serverFieldErrors}
+      submitLabel={t('common.save')}
       showIsActive
       onDirtyChange={onDirtyChange}
     />

@@ -1,11 +1,13 @@
 import type { VisitListItemResponse } from '@bopacorp/shared/crm';
 import { CheckCircle, Plus } from 'lucide-react';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { formatDateTime } from '@/lib/format.js';
 import { cn } from '@/lib/utils';
 import { Can } from '@/modules/auth/components/Can.js';
 import { useAuth } from '@/modules/auth/context/AuthContext.js';
+import { usePageReset } from '@/shared/hooks/usePageReset.js';
 import {
   EmptyState,
   EntityTable,
@@ -18,8 +20,6 @@ import { useVisits } from '../hooks/useVisits.js';
 import { CreateVisitSheet } from './CreateVisitSheet.js';
 import { VisitActions } from './VisitActions.js';
 import { VisitDetailSheet } from './VisitDetailSheet.js';
-
-const PAGE_SIZE = 10;
 
 function advisorName(advisor: {
   username: string;
@@ -35,8 +35,10 @@ interface VisitsTabProps {
 }
 
 export function VisitsTab({ clientId, negotiationId }: VisitsTabProps) {
+  const { t } = useTranslation();
   const { user, hasRole } = useAuth();
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [createOpen, setCreateOpen] = useState(false);
   const [selectedVisitId, setSelectedVisitId] = useState('');
   const [detailOpen, setDetailOpen] = useState(false);
@@ -47,29 +49,34 @@ export function VisitsTab({ clientId, negotiationId }: VisitsTabProps) {
     ...(isAdvisor && user ? { advisorId: user.id } : {}),
   };
 
-  const { visits, meta, loading, fetching, error, refetch } = useVisits(page, filters);
+  usePageReset([clientId, isAdvisor ? user?.id : undefined, pageSize], setPage);
+
+  const { visits, meta, loading, fetching, error, refetch } = useVisits(page, {
+    ...filters,
+    limit: pageSize,
+  });
 
   const columns = [
     {
       id: 'date',
-      header: 'Fecha',
+      header: t('common.date'),
       accessor: (item: VisitListItemResponse) => formatDateTime(item.visitDate),
     },
     {
       id: 'type',
-      header: 'Tipo',
+      header: t('common.type'),
       accessor: (item: VisitListItemResponse) => (
         <StateBadge state={item.visitType.code} label={item.visitType.name} />
       ),
     },
     {
       id: 'advisor',
-      header: 'Asesor',
+      header: t('common.advisor'),
       accessor: (item: VisitListItemResponse) => advisorName(item.advisor),
     },
     {
       id: 'verified',
-      header: 'Verificada',
+      header: t('visits.verified'),
       accessor: (item: VisitListItemResponse) =>
         item.isVerified ? (
           <CheckCircle className="size-4 text-primary" />
@@ -98,13 +105,13 @@ export function VisitsTab({ clientId, negotiationId }: VisitsTabProps) {
         <Can permission="visits.create">
           <Button onClick={() => setCreateOpen(true)}>
             <Plus data-icon="inline-start" />
-            Registrar visita
+            {t('visits.register')}
           </Button>
         </Can>
       </div>
 
       {visits.length === 0 ? (
-        <EmptyState title="No hay visitas registradas" description="Las visitas aparecerán aquí" />
+        <EmptyState title={t('visits.noVisits')} description={t('visits.noVisitsDesc')} />
       ) : (
         <>
           <EntityTable
@@ -119,8 +126,8 @@ export function VisitsTab({ clientId, negotiationId }: VisitsTabProps) {
           <PaginationFooter
             page={page}
             onPageChange={setPage}
-            pageSize={PAGE_SIZE}
-            onPageSizeChange={() => {}}
+            pageSize={pageSize}
+            onPageSizeChange={setPageSize}
             meta={meta}
           />
         </>

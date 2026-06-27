@@ -1,6 +1,7 @@
 import { OctagonX } from 'lucide-react';
 import { Component, type ErrorInfo, type ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
+import i18n from '@/i18n/index.js';
 
 interface Props {
   children: ReactNode;
@@ -16,12 +17,10 @@ function ErrorFallback({ onRetry }: { onRetry: () => void }) {
       <div className="flex flex-col items-center gap-4 text-center">
         <OctagonX className="size-12 text-destructive" />
         <div className="flex flex-col gap-1">
-          <h2 className="text-lg font-semibold">Algo salió mal</h2>
-          <p className="text-sm text-muted-foreground">
-            Ocurrió un error inesperado. Intenta recargar la página.
-          </p>
+          <h2 className="text-lg font-semibold">{i18n.t('error.somethingWentWrong')}</h2>
+          <p className="text-sm text-muted-foreground">{i18n.t('error.unexpectedReload')}</p>
         </div>
-        <Button onClick={onRetry}>Reintentar</Button>
+        <Button onClick={onRetry}>{i18n.t('error.retry')}</Button>
       </div>
     </div>
   );

@@ -2,6 +2,7 @@ import type { EmployeeListItemResponse } from '@bopacorp/shared/core';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Eye, EyeOff, Loader2, X } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -31,6 +32,7 @@ interface CreateEmployeeSheetProps {
 const NONE_VALUE = '__none__';
 
 export function CreateEmployeeSheet({ open, onOpenChange }: CreateEmployeeSheetProps) {
+  const { t } = useTranslation();
   const [formKey, setFormKey] = useState(0);
 
   const onClose = useCallback(() => onOpenChange(false), [onOpenChange]);
@@ -56,7 +58,7 @@ export function CreateEmployeeSheet({ open, onOpenChange }: CreateEmployeeSheetP
     <Sheet open={open} onOpenChange={handleOpenChange}>
       <SheetContent showCloseButton={false}>
         <SheetHeader>
-          <SheetTitle>Nuevo miembro del equipo</SheetTitle>
+          <SheetTitle>{t('org.newMember')}</SheetTitle>
         </SheetHeader>
         <CreateForm
           key={formKey}
@@ -79,6 +81,7 @@ function CreateForm({
   onSuccess: () => void;
   onDirtyChange: (dirty: boolean) => void;
 }) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { roles } = useRoles();
 
@@ -199,7 +202,7 @@ function CreateForm({
 
       queryClient.invalidateQueries({ queryKey: queryKeys.employees.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.users.all });
-      toast.success('Miembro del equipo creado');
+      toast.success(t('org.memberCreated'));
       onSuccess();
     } catch (err) {
       setFormError(getErrorMessage(err));
@@ -226,35 +229,35 @@ function CreateForm({
 
           <div className="flex flex-col gap-3">
             <span className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-              Cuenta de usuario
+              {t('org.accountSection')}
             </span>
             <FieldGroup>
               <Field>
-                <FieldLabel>Nombre de usuario *</FieldLabel>
+                <FieldLabel>{t('org.username')} *</FieldLabel>
                 <Input
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  placeholder="jdoe"
+                  placeholder={t('org.usernamePlaceholder')}
                   maxLength={50}
                 />
               </Field>
               <Field>
-                <FieldLabel>Email *</FieldLabel>
+                <FieldLabel>{t('auth.email')} *</FieldLabel>
                 <Input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="correo@empresa.com"
+                  placeholder={t('org.emailPlaceholder')}
                 />
               </Field>
               <Field>
-                <FieldLabel>Contraseña *</FieldLabel>
+                <FieldLabel>{t('auth.password')} *</FieldLabel>
                 <div className="relative">
                   <Input
                     type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Mínimo 8 caracteres"
+                    placeholder={t('org.passwordPlaceholder')}
                     className="pr-10"
                   />
                   <Button
@@ -269,14 +272,14 @@ function CreateForm({
                 </div>
               </Field>
               <Field>
-                <FieldLabel>Rol de acceso *</FieldLabel>
+                <FieldLabel>{t('org.accessRole')} *</FieldLabel>
                 <Select value={roleId} onValueChange={setRoleId}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Seleccionar rol" />
+                    <SelectValue placeholder={t('org.selectRole')} />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value={NONE_VALUE} disabled>
-                      Seleccionar rol
+                      {t('org.selectRole')}
                     </SelectItem>
                     {roles.map((r) => (
                       <SelectItem key={r.id} value={r.id}>
@@ -291,12 +294,12 @@ function CreateForm({
 
           <div className="flex flex-col gap-3">
             <span className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-              Información personal
+              {t('org.personalInfo')}
             </span>
             <FieldGroup>
               <div className="grid grid-cols-2 gap-3">
                 <Field>
-                  <FieldLabel>Primer nombre *</FieldLabel>
+                  <FieldLabel>{t('org.firstName')} *</FieldLabel>
                   <Input
                     value={firstName}
                     onChange={(e) => setFirstName(e.target.value)}
@@ -304,7 +307,7 @@ function CreateForm({
                   />
                 </Field>
                 <Field>
-                  <FieldLabel>Segundo nombre</FieldLabel>
+                  <FieldLabel>{t('org.middleName')}</FieldLabel>
                   <Input
                     value={secondName}
                     onChange={(e) => setSecondName(e.target.value)}
@@ -314,7 +317,7 @@ function CreateForm({
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <Field>
-                  <FieldLabel>Primer apellido *</FieldLabel>
+                  <FieldLabel>{t('org.lastName')} *</FieldLabel>
                   <Input
                     value={lastName}
                     onChange={(e) => setLastName(e.target.value)}
@@ -322,7 +325,7 @@ function CreateForm({
                   />
                 </Field>
                 <Field>
-                  <FieldLabel>Segundo apellido</FieldLabel>
+                  <FieldLabel>{t('org.secondLastName')}</FieldLabel>
                   <Input
                     value={secondLastName}
                     onChange={(e) => setSecondLastName(e.target.value)}
@@ -331,25 +334,25 @@ function CreateForm({
                 </Field>
               </div>
               <Field>
-                <FieldLabel>Cédula / ID nacional *</FieldLabel>
+                <FieldLabel>{t('org.nationalId')} *</FieldLabel>
                 <Input
                   value={nationalId}
                   onChange={(e) => setNationalId(e.target.value)}
-                  placeholder="0900000000"
+                  placeholder={t('org.nationalId')}
                   maxLength={20}
                 />
               </Field>
               <Field>
-                <FieldLabel>Teléfono</FieldLabel>
+                <FieldLabel>{t('common.phone')}</FieldLabel>
                 <Input
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  placeholder="+593 9XX XXX XXXX"
+                  placeholder={t('org.phonePlaceholder')}
                   maxLength={20}
                 />
               </Field>
               <Field>
-                <FieldLabel>Dirección</FieldLabel>
+                <FieldLabel>{t('common.address')}</FieldLabel>
                 <Input
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
@@ -361,18 +364,18 @@ function CreateForm({
 
           <div className="flex flex-col gap-3">
             <span className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-              Datos organizacionales
+              {t('org.orgSection')}
             </span>
             <FieldGroup>
               <Field>
-                <FieldLabel>Rol organizacional *</FieldLabel>
+                <FieldLabel>{t('org.orgRole')} *</FieldLabel>
                 <Select value={orgRoleId} onValueChange={setOrgRoleId}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Seleccionar rol" />
+                    <SelectValue placeholder={t('org.selectRole')} />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value={NONE_VALUE} disabled>
-                      Seleccionar rol
+                      {t('org.selectRole')}
                     </SelectItem>
                     {orgRoles.map((r) => (
                       <SelectItem key={r.id} value={r.id}>
@@ -385,21 +388,21 @@ function CreateForm({
               </Field>
               {selectedOrgRole?.department && (
                 <Field>
-                  <FieldLabel>Departamento</FieldLabel>
+                  <FieldLabel>{t('org.department')}</FieldLabel>
                   <Input value={selectedOrgRole.department.name} disabled />
                 </Field>
               )}
               <Field>
-                <FieldLabel>Territorio</FieldLabel>
+                <FieldLabel>{t('org.territory')}</FieldLabel>
                 <Input
                   value={territory}
                   onChange={(e) => setTerritory(e.target.value)}
-                  placeholder="Zona o territorio asignado"
+                  placeholder={t('org.territoryPlaceholder')}
                   maxLength={50}
                 />
               </Field>
               <Field>
-                <FieldLabel>Fecha de contratación</FieldLabel>
+                <FieldLabel>{t('org.hireDate')}</FieldLabel>
                 <Input type="date" value={hiredAt} onChange={(e) => setHiredAt(e.target.value)} />
               </Field>
             </FieldGroup>
@@ -408,18 +411,18 @@ function CreateForm({
           {isAdvisorRole && (
             <div className="flex flex-col gap-3">
               <span className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-                Supervisores
+                {t('org.supervisorsSection')}
               </span>
               <FieldGroup>
                 <Field>
-                  <FieldLabel>Asignar supervisores</FieldLabel>
+                  <FieldLabel>{t('org.assignSupervisors')}</FieldLabel>
                   <SearchSelect
                     options={supervisorOptions.filter((o) => !supervisorIds.includes(o.value))}
                     value=""
                     onValueChange={addSupervisor}
-                    placeholder="Seleccionar supervisor"
-                    searchPlaceholder="Buscar supervisor..."
-                    emptyMessage="Sin supervisores disponibles"
+                    placeholder={t('org.selectSupervisor')}
+                    searchPlaceholder={t('org.searchSupervisor')}
+                    emptyMessage={t('org.noSupervisors')}
                   />
                 </Field>
                 {supervisorIds.length > 0 && (
@@ -449,7 +452,7 @@ function CreateForm({
       <SheetFooter>
         <Button type="button" onClick={handleSubmit} disabled={!canSubmit || submitting}>
           {submitting && <Loader2 data-icon="inline-start" className="animate-spin" />}
-          Crear miembro
+          {t('org.createMember')}
         </Button>
       </SheetFooter>
     </>

@@ -1,8 +1,13 @@
+import { V, vk } from '@bopacorp/shared/i18n';
 import type { AttachmentType, MatrixAttachmentResponse } from '@bopacorp/shared/matrices';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Download, FileSpreadsheet, Loader2, Mail, Pencil, Trash2 } from 'lucide-react';
-import { useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
+import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -12,6 +17,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
@@ -29,8 +35,10 @@ import {
   downloadAttachment,
   updateMatrix,
 } from '@/modules/matrices/matrices.service.js';
+import { ApiError } from '@/services/api.js';
 import { getErrorMessage } from '@/shared/errors/index.js';
-import { ErrorState } from '@/shared/ui';
+import { useUnsavedGuard } from '@/shared/hooks/useUnsavedGuard.js';
+import { DiscardChangesDialog, ErrorState, FormAlert } from '@/shared/ui';
 
 interface MatricesTabProps {
   negotiationId: string;
@@ -41,18 +49,26 @@ const SLOT_CONFIG: Record<
   { label: string; icon: typeof FileSpreadsheet; accept: string; extensions: string[] }
 > = {
   OFFER_MATRIX: {
-    label: 'Excel de oferta',
+    label: 'matrices.offerAttachment',
     icon: FileSpreadsheet,
     accept: '.xlsx,.xls,.csv',
     extensions: ['xlsx', 'xls', 'csv'],
   },
   EMAIL_TEMPLATE: {
-    label: 'Correo de respuesta',
+    label: 'matrices.responseAttachment',
     icon: Mail,
     accept: '.msg,.eml,.pdf,.html',
     extensions: ['msg', 'eml', 'pdf', 'html'],
   },
 };
+
+function createObservationsSchema() {
+  return z.object({
+    observations: z.string().max(500, vk(V.MAX_CHARS, { max: 500 })),
+  });
+}
+
+type ObservationsFormValues = z.input<ReturnType<typeof createObservationsSchema>>;
 
 function MatricesSkeleton() {
   return (
@@ -80,6 +96,7 @@ function MatricesSkeleton() {
 }
 
 export function MatricesTab({ negotiationId }: MatricesTabProps) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { matrices, loading, error, refetch } = useMatrices(negotiationId);
 
@@ -87,7 +104,7 @@ export function MatricesTab({ negotiationId }: MatricesTabProps) {
     mutationFn: () => createMatrix({ negotiationId }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.matrices.all });
-      toast.success('Matriz creada');
+      toast.success(t('matrices.created'));
     },
     onError: (err) => toast.error(getErrorMessage(err)),
   });
@@ -102,17 +119,15 @@ export function MatricesTab({ negotiationId }: MatricesTabProps) {
       <div className="flex flex-col items-center gap-4 py-12">
         <FileSpreadsheet className="size-12 text-muted-foreground" />
         <div className="text-center">
-          <p className="text-sm font-medium">Sin matriz de oferta</p>
-          <p className="text-sm text-muted-foreground">
-            Crea una matriz para gestionar los adjuntos de esta negociación
-          </p>
+          <p className="text-sm font-medium">{t('matrices.noMatrix')}</p>
+          <p className="text-sm text-muted-foreground">{t('matrices.noMatrixDesc')}</p>
         </div>
         <Can permission="offer_matrices.create">
           <Button onClick={() => createMutation.mutate()} disabled={createMutation.isPending}>
             {createMutation.isPending && (
               <Loader2 data-icon="inline-start" className="animate-spin" />
             )}
-            Crear matriz
+            {t('matrices.createMatrix')}
           </Button>
         </Can>
       </div>
@@ -127,6 +142,7 @@ interface MatrixContentProps {
 }
 
 function MatrixContent({ matrixId }: MatrixContentProps) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { matrix, loading: matrixLoading } = useMatrix(matrixId);
   const {
@@ -147,10 +163,15 @@ function MatrixContent({ matrixId }: MatrixContentProps) {
     <div className="flex flex-col gap-6">
       <Card>
         <CardHeader>
-          <CardTitle>Observaciones</CardTitle>
+          <CardTitle>{t('common.observations')}</CardTitle>
           <CardAction>
             <Can permission="offer_matrices.update">
-              <Button variant="ghost" size="icon-sm" onClick={() => setEditObsOpen(true)}>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                onClick={() => setEditObsOpen(true)}
+                aria-label={t('matrices.editObservations')}
+              >
                 <Pencil />
               </Button>
             </Can>
@@ -158,14 +179,14 @@ function MatrixContent({ matrixId }: MatrixContentProps) {
         </CardHeader>
         <CardContent>
           <p className={observations ? 'text-sm' : 'text-sm text-muted-foreground'}>
-            {observations || 'Sin observaciones'}
+            {observations || t('matrices.noObservations')}
           </p>
         </CardContent>
       </Card>
 
       <div className="flex flex-col gap-3">
         <span className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-          Adjuntos
+          {t('matrices.attachments')}
         </span>
         {attachmentsLoading ? (
           <div className="grid gap-4 md:grid-cols-2">
@@ -215,52 +236,129 @@ function EditObservationsDialog({
   initialValue,
   onSuccess,
 }: EditObservationsDialogProps) {
-  const [obs, setObs] = useState(initialValue);
-  const [saving, setSaving] = useState(false);
+  const { t } = useTranslation();
+  const observationsSchema = useMemo(() => createObservationsSchema(), []);
+  const form = useForm<ObservationsFormValues>({
+    resolver: zodResolver(observationsSchema),
+    defaultValues: { observations: initialValue },
+    mode: 'onTouched',
+  });
 
-  const handleOpenChange = (value: boolean) => {
-    if (!value) setObs(initialValue);
-    onOpenChange(value);
+  const {
+    handleSubmit,
+    register,
+    reset,
+    setError,
+    formState: { errors, isDirty, isSubmitting, isSubmitted, isValid },
+  } = form;
+
+  const forceClose = useCallback(() => {
+    reset({ observations: initialValue });
+    onOpenChange(false);
+  }, [initialValue, onOpenChange, reset]);
+
+  const { dirtyRef, showDiscard, handleDirtyChange, guardedAction, handleDiscard, cancelDiscard } =
+    useUnsavedGuard({ onClose: forceClose });
+
+  useEffect(() => {
+    handleDirtyChange(isDirty);
+  }, [handleDirtyChange, isDirty]);
+
+  useEffect(() => {
+    if (open) {
+      reset({ observations: initialValue });
+      dirtyRef.current = false;
+    }
+  }, [dirtyRef, initialValue, open, reset]);
+
+  const mutation = useMutation({
+    mutationFn: (values: ObservationsFormValues) =>
+      updateMatrix(matrixId, { observations: values.observations || undefined }),
+    onSuccess: () => {
+      toast.success(t('matrices.observationsSaved'));
+      dirtyRef.current = false;
+      forceClose();
+      onSuccess();
+    },
+    onError: (err) => {
+      if (err instanceof ApiError && err.details?.length) {
+        for (const d of err.details) {
+          setError(d.field as keyof ObservationsFormValues, { type: 'server', message: d.message });
+        }
+        return;
+      }
+      setError('root', { type: 'server', message: getErrorMessage(err) });
+    },
+  });
+
+  const onSubmit = (values: ObservationsFormValues) => {
+    mutation.mutate(values);
   };
 
-  const save = async () => {
-    setSaving(true);
-    try {
-      await updateMatrix(matrixId, { observations: obs || undefined });
-      toast.success('Observaciones guardadas');
-      onOpenChange(false);
-      onSuccess();
-    } catch (err) {
-      toast.error(getErrorMessage(err));
-    } finally {
-      setSaving(false);
+  const handleOpenChange = (value: boolean) => {
+    if (!value) {
+      guardedAction('close');
+    } else {
+      onOpenChange(true);
     }
   };
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Editar observaciones</DialogTitle>
-        </DialogHeader>
-        <Textarea
-          value={obs}
-          onChange={(e) => setObs(e.target.value)}
-          placeholder="Notas sobre esta matriz..."
-          maxLength={500}
-          rows={5}
-        />
-        <DialogFooter>
-          <Button variant="outline" onClick={() => handleOpenChange(false)} disabled={saving}>
-            Cancelar
-          </Button>
-          <Button onClick={save} disabled={saving || obs === initialValue}>
-            {saving && <Loader2 data-icon="inline-start" className="animate-spin" />}
-            Guardar
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    <>
+      <Dialog open={open} onOpenChange={handleOpenChange}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t('matrices.editObservations')}</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">
+            {errors.root && <FormAlert message={errors.root.message ?? ''} />}
+            <FieldGroup>
+              <Field data-invalid={errors.observations ? true : undefined}>
+                <FieldLabel htmlFor="matrix-observations">{t('common.observations')}</FieldLabel>
+                <Textarea
+                  id="matrix-observations"
+                  {...register('observations')}
+                  placeholder={t('matrices.observationsPlaceholder')}
+                  maxLength={500}
+                  rows={5}
+                  disabled={mutation.isPending || isSubmitting}
+                />
+                <FieldError>{errors.observations?.message}</FieldError>
+              </Field>
+            </FieldGroup>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => guardedAction('close')}
+                disabled={mutation.isPending || isSubmitting}
+              >
+                {t('common.cancel')}
+              </Button>
+              <Button
+                type="submit"
+                disabled={
+                  mutation.isPending || isSubmitting || (isSubmitted && !isValid) || !isDirty
+                }
+              >
+                {mutation.isPending && (
+                  <Loader2 data-icon="inline-start" className="animate-spin" />
+                )}
+                {t('common.save')}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+      <DiscardChangesDialog
+        open={showDiscard}
+        onCancel={cancelDiscard}
+        onDiscard={() => {
+          dirtyRef.current = false;
+          handleDiscard();
+        }}
+      />
+    </>
   );
 }
 
@@ -271,6 +369,7 @@ interface AttachmentSlotProps {
 }
 
 function AttachmentSlot({ matrixId, type, attachment }: AttachmentSlotProps) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
@@ -281,7 +380,7 @@ function AttachmentSlot({ matrixId, type, attachment }: AttachmentSlotProps) {
     mutationFn: (attachmentId: string) => deleteAttachment(matrixId, attachmentId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.matrices.attachments(matrixId) });
-      toast.success('Adjunto eliminado');
+      toast.success(t('matrices.attachmentDeleted'));
     },
     onError: (err) => toast.error(getErrorMessage(err)),
   });
@@ -301,7 +400,7 @@ function AttachmentSlot({ matrixId, type, attachment }: AttachmentSlotProps) {
         encryptionMetadata: upload.encryptionMetadata,
       });
       queryClient.invalidateQueries({ queryKey: queryKeys.matrices.attachments(matrixId) });
-      toast.success('Adjunto subido');
+      toast.success(t('matrices.attachmentUploaded'));
     } catch (err) {
       toast.error(getErrorMessage(err));
     } finally {
@@ -315,7 +414,7 @@ function AttachmentSlot({ matrixId, type, attachment }: AttachmentSlotProps) {
     if (!file) return;
     const ext = file.name.split('.').pop()?.toLowerCase() ?? '';
     if (!config.extensions.includes(ext)) {
-      toast.error(`Formato no permitido. Usa: ${config.extensions.join(', ')}`);
+      toast.error(t('matrices.invalidFormat', { formats: config.extensions.join(', ') }));
       if (fileInputRef.current) fileInputRef.current.value = '';
       return;
     }
@@ -333,7 +432,7 @@ function AttachmentSlot({ matrixId, type, attachment }: AttachmentSlotProps) {
   return (
     <div className="flex flex-1 flex-col gap-2">
       <span className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-        {config.label}
+        {t(config.label)}
       </span>
       {attachment ? (
         <Card className="relative flex flex-1 flex-col gap-3 p-4">
@@ -342,7 +441,7 @@ function AttachmentSlot({ matrixId, type, attachment }: AttachmentSlotProps) {
               variant="ghost"
               size="icon-sm"
               onClick={() => handleDownload(attachment)}
-              aria-label="Descargar"
+              aria-label={t('common.download')}
             >
               <Download className="size-4" />
             </Button>
@@ -352,7 +451,7 @@ function AttachmentSlot({ matrixId, type, attachment }: AttachmentSlotProps) {
                 size="icon-sm"
                 onClick={() => deleteMutation.mutate(attachment.id)}
                 disabled={deleteMutation.isPending}
-                aria-label="Eliminar"
+                aria-label={t('common.delete')}
               >
                 <Trash2 className="size-4 text-destructive" />
               </Button>
@@ -386,7 +485,7 @@ function AttachmentSlot({ matrixId, type, attachment }: AttachmentSlotProps) {
             </div>
             <div className="flex flex-col gap-0.5">
               <span className="text-sm font-medium">
-                {uploading ? 'Subiendo...' : `Subir archivo`}
+                {uploading ? t('matrices.uploading') : t('matrices.uploadFile')}
               </span>
               <span className="text-xs text-muted-foreground">{config.extensions.join(', ')}</span>
             </div>

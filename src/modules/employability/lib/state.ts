@@ -1,15 +1,16 @@
 import type { ApplicationState } from '@bopacorp/shared/employability';
+import i18n from '@/i18n/index.js';
 
 export function applicationStateLabel(state: ApplicationState): string {
   switch (state) {
     case 'DRAFT':
-      return 'Borrador';
+      return i18n.t('employability.stateDraft');
     case 'PENDING':
-      return 'Pendiente';
+      return i18n.t('employability.statePending');
     case 'ACCEPTED':
-      return 'Revisado';
+      return i18n.t('employability.stateReviewed');
     case 'REJECTED':
-      return 'Rechazado';
+      return i18n.t('employability.stateRejected');
     default:
       return state;
   }

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Card } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -39,6 +40,7 @@ interface HistoryTabProps {
 }
 
 export function HistoryTab({ negotiationId }: HistoryTabProps) {
+  const { t } = useTranslation();
   const { history, loading, error, refetch } = useNegotiationHistory(negotiationId);
 
   if (loading) return <TimelineSkeleton />;
@@ -48,8 +50,8 @@ export function HistoryTab({ negotiationId }: HistoryTabProps) {
   const entries = history.map((h) => ({
     id: h.id,
     title: h.previousState
-      ? `${h.previousState.name} → ${h.newState.name}`
-      : `Estado inicial: ${h.newState.name}`,
+      ? t('negotiations.stateTransition', { from: h.previousState.name, to: h.newState.name })
+      : t('negotiations.initialStateLabel', { state: h.newState.name }),
     description: h.notes ?? undefined,
     timestamp: formatDateTime(h.createdAt),
     user: h.changedBy.username,

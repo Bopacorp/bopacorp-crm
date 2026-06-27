@@ -1,4 +1,5 @@
 import { Search } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Input } from '@/components/ui/input';
 import {
   Select,
@@ -28,10 +29,12 @@ interface FilterBarProps {
 export function FilterBar({
   searchValue = '',
   onSearchChange,
-  searchPlaceholder = 'Buscar...',
+  searchPlaceholder,
   filters = [],
   actions,
 }: FilterBarProps) {
+  const { t } = useTranslation();
+
   return (
     <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
       <div className="flex flex-1 flex-col gap-2 sm:flex-row sm:items-end">
@@ -41,7 +44,7 @@ export function FilterBar({
             <Input
               value={searchValue}
               onChange={(e) => onSearchChange(e.target.value)}
-              placeholder={searchPlaceholder}
+              placeholder={searchPlaceholder ?? t('common.search')}
               className="pl-9"
             />
           </div>
@@ -59,8 +62,9 @@ export function FilterBar({
                     value={filter.value ?? ''}
                     onValueChange={(v) => filter.onChange?.(v)}
                     placeholder={filter.placeholder}
-                    searchPlaceholder={`Buscar ${filter.label?.toLowerCase() ?? ''}...`}
-                    emptyMessage="Sin resultados"
+                    searchPlaceholder={t('common.searchEntity', {
+                      entity: filter.label?.toLowerCase() ?? '',
+                    })}
                   />
                 ) : (
                   <Select value={filter.value} onValueChange={filter.onChange}>
