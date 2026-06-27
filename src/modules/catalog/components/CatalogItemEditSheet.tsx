@@ -72,7 +72,10 @@ export function CatalogItemEditSheet({
   return (
     <>
       <Sheet open={open} onOpenChange={handleOpenChange}>
-        <SheetContent showCloseButton={false} className="sm:max-w-2xl overflow-y-auto">
+        <SheetContent
+          showCloseButton={false}
+          className="data-[side=right]:sm:max-w-3xl overflow-y-auto"
+        >
           <SheetHeader>
             <div className="flex items-center justify-between">
               <SheetTitle>{t('catalog.editProduct')}</SheetTitle>

@@ -110,6 +110,7 @@ export function RejectDocumentDialog({
           </DialogHeader>
           <RejectForm
             key={key}
+            open={open}
             onSubmit={onSubmit}
             isPending={mutation.isPending}
             error={error}
@@ -132,6 +133,7 @@ export function RejectDocumentDialog({
 }
 
 interface RejectFormProps {
+  open: boolean;
   onSubmit: (values: RejectFormValues) => void;
   isPending: boolean;
   error: string;
@@ -141,6 +143,7 @@ interface RejectFormProps {
 }
 
 function RejectForm({
+  open,
   onSubmit,
   isPending,
   error,
@@ -154,12 +157,30 @@ function RejectForm({
   const {
     register,
     handleSubmit,
+    reset,
     formState: { errors, isDirty, isSubmitted, isSubmitting, isValid },
   } = useForm<RejectFormValues>({
     resolver: zodResolver(rejectFormSchema),
     defaultValues: { coordinatorMessage: '' },
     mode: 'onTouched',
   });
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    reset(
+      { coordinatorMessage: '' },
+      {
+        keepErrors: false,
+        keepDirty: false,
+        keepTouched: false,
+        keepIsSubmitted: false,
+        keepSubmitCount: false,
+      },
+    );
+  }, [open, reset]);
 
   useEffect(() => {
     onDirtyChange(isDirty);

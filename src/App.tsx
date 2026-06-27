@@ -4,7 +4,7 @@ import MainLayout from '@/app/MainLayout.js';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import RequireAuth from '@/modules/auth/components/RequireAuth.js';
 import { RequirePermission } from '@/modules/auth/components/RequirePermission.js';
-import { MANAGEMENT_ROLES } from '@/modules/auth/constants.js';
+import { MANAGEMENT_ROLES, SALES_MANAGEMENT_ROLES } from '@/modules/auth/constants.js';
 import { useAuth } from '@/modules/auth/context/AuthContext.js';
 import LoginPage from '@/modules/auth/pages/LoginPage';
 import CatalogItemCreatePage from '@/modules/catalog/pages/CatalogItemCreatePage';
@@ -26,13 +26,16 @@ import ReportsPage from '@/modules/reports/pages/ReportsPage';
 import { ErrorBoundary } from '@/shared/ui/ErrorBoundary';
 
 function HomeRedirect() {
-  return <Navigate to="/overview" replace />;
+  const { hasRole } = useAuth();
+  const isCoordinatorOnly =
+    hasRole('coordinator') && !hasRole('admin') && !hasRole('manager') && !hasRole('supervisor');
+  return <Navigate to={isCoordinatorOnly ? '/documentacion' : '/overview'} replace />;
 }
 
-function ManagementOnly({ children }: { children: ReactNode }) {
+function SalesOnly({ children }: { children: ReactNode }) {
   const { hasRole } = useAuth();
-  const isManagement = MANAGEMENT_ROLES.some((role) => hasRole(role));
-  return isManagement ? children : <Navigate to="/clientes" replace />;
+  const allowed = hasRole('advisor') || SALES_MANAGEMENT_ROLES.some((r) => hasRole(r));
+  return allowed ? children : <Navigate to="/clientes" replace />;
 }
 
 export default function App() {
@@ -57,7 +60,9 @@ export default function App() {
                 path="/overview"
                 element={
                   <RequireAuth>
-                    <OverviewPage />
+                    <SalesOnly>
+                      <OverviewPage />
+                    </SalesOnly>
                   </RequireAuth>
                 }
               />
@@ -101,7 +106,10 @@ export default function App() {
                 path="/documentacion"
                 element={
                   <RequireAuth>
-                    <RequirePermission permission="negotiation_documents.read">
+                    <RequirePermission
+                      permission="negotiation_documents.read"
+                      roles={MANAGEMENT_ROLES}
+                    >
                       <DocumentationPage />
                     </RequirePermission>
                   </RequireAuth>
@@ -165,9 +173,9 @@ export default function App() {
                 path="/organizacion/equipo"
                 element={
                   <RequireAuth>
-                    <ManagementOnly>
+                    <SalesOnly>
                       <TeamPage />
-                    </ManagementOnly>
+                    </SalesOnly>
                   </RequireAuth>
                 }
               />
@@ -175,9 +183,11 @@ export default function App() {
                 path="/organizacion/configuracion"
                 element={
                   <RequireAuth>
-                    <RequirePermission permission="departments.read">
-                      <OrgSettingsPage />
-                    </RequirePermission>
+                    <SalesOnly>
+                      <RequirePermission permission="departments.read">
+                        <OrgSettingsPage />
+                      </RequirePermission>
+                    </SalesOnly>
                   </RequireAuth>
                 }
               />
@@ -187,11 +197,11 @@ export default function App() {
                 path="/reportes"
                 element={
                   <RequireAuth>
-                    <ManagementOnly>
+                    <SalesOnly>
                       <RequirePermission permission="report_exports.read">
                         <ReportsPage />
                       </RequirePermission>
-                    </ManagementOnly>
+                    </SalesOnly>
                   </RequireAuth>
                 }
               />

@@ -1,12 +1,14 @@
 import type { NegotiationDocumentListItemResponse } from '@bopacorp/shared/documents';
-import { Plus } from 'lucide-react';
+import { Download, Loader2, Plus } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button.js';
 import { formatDateTime } from '@/lib/format.js';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/modules/auth/context/AuthContext.js';
 import { EmptyState, EntityTable, ErrorState, StateBadge, TableSkeleton } from '@/shared/ui';
+import { downloadNegotiationDocuments } from '../documentation.service.js';
 import { useDocuments } from '../hooks/useDocuments.js';
 import { documentStateLabel } from '../lib/state.js';
 import { DocumentActions } from './DocumentActions.js';
@@ -24,9 +26,22 @@ export function NegotiationDocumentsTab({ negotiationId }: NegotiationDocumentsT
   const { hasRole } = useAuth();
   const isAdvisor = hasRole('advisor') && !hasRole('supervisor') && !hasRole('admin');
 
+  const [downloading, setDownloading] = useState(false);
+
   const { documents, meta, loading, fetching, error, refetch } = useDocuments(page, {
     negotiationId,
   });
+
+  const handleDownloadAll = async () => {
+    setDownloading(true);
+    try {
+      await downloadNegotiationDocuments(negotiationId);
+    } catch {
+      toast.error(t('common.error'));
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   const columns = [
     {
@@ -66,7 +81,17 @@ export function NegotiationDocumentsTab({ negotiationId }: NegotiationDocumentsT
       )}
     >
       {!isAdvisor && (
-        <div className="flex justify-end">
+        <div className="flex justify-end gap-2">
+          {documents.length > 0 && (
+            <Button variant="outline" onClick={handleDownloadAll} disabled={downloading}>
+              {downloading ? (
+                <Loader2 data-icon="inline-start" className="animate-spin" />
+              ) : (
+                <Download data-icon="inline-start" />
+              )}
+              {downloading ? t('documentation.downloading') : t('documentation.downloadAll')}
+            </Button>
+          )}
           <Button onClick={() => setUploadOpen(true)}>
             <Plus data-icon="inline-start" />
             {t('documentation.uploadDocument')}

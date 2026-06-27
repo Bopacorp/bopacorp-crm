@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Can } from '@/modules/auth/components/Can.js';
-import { EmptyState, ErrorState } from '@/shared/ui';
+import { DiscardChangesDialog, EmptyState, ErrorState } from '@/shared/ui';
 import { useCategoryTree } from '../hooks/useCategoryTree.js';
 import { CategoryDetailPanel } from './CategoryDetailPanel.js';
 import { CategoryTreeNode } from './CategoryTreeNode.js';
@@ -16,19 +16,22 @@ export function CategoryManager() {
   const { tree, loading, error, refetch } = useCategoryTree();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
+  const [showDiscard, setShowDiscard] = useState(false);
+  const [pendingSelectedId, setPendingSelectedId] = useState<string | null>(null);
   const detailDirtyRef = useRef(false);
 
   const handleSelect = useCallback(
     (id: string) => {
       if (id === selectedId) return;
       if (detailDirtyRef.current) {
-        const discard = window.confirm(t('common.unsavedChangesConfirm'));
-        if (!discard) return;
+        setPendingSelectedId(id);
+        setShowDiscard(true);
+        return;
       }
       detailDirtyRef.current = false;
       setSelectedId(id);
     },
-    [selectedId, t],
+    [selectedId],
   );
 
   if (error) return <ErrorState error={error} onRetry={refetch} />;
@@ -109,6 +112,22 @@ export function CategoryManager() {
         onCreated={(newId) => {
           refetch();
           setSelectedId(newId);
+        }}
+      />
+
+      <DiscardChangesDialog
+        open={showDiscard}
+        onCancel={() => {
+          setShowDiscard(false);
+          setPendingSelectedId(null);
+        }}
+        onDiscard={() => {
+          detailDirtyRef.current = false;
+          setShowDiscard(false);
+          if (pendingSelectedId) {
+            setSelectedId(pendingSelectedId);
+            setPendingSelectedId(null);
+          }
         }}
       />
     </>

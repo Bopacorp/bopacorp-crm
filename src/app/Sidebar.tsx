@@ -47,7 +47,7 @@ import {
   useSidebar,
 } from '@/components/ui/sidebar';
 import { Can } from '@/modules/auth/components/Can.js';
-import { MANAGEMENT_ROLES } from '@/modules/auth/constants.js';
+import { MANAGEMENT_ROLES, SALES_MANAGEMENT_ROLES } from '@/modules/auth/constants.js';
 import { useAuth } from '@/modules/auth/context/AuthContext.js';
 import { usePermission } from '@/modules/auth/hooks/usePermission.js';
 
@@ -67,12 +67,14 @@ const navigationBottom = [
     href: '/documentacion',
     icon: FileText,
     permission: 'negotiation_documents.read',
+    roles: MANAGEMENT_ROLES,
   },
   {
     key: 'nav.reports',
     href: '/reportes',
     icon: BarChart3,
     permission: 'report_exports.read',
+    roles: SALES_MANAGEMENT_ROLES,
   },
 ];
 
@@ -162,9 +164,10 @@ export function AppSidebar() {
   const navigate = useNavigate();
   const { state } = useSidebar();
   const { t, i18n } = useTranslation();
-  const { user, logout } = useAuth();
+  const { user, logout, hasRole } = useAuth();
   const { hasPermission } = usePermission();
   const isCollapsed = state === 'collapsed';
+  const showOverview = hasRole('advisor') || SALES_MANAGEMENT_ROLES.some((r) => hasRole(r));
 
   const toggleLang = () => {
     const next = i18n.language === 'es' ? 'en' : 'es';
@@ -214,18 +217,20 @@ export function AppSidebar() {
           <SidebarGroupLabel>{t('nav.menu')}</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  asChild
-                  isActive={isActive('/overview')}
-                  tooltip={t('nav.overview')}
-                >
-                  <Link to="/overview">
-                    <Home />
-                    <span>{t('nav.overview')}</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
+              {showOverview && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={isActive('/overview')}
+                    tooltip={t('nav.overview')}
+                  >
+                    <Link to="/overview">
+                      <Home />
+                      <span>{t('nav.overview')}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
 
               {navigationTop
                 .filter((item) => !item.permission || hasPermission(item.permission))
@@ -241,6 +246,12 @@ export function AppSidebar() {
                 ))}
 
               {(() => {
+                const isCoordinatorOnly =
+                  hasRole('coordinator') &&
+                  !hasRole('admin') &&
+                  !hasRole('manager') &&
+                  !hasRole('supervisor');
+                if (isCoordinatorOnly) return null;
                 const visible = catalogChildren.filter((c) => hasPermission(c.permission));
                 if (visible.length === 0) return null;
                 return (
@@ -280,6 +291,7 @@ export function AppSidebar() {
 
               {navigationBottom
                 .filter((item) => !item.permission || hasPermission(item.permission))
+                .filter((item) => !item.roles || item.roles.some((r) => hasRole(r)))
                 .map((item) => (
                   <SidebarMenuItem key={item.href}>
                     <SidebarMenuButton asChild isActive={isActive(item.href)} tooltip={t(item.key)}>
@@ -322,7 +334,7 @@ export function AppSidebar() {
                 );
               })()}
 
-              <Can roles={MANAGEMENT_ROLES}>
+              <Can roles={SALES_MANAGEMENT_ROLES}>
                 {orgChildren.some((c) => hasPermission(c.permission)) && (
                   <SidebarMenuItem>
                     <SidebarMenuButton

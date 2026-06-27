@@ -1,9 +1,9 @@
 import type { CatalogItemResponse } from '@bopacorp/shared/catalog';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { TFunction } from 'i18next';
-import { ArrowLeft, ImageMinus, Loader2, Pencil, Trash2, Upload } from 'lucide-react';
+import { ArrowLeft, Loader2, Pencil, Trash2 } from 'lucide-react';
 import type { ReactNode } from 'react';
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -21,22 +21,12 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle as DialogTitlePrimitive,
-} from '@/components/ui/dialog';
 import { formatCurrency, formatDate } from '@/lib/format.js';
 import { queryKeys } from '@/lib/query-keys.js';
 import { Can } from '@/modules/auth/components/Can.js';
 import { getErrorMessage } from '@/shared/errors/index.js';
 import { DetailSkeleton, EmptyState, ErrorState, StateBadge } from '@/shared/ui';
-import {
-  deleteCatalogItem,
-  deleteCatalogItemImage,
-  uploadCatalogItemImage,
-} from '../catalog.service.js';
+import { deleteCatalogItem } from '../catalog.service.js';
 import { CatalogItemEditSheet } from '../components/CatalogItemEditSheet.js';
 import { useCatalogItem } from '../hooks/useCatalogItem.js';
 
@@ -140,9 +130,7 @@ export default function CatalogItemDetailPage() {
   useBreadcrumbTitle(item?.name ?? null);
 
   const [showDelete, setShowDelete] = useState(false);
-  const [imageViewOpen, setImageViewOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
-  const imageInputRef = useRef<HTMLInputElement>(null);
 
   const deleteItemMutation = useMutation({
     mutationFn: () => deleteCatalogItem(id),
@@ -150,24 +138,6 @@ export default function CatalogItemDetailPage() {
       queryClient.invalidateQueries({ queryKey: queryKeys.catalog.items.all });
       toast.success(t('catalog.productDeleted'));
       navigate('/catalogo');
-    },
-    onError: (err) => toast.error(getErrorMessage(err)),
-  });
-
-  const uploadImageMutation = useMutation({
-    mutationFn: (file: File) => uploadCatalogItemImage(id, file),
-    onSuccess: () => {
-      refetch();
-      toast.success(t('catalog.imageUploaded'));
-    },
-    onError: (err) => toast.error(getErrorMessage(err)),
-  });
-
-  const deleteImageMutation = useMutation({
-    mutationFn: () => deleteCatalogItemImage(id),
-    onSuccess: () => {
-      refetch();
-      toast.success(t('catalog.imageDeleted'));
     },
     onError: (err) => toast.error(getErrorMessage(err)),
   });
@@ -191,42 +161,9 @@ export default function CatalogItemDetailPage() {
           label={item.isActive ? t('common.active') : t('common.inactive')}
         />
         {item.isPublished && <Badge variant="outline">{t('common.published')}</Badge>}
-        {item.imagePath && (
-          <button type="button" onClick={() => setImageViewOpen(true)}>
-            <img src={item.imagePath} alt={item.name} className="size-10 rounded-md object-cover" />
-          </button>
-        )}
 
         <div className="ml-auto flex items-center gap-2">
           <Can permission="catalog_items.update">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => imageInputRef.current?.click()}
-              disabled={uploadImageMutation.isPending}
-            >
-              {uploadImageMutation.isPending ? (
-                <Loader2 data-icon="inline-start" className="animate-spin" />
-              ) : (
-                <Upload data-icon="inline-start" />
-              )}
-              {t('catalog.uploadImage')}
-            </Button>
-            {item.imagePath && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => deleteImageMutation.mutate()}
-                disabled={deleteImageMutation.isPending}
-              >
-                {deleteImageMutation.isPending ? (
-                  <Loader2 data-icon="inline-start" className="animate-spin" />
-                ) : (
-                  <ImageMinus data-icon="inline-start" />
-                )}
-                {t('catalog.deleteImage')}
-              </Button>
-            )}
             <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
               <Pencil data-icon="inline-start" />
               {t('common.edit')}
@@ -374,19 +311,6 @@ export default function CatalogItemDetailPage() {
         </Card>
       )}
 
-      {/* Hidden file input for image upload */}
-      <input
-        ref={imageInputRef}
-        type="file"
-        accept="image/jpeg,image/png,image/webp"
-        className="hidden"
-        onChange={(e) => {
-          const file = e.target.files?.[0];
-          if (file) uploadImageMutation.mutate(file);
-          e.target.value = '';
-        }}
-      />
-
       {/* Delete confirmation */}
       <AlertDialog open={showDelete} onOpenChange={setShowDelete}>
         <AlertDialogContent>
@@ -415,22 +339,6 @@ export default function CatalogItemDetailPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      {/* Image viewer dialog */}
-      <Dialog open={imageViewOpen} onOpenChange={setImageViewOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitlePrimitive>{item.name}</DialogTitlePrimitive>
-          </DialogHeader>
-          {item.imagePath && (
-            <img
-              src={item.imagePath}
-              alt={item.name}
-              className="w-full rounded-md object-contain"
-            />
-          )}
-        </DialogContent>
-      </Dialog>
 
       {/* Edit sheet */}
       {item && (

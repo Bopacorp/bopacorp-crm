@@ -74,6 +74,7 @@ export function CreateCategoryDialog({ open, onOpenChange, onCreated }: CreateCa
           </DialogHeader>
           <CreateForm
             key={formKey}
+            onCancel={() => guardedAction('close')}
             onDirtyChange={handleDirtyChange}
             onSuccess={(id) => {
               dirtyRef.current = false;
@@ -89,9 +90,11 @@ export function CreateCategoryDialog({ open, onOpenChange, onCreated }: CreateCa
 }
 
 function CreateForm({
+  onCancel,
   onDirtyChange,
   onSuccess,
 }: {
+  onCancel: () => void;
   onDirtyChange: (dirty: boolean) => void;
   onSuccess: (id: string) => void;
 }) {
@@ -250,6 +253,9 @@ function CreateForm({
         </FieldGroup>
       </div>
       <DialogFooter>
+        <Button type="button" variant="outline" onClick={onCancel}>
+          {t('common.cancel')}
+        </Button>
         <Button type="submit" disabled={isBusy || (isSubmitted && !isValid)}>
           {isBusy && <Loader2 data-icon="inline-start" className="animate-spin" />}
           {t('common.create')}

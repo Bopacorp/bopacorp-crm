@@ -72,6 +72,22 @@ export async function uploadDocument(file: File): Promise<UploadDocumentResponse
   return response.data.data;
 }
 
+export async function downloadNegotiationDocuments(negotiationId: string) {
+  const response = await api.get(`/crm/negotiations/${negotiationId}/documents/download`, {
+    responseType: 'blob',
+  });
+
+  const blob = new Blob([response.data as BlobPart], { type: 'application/zip' });
+  const url = window.URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `documentos_${negotiationId}.zip`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.URL.revokeObjectURL(url);
+}
+
 export async function downloadDocument(id: string, filename: string) {
   const response = await api.get(`/documents/${id}/download`, {
     responseType: 'blob',

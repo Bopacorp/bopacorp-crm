@@ -1,11 +1,16 @@
 import type { CategoryTreeResponse } from '@bopacorp/shared/catalog';
+import { UpdateCategoryRequestSchema } from '@bopacorp/shared/catalog';
+import { V, vk } from '@bopacorp/shared/i18n';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Calendar, FileText, GitBranch, Hash, Loader2, Pencil, Settings, Tag } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Controller, useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
+import { z } from 'zod';
 import { Button } from '@/components/ui/button';
-import { Field, FieldGroup, FieldLabel } from '@/components/ui/field';
+import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import {
   Select,
@@ -20,9 +25,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { formatRelativeTime } from '@/lib/format.js';
 import { queryKeys } from '@/lib/query-keys.js';
 import { Can } from '@/modules/auth/components/Can.js';
+import { ApiError } from '@/services/api.js';
 import { getErrorMessage } from '@/shared/errors/index.js';
 import { useUnsavedGuard } from '@/shared/hooks/useUnsavedGuard.js';
-import { DiscardChangesDialog, ErrorState, StateBadge } from '@/shared/ui';
+import { DiscardChangesDialog, ErrorState, FormAlert, StateBadge } from '@/shared/ui';
 import { getCategory, updateCategory } from '../catalog.service.js';
 import { useCategoryOptions } from '../hooks/useCategoryOptions.js';
 
@@ -64,6 +70,17 @@ function findCategoryName(tree: CategoryTreeResponse[], id: string): string | nu
   return null;
 }
 
+const CategoryEditSchema = UpdateCategoryRequestSchema.extend({
+  name: z
+    .string({ error: V.REQUIRED })
+    .min(1, V.REQUIRED)
+    .max(100, vk(V.MAX_CHARS, { max: 100 })),
+  sortOrder: z.number({ error: V.REQUIRED }).int(V.INTEGER).min(0, V.NON_NEGATIVE).default(0),
+  isActive: z.boolean(),
+});
+
+type EditFormValues = z.input<typeof CategoryEditSchema>;
+
 export function CategoryDetailPanel({
   categoryId,
   tree,
@@ -79,12 +96,6 @@ export function CategoryDetailPanel({
   const { dirtyRef, showDiscard, handleDirtyChange, guardedAction, handleDiscard, cancelDiscard } =
     useUnsavedGuard({ onClose });
 
-  useEffect(() => {
-    if (externalDirtyRef) {
-      externalDirtyRef.current = dirtyRef.current;
-    }
-  });
-
   const {
     data: entity,
     isLoading,
@@ -96,14 +107,18 @@ export function CategoryDetailPanel({
     enabled: !!categoryId,
   });
 
-  if (prevCategoryIdRef.current !== categoryId) {
-    prevCategoryIdRef.current = categoryId;
-    if (editing) {
-      setEditing(false);
-      dirtyRef.current = false;
-      if (externalDirtyRef) externalDirtyRef.current = false;
+  useEffect(() => {
+    if (prevCategoryIdRef.current === categoryId) {
+      return;
     }
-  }
+
+    prevCategoryIdRef.current = categoryId;
+    setEditing(false);
+    dirtyRef.current = false;
+    if (externalDirtyRef) {
+      externalDirtyRef.current = false;
+    }
+  }, [categoryId, dirtyRef, externalDirtyRef]);
 
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: queryKeys.catalog.categories.all });
@@ -256,109 +271,164 @@ interface EditFormProps {
 
 function EditForm({ entity, tree, onDirtyChange, onSaved, onCancel }: EditFormProps) {
   const { t } = useTranslation();
-  const [name, setName] = useState(entity.name);
-  const [parentId, setParentId] = useState(entity.parentId ?? '__none__');
-  const [description, setDescription] = useState(entity.description ?? '');
-  const [sortOrder, setSortOrder] = useState(String(entity.sortOrder));
-  const [isActive, setIsActive] = useState(entity.isActive);
-  const [formError, setFormError] = useState('');
-
   const excludeIds = useMemo(
     () => [entity.id, ...getDescendantIds(tree, entity.id)],
     [tree, entity.id],
   );
   const { options } = useCategoryOptions(excludeIds);
-
-  const isDirty =
-    name !== entity.name ||
-    parentId !== (entity.parentId ?? '__none__') ||
-    description !== (entity.description ?? '') ||
-    sortOrder !== String(entity.sortOrder) ||
-    isActive !== entity.isActive;
+  const {
+    register,
+    control,
+    handleSubmit,
+    setError,
+    formState: { errors, isDirty, isSubmitted, isValid, isSubmitting },
+  } = useForm<EditFormValues>({
+    resolver: zodResolver(CategoryEditSchema),
+    defaultValues: {
+      parentId: entity.parentId ?? undefined,
+      name: entity.name,
+      description: entity.description ?? '',
+      sortOrder: entity.sortOrder,
+      isActive: entity.isActive,
+    },
+    mode: 'onTouched',
+  });
 
   useEffect(() => {
     onDirtyChange(isDirty);
   }, [isDirty, onDirtyChange]);
 
   const mutation = useMutation({
-    mutationFn: () =>
+    mutationFn: (values: EditFormValues) =>
       updateCategory(entity.id, {
-        name,
-        parentId: parentId === '__none__' ? null : parentId,
-        description: description || undefined,
-        sortOrder: Number(sortOrder),
-        isActive,
+        name: values.name,
+        parentId: values.parentId ?? null,
+        description: values.description || undefined,
+        sortOrder: values.sortOrder,
+        isActive: values.isActive,
       }),
     onSuccess: () => {
       toast.success(t('catalog.categoryUpdated'));
       onSaved();
     },
-    onError: (err) => setFormError(getErrorMessage(err)),
+    onError: (err) => {
+      if (err instanceof ApiError && err.details?.length) {
+        for (const detail of err.details) {
+          setError(detail.field as keyof EditFormValues, {
+            type: 'server',
+            message: detail.message,
+          });
+        }
+        return;
+      }
+      setError('root', { type: 'server', message: getErrorMessage(err) });
+    },
   });
 
-  const canSubmit = name.trim() !== '' && isDirty;
-
   return (
-    <div className="flex flex-col gap-4 p-4">
+    <form
+      onSubmit={handleSubmit((values) => mutation.mutate(values))}
+      noValidate
+      className="flex flex-col gap-4 p-4"
+    >
       <h3 className="text-base font-medium">{t('catalog.editCategory')}</h3>
       <FieldGroup>
-        {formError && (
-          <div className="rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
-            {formError}
-          </div>
-        )}
-        <Field>
-          <FieldLabel>{t('common.name')}</FieldLabel>
-          <Input value={name} onChange={(e) => setName(e.target.value)} maxLength={100} />
+        {errors.root?.message && <FormAlert message={errors.root.message} />}
+        <Field data-invalid={errors.name ? true : undefined}>
+          <FieldLabel htmlFor="name">
+            {t('common.name')}{' '}
+            <span aria-hidden="true" className="text-destructive">
+              *
+            </span>
+          </FieldLabel>
+          <Input
+            id="name"
+            {...register('name')}
+            placeholder={t('catalog.categoryName')}
+            maxLength={100}
+            disabled={isSubmitting}
+          />
+          <FieldError>{errors.name?.message}</FieldError>
         </Field>
-        <Field>
-          <FieldLabel>{t('catalog.parentCategory')}</FieldLabel>
-          <Select value={parentId} onValueChange={setParentId}>
-            <SelectTrigger>
-              <SelectValue placeholder={t('common.noParent')} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__none__">{t('common.noParent')}</SelectItem>
-              {options.map((opt) => (
-                <SelectItem key={opt.value} value={opt.value} disabled={opt.disabled}>
-                  {opt.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <Field data-invalid={errors.parentId ? true : undefined}>
+          <FieldLabel htmlFor="parentId">{t('catalog.parentCategory')}</FieldLabel>
+          <Controller
+            control={control}
+            name="parentId"
+            render={({ field }) => (
+              <Select
+                value={field.value ?? '__none__'}
+                onValueChange={(v) => field.onChange(v === '__none__' ? undefined : v)}
+              >
+                <SelectTrigger id="parentId" disabled={isSubmitting}>
+                  <SelectValue placeholder={t('common.noParent')} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">{t('common.noParent')}</SelectItem>
+                  {options.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value} disabled={opt.disabled}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          />
+          <FieldError>{errors.parentId?.message}</FieldError>
         </Field>
-        <Field>
-          <FieldLabel>{t('common.description')}</FieldLabel>
+        <Field data-invalid={errors.description ? true : undefined}>
+          <FieldLabel htmlFor="description">{t('common.description')}</FieldLabel>
           <Textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
+            id="description"
+            {...register('description')}
             maxLength={255}
             rows={3}
+            disabled={isSubmitting}
           />
+          <FieldError>{errors.description?.message}</FieldError>
         </Field>
-        <Field>
-          <FieldLabel>{t('common.order')}</FieldLabel>
+        <Field data-invalid={errors.sortOrder ? true : undefined}>
+          <FieldLabel htmlFor="sortOrder">{t('common.order')}</FieldLabel>
           <Input
+            id="sortOrder"
             type="number"
-            value={sortOrder}
-            onChange={(e) => setSortOrder(e.target.value)}
+            {...register('sortOrder', {
+              setValueAs: (value) => {
+                if (value === '' || value == null) return undefined;
+                const parsed = Number(value);
+                return Number.isFinite(parsed) ? parsed : undefined;
+              },
+            })}
             min={0}
+            disabled={isSubmitting}
           />
+          <FieldError>{errors.sortOrder?.message}</FieldError>
         </Field>
         <Field orientation="horizontal">
-          <FieldLabel>{t('common.active')}</FieldLabel>
-          <Switch checked={isActive} onCheckedChange={setIsActive} />
+          <FieldLabel htmlFor="isActive">{t('common.active')}</FieldLabel>
+          <Controller
+            control={control}
+            name="isActive"
+            render={({ field }) => (
+              <Switch
+                id="isActive"
+                checked={field.value}
+                onCheckedChange={field.onChange}
+                disabled={isSubmitting}
+              />
+            )}
+          />
         </Field>
       </FieldGroup>
       <div className="flex items-center gap-2">
-        <Button onClick={() => mutation.mutate()} disabled={!canSubmit || mutation.isPending}>
-          {mutation.isPending && <Loader2 data-icon="inline-start" className="animate-spin" />}
+        <Button type="submit" disabled={isSubmitting || (isSubmitted && !isValid)}>
+          {isSubmitting && <Loader2 data-icon="inline-start" className="animate-spin" />}
           {t('common.save')}
         </Button>
-        <Button variant="ghost" onClick={onCancel}>
+        <Button type="button" variant="ghost" onClick={onCancel}>
           {t('common.cancel')}
         </Button>
       </div>
-    </div>
+    </form>
   );
 }

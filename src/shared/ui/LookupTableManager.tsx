@@ -17,7 +17,7 @@ import {
   StateBadge,
   TableSkeleton,
 } from '@/shared/ui';
-import { LookupTableSheet } from './LookupTableSheet';
+import { LookupTableSheet } from './LookupTableSheet.js';
 
 export interface LookupListItem {
   id: string;
@@ -72,39 +72,54 @@ export function LookupTableManager({ config }: LookupTableManagerProps) {
   const [search, setSearch] = useState('');
   const [isActiveFilter, setIsActiveFilter] = useState<string>('all');
   const [pageSize, setPageSize] = useState(10);
+  const [sortBy, setSortBy] = useState<string | undefined>();
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
 
   const [debouncedSearch] = useDebounce(search, 400);
-
   const isActive = isActiveFilter === 'all' ? undefined : isActiveFilter === 'true';
 
-  usePageReset([debouncedSearch, isActiveFilter, pageSize], setPage);
+  usePageReset([debouncedSearch, isActiveFilter, pageSize, sortBy ?? '', sortOrder], setPage);
 
   const { data, isLoading, isFetching, error, refetch } = useQuery({
-    queryKey: [...config.queryKey, 'list', page, { search: debouncedSearch, isActive, pageSize }],
+    queryKey: [
+      ...config.queryKey,
+      'list',
+      page,
+      { search: debouncedSearch, isActive, pageSize, sortBy, sortOrder },
+    ],
     queryFn: () =>
       config.listFn({
         page,
         limit: pageSize,
         search: debouncedSearch || undefined,
         isActive,
-        sortOrder: 'asc',
+        sortBy,
+        sortOrder,
       }),
   });
 
   const items = data?.data ?? [];
   const meta = data?.meta ?? null;
 
+  const statusOptions = [
+    { value: 'all', label: t('common.all') },
+    { value: 'true', label: t('common.actives') },
+    { value: 'false', label: t('common.inactives') },
+  ];
+
   const columns = [
     {
       id: 'code',
       header: t('common.code'),
+      sortable: true,
       accessor: (item: LookupListItem) => <span className="font-mono text-xs">{item.code}</span>,
     },
     {
       id: 'name',
       header: t('common.name'),
+      sortable: true,
       accessor: (item: LookupListItem) => item.name,
     },
     {
@@ -140,11 +155,7 @@ export function LookupTableManager({ config }: LookupTableManagerProps) {
             id: 'isActive',
             label: t('common.status'),
             placeholder: t('common.status'),
-            options: [
-              { value: 'all', label: t('common.all') },
-              { value: 'true', label: t('common.actives') },
-              { value: 'false', label: t('common.inactives') },
-            ],
+            options: statusOptions,
             value: isActiveFilter,
             onChange: setIsActiveFilter,
           },
@@ -183,6 +194,12 @@ export function LookupTableManager({ config }: LookupTableManagerProps) {
             data={items}
             columns={columns}
             keyExtractor={(item) => item.id}
+            sortBy={sortBy}
+            sortOrder={sortOrder}
+            onSortChange={(columnId, nextOrder) => {
+              setSortBy(columnId);
+              setSortOrder(nextOrder);
+            }}
             onRowClick={(item) => setSelectedId(item.id)}
           />
           <PaginationFooter

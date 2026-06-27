@@ -1,9 +1,8 @@
 import type { CatalogItemListItemResponse } from '@bopacorp/shared/catalog';
 import { Plus } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { formatCurrency } from '@/lib/format.js';
 import { cn } from '@/lib/utils';
@@ -22,7 +21,6 @@ import {
 import { CatalogItemCreateSheet } from '../components/CatalogItemCreateSheet.js';
 import { useCatalogItems } from '../hooks/useCatalogItems.js';
 import { useCategoryOptions } from '../hooks/useCategoryOptions.js';
-import { useItemTypes } from '../hooks/useItemTypes.js';
 
 export default function CatalogPage() {
   const { t } = useTranslation();
@@ -31,7 +29,6 @@ export default function CatalogPage() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [categoryId, setCategoryId] = useState('all');
-  const [itemTypeId, setItemTypeId] = useState('all');
   const [isActiveFilter, setIsActiveFilter] = useState('all');
   const [isPublishedFilter, setIsPublishedFilter] = useState('all');
   const [sortBy, setSortBy] = useState<string | undefined>();
@@ -40,16 +37,7 @@ export default function CatalogPage() {
   const [createOpen, setCreateOpen] = useState(false);
 
   usePageReset(
-    [
-      search,
-      categoryId,
-      itemTypeId,
-      isActiveFilter,
-      isPublishedFilter,
-      sortBy,
-      sortOrder,
-      pageSize,
-    ],
+    [search, categoryId, isActiveFilter, isPublishedFilter, sortBy, sortOrder, pageSize],
     setPage,
   );
 
@@ -59,7 +47,6 @@ export default function CatalogPage() {
   const { items, meta, loading, fetching, error, refetch } = useCatalogItems(page, {
     search,
     categoryId: categoryId === 'all' ? undefined : categoryId,
-    itemTypeId: itemTypeId === 'all' ? undefined : itemTypeId,
     isActive,
     isPublished,
     sortBy,
@@ -68,19 +55,9 @@ export default function CatalogPage() {
   });
 
   const { options: categoryOptions } = useCategoryOptions();
-  const { itemTypes } = useItemTypes();
-
-  const itemTypeOptions = useMemo(
-    () => itemTypes.map((it) => ({ value: it.id, label: it.name })),
-    [itemTypes],
-  );
 
   const hasFilters =
-    search !== '' ||
-    categoryId !== 'all' ||
-    itemTypeId !== 'all' ||
-    isActive !== undefined ||
-    isPublished !== undefined;
+    search !== '' || categoryId !== 'all' || isActive !== undefined || isPublished !== undefined;
 
   const statusOptions = [
     { value: 'all', label: t('common.all') },
@@ -99,25 +76,13 @@ export default function CatalogPage() {
       id: 'name',
       header: t('common.name'),
       accessor: (item: CatalogItemListItemResponse) => (
-        <div className="flex items-center gap-2">
-          {item.imagePath && (
-            <img src={item.imagePath} alt="" className="size-8 rounded object-cover" />
-          )}
-          <span className="font-medium">{item.name}</span>
-        </div>
+        <span className="font-medium">{item.name}</span>
       ),
     },
     {
       id: 'category',
       header: t('common.category'),
       accessor: (item: CatalogItemListItemResponse) => item.category.name,
-    },
-    {
-      id: 'itemType',
-      header: t('common.type'),
-      accessor: (item: CatalogItemListItemResponse) => (
-        <Badge variant="outline">{item.itemType.name}</Badge>
-      ),
     },
     {
       id: 'contractType',
@@ -165,7 +130,7 @@ export default function CatalogPage() {
     return (
       <div className="flex flex-col gap-6">
         <SectionHeader title={t('catalog.title')} description={t('catalog.description')} />
-        <TableSkeleton columns={7} />
+        <TableSkeleton columns={6} />
       </div>
     );
   }
@@ -211,14 +176,6 @@ export default function CatalogPage() {
             options: [{ value: 'all', label: t('common.allFeminine') }, ...categoryOptions],
             value: categoryId,
             onChange: setCategoryId,
-          },
-          {
-            id: 'itemType',
-            label: t('common.type'),
-            placeholder: t('catalog.itemTypeFilter'),
-            options: [{ value: 'all', label: t('common.all') }, ...itemTypeOptions],
-            value: itemTypeId,
-            onChange: setItemTypeId,
           },
           {
             id: 'isActive',

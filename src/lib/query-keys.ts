@@ -87,6 +87,12 @@ export const queryKeys = {
     detail: (id: string) => ['matrices', 'detail', id] as const,
     attachments: (matrixId: string) => ['matrices', 'attachments', matrixId] as const,
   },
+  notifications: {
+    all: ['notifications'] as const,
+    list: (page: number, filters: Record<string, unknown>) =>
+      ['notifications', 'list', page, filters] as const,
+    unread: ['notifications', 'unread'] as const,
+  },
   catalog: {
     all: ['catalog'] as const,
     itemTypes: {
