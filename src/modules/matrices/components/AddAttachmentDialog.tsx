@@ -1,8 +1,9 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Loader2 } from 'lucide-react';
-import { useEffect } from 'react';
+import { FileUp, Loader2, X } from 'lucide-react';
+import { useCallback, useEffect, useMemo } from 'react';
 import { Controller, useForm } from 'react-hook-form';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
@@ -27,18 +28,23 @@ import { queryKeys } from '@/lib/query-keys.js';
 import { uploadDocument } from '@/modules/documentation/documentation.service.js';
 import { ApiError } from '@/services/api.js';
 import { getErrorMessage } from '@/shared/errors/index.js';
-import { FormAlert } from '@/shared/ui';
+import { useUnsavedGuard } from '@/shared/hooks/useUnsavedGuard.js';
+import { DiscardChangesDialog, FormAlert } from '@/shared/ui';
 import { createAttachment } from '../matrices.service.js';
 
-const AddAttachmentSchema = z.object({
-  attachmentType: z.enum(['OFFER_MATRIX', 'EMAIL_TEMPLATE']),
-  description: z.string().max(255).optional(),
-  file: z.instanceof(File).refine((f) => f.size / (1024 * 1024) <= 50, {
-    message: 'El archivo no puede superar los 50 MB',
-  }),
-});
+const MAX_FILE_SIZE_MB = 50;
 
-type FormValues = z.input<typeof AddAttachmentSchema>;
+function createAttachmentSchema(fileTooLargeMessage: string) {
+  return z.object({
+    attachmentType: z.enum(['OFFER_MATRIX', 'EMAIL_TEMPLATE']),
+    description: z.string().max(255).optional(),
+    file: z
+      .instanceof(File)
+      .refine((f) => f.size / (1024 * 1024) <= MAX_FILE_SIZE_MB, fileTooLargeMessage),
+  });
+}
+
+type FormValues = z.input<ReturnType<typeof createAttachmentSchema>>;
 
 interface AddAttachmentDialogProps {
   matrixId: string;
@@ -47,32 +53,62 @@ interface AddAttachmentDialogProps {
 }
 
 export function AddAttachmentDialog({ matrixId, open, onOpenChange }: AddAttachmentDialogProps) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
+  const attachmentSchema = useMemo(
+    () => createAttachmentSchema(t('matrices.fileTooLarge', { max: MAX_FILE_SIZE_MB })),
+    [t],
+  );
 
   const form = useForm<FormValues>({
-    resolver: zodResolver(AddAttachmentSchema),
+    resolver: zodResolver(attachmentSchema),
     defaultValues: {
       attachmentType: 'OFFER_MATRIX',
       description: '',
-      file: undefined,
+      file: undefined as unknown as File,
     },
     mode: 'onTouched',
   });
 
   const {
-    register,
     control,
     handleSubmit,
+    register,
     reset,
     setError,
-    formState: { errors },
+    setValue,
+    clearErrors,
+    watch,
+    formState: { errors, isDirty, isSubmitting },
   } = form;
+
+  const forceClose = useCallback(() => {
+    reset({
+      attachmentType: 'OFFER_MATRIX',
+      description: '',
+      file: undefined as unknown as File,
+    });
+    onOpenChange(false);
+  }, [onOpenChange, reset]);
+
+  const { dirtyRef, showDiscard, handleDirtyChange, guardedAction, handleDiscard, cancelDiscard } =
+    useUnsavedGuard({ onClose: forceClose });
+
+  useEffect(() => {
+    handleDirtyChange(isDirty);
+  }, [handleDirtyChange, isDirty]);
 
   useEffect(() => {
     if (open) {
-      reset({ attachmentType: 'OFFER_MATRIX', description: '', file: undefined });
+      reset({
+        attachmentType: 'OFFER_MATRIX',
+        description: '',
+        file: undefined as unknown as File,
+      });
+      clearErrors();
+      dirtyRef.current = false;
     }
-  }, [open, reset]);
+  }, [clearErrors, dirtyRef, open, reset]);
 
   const mutation = useMutation({
     mutationFn: async (data: FormValues) => {
@@ -91,8 +127,9 @@ export function AddAttachmentDialog({ matrixId, open, onOpenChange }: AddAttachm
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.matrices.attachments(matrixId) });
-      toast.success('Adjunto agregado');
-      onOpenChange(false);
+      toast.success(t('matrices.attachmentUploaded'));
+      dirtyRef.current = false;
+      forceClose();
     },
     onError: (err) => {
       if (err instanceof ApiError && err.details?.length) {
@@ -105,80 +142,148 @@ export function AddAttachmentDialog({ matrixId, open, onOpenChange }: AddAttachm
     },
   });
 
+  const file = watch('file');
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selected = e.target.files?.[0];
+    if (!selected) return;
+    setValue('file', selected, { shouldValidate: true, shouldDirty: true });
+  };
+
+  const removeFile = () => {
+    setValue('file', undefined as unknown as File, { shouldValidate: true, shouldDirty: true });
+    clearErrors('file');
+  };
+
   const onSubmit = (data: FormValues) => {
     mutation.mutate(data);
   };
 
+  const handleOpenChange = (value: boolean) => {
+    if (!value) {
+      guardedAction('close');
+    } else {
+      onOpenChange(true);
+    }
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Agregar adjunto</DialogTitle>
-        </DialogHeader>
-        <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">
-          {errors.root && <FormAlert message={errors.root.message ?? ''} />}
+    <>
+      <Dialog open={open} onOpenChange={handleOpenChange}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t('matrices.addAttachment')}</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">
+            {errors.root && <FormAlert message={errors.root.message ?? ''} />}
 
-          <FieldGroup>
-            <Field data-invalid={errors.attachmentType ? true : undefined}>
-              <FieldLabel>Tipo</FieldLabel>
-              <Controller
-                control={control}
-                name="attachmentType"
-                render={({ field }) => (
-                  <Select value={field.value} onValueChange={field.onChange}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Seleccionar tipo" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="OFFER_MATRIX">Matriz de oferta</SelectItem>
-                      <SelectItem value="EMAIL_TEMPLATE">Plantilla de email</SelectItem>
-                    </SelectContent>
-                  </Select>
+            <FieldGroup>
+              <Field data-invalid={errors.attachmentType ? true : undefined}>
+                <FieldLabel>{t('matrices.attachmentType')}</FieldLabel>
+                <Controller
+                  control={control}
+                  name="attachmentType"
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger>
+                        <SelectValue placeholder={t('matrices.selectAttachmentType')} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="OFFER_MATRIX">
+                          {t('matrices.offerAttachment')}
+                        </SelectItem>
+                        <SelectItem value="EMAIL_TEMPLATE">
+                          {t('matrices.responseAttachment')}
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+                <FieldError>{errors.attachmentType?.message}</FieldError>
+              </Field>
+
+              <Field data-invalid={errors.file ? true : undefined}>
+                <FieldLabel htmlFor="attachment-file">{t('matrices.file')}</FieldLabel>
+                {!file ? (
+                  <div className="border-border rounded-lg border border-dashed p-6">
+                    <label
+                      htmlFor="attachment-file"
+                      className="flex cursor-pointer flex-col items-center gap-2"
+                    >
+                      <FileUp className="text-muted-foreground size-8" />
+                      <span className="text-muted-foreground text-sm">
+                        {t('matrices.chooseFile')}
+                      </span>
+                    </label>
+                    <Input
+                      id="attachment-file"
+                      type="file"
+                      className="hidden"
+                      disabled={mutation.isPending || isSubmitting}
+                      onChange={handleFileChange}
+                    />
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between rounded-lg border p-3">
+                    <span className="text-sm">{file.name}</span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={removeFile}
+                      aria-label={t('matrices.removeFile')}
+                    >
+                      <X className="size-4" />
+                    </Button>
+                  </div>
                 )}
-              />
-              <FieldError>{errors.attachmentType?.message}</FieldError>
-            </Field>
+                <FieldError>{errors.file?.message}</FieldError>
+              </Field>
 
-            <Field data-invalid={errors.file ? true : undefined}>
-              <FieldLabel>Archivo</FieldLabel>
-              <Controller
-                control={control}
-                name="file"
-                render={({ field }) => (
-                  <Input
-                    type="file"
-                    onChange={(e) => {
-                      const f = e.target.files?.[0];
-                      if (f) field.onChange(f);
-                    }}
-                  />
+              <Field data-invalid={errors.description ? true : undefined}>
+                <FieldLabel htmlFor="attachment-description">
+                  {t('common.description')} ({t('common.optional')})
+                </FieldLabel>
+                <Textarea
+                  id="attachment-description"
+                  {...register('description')}
+                  placeholder={t('common.descriptionPlaceholder')}
+                  maxLength={150}
+                  disabled={mutation.isPending || isSubmitting}
+                />
+                <FieldError>{errors.description?.message}</FieldError>
+              </Field>
+            </FieldGroup>
+
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => guardedAction('close')}>
+                {t('common.cancel')}
+              </Button>
+              <Button
+                type="submit"
+                disabled={
+                  mutation.isPending ||
+                  isSubmitting ||
+                  (form.formState.isSubmitted && !form.formState.isValid)
+                }
+              >
+                {mutation.isPending && (
+                  <Loader2 data-icon="inline-start" className="animate-spin" />
                 )}
-              />
-              <FieldError>{errors.file?.message}</FieldError>
-            </Field>
-
-            <Field data-invalid={errors.description ? true : undefined}>
-              <FieldLabel>Descripción (opcional)</FieldLabel>
-              <Textarea
-                {...register('description')}
-                placeholder="Descripción del adjunto..."
-                maxLength={150}
-              />
-              <FieldError>{errors.description?.message}</FieldError>
-            </Field>
-          </FieldGroup>
-
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancelar
-            </Button>
-            <Button type="submit" disabled={mutation.isPending}>
-              {mutation.isPending && <Loader2 data-icon="inline-start" className="animate-spin" />}
-              Subir
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+                {t('common.upload')}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+      <DiscardChangesDialog
+        open={showDiscard}
+        onCancel={cancelDiscard}
+        onDiscard={() => {
+          dirtyRef.current = false;
+          handleDiscard();
+        }}
+      />
+    </>
   );
 }

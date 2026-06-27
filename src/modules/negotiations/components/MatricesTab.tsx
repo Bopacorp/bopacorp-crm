@@ -1,9 +1,13 @@
+import { V, vk } from '@bopacorp/shared/i18n';
 import type { AttachmentType, MatrixAttachmentResponse } from '@bopacorp/shared/matrices';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Download, FileSpreadsheet, Loader2, Mail, Pencil, Trash2 } from 'lucide-react';
-import { useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
+import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -13,6 +17,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
@@ -30,8 +35,10 @@ import {
   downloadAttachment,
   updateMatrix,
 } from '@/modules/matrices/matrices.service.js';
+import { ApiError } from '@/services/api.js';
 import { getErrorMessage } from '@/shared/errors/index.js';
-import { ErrorState } from '@/shared/ui';
+import { useUnsavedGuard } from '@/shared/hooks/useUnsavedGuard.js';
+import { DiscardChangesDialog, ErrorState, FormAlert } from '@/shared/ui';
 
 interface MatricesTabProps {
   negotiationId: string;
@@ -42,18 +49,26 @@ const SLOT_CONFIG: Record<
   { label: string; icon: typeof FileSpreadsheet; accept: string; extensions: string[] }
 > = {
   OFFER_MATRIX: {
-    label: 'matrices.offerExcel',
+    label: 'matrices.offerAttachment',
     icon: FileSpreadsheet,
     accept: '.xlsx,.xls,.csv',
     extensions: ['xlsx', 'xls', 'csv'],
   },
   EMAIL_TEMPLATE: {
-    label: 'matrices.responseEmail',
+    label: 'matrices.responseAttachment',
     icon: Mail,
     accept: '.msg,.eml,.pdf,.html',
     extensions: ['msg', 'eml', 'pdf', 'html'],
   },
 };
+
+function createObservationsSchema() {
+  return z.object({
+    observations: z.string().max(500, vk(V.MAX_CHARS, { max: 500 })),
+  });
+}
+
+type ObservationsFormValues = z.input<ReturnType<typeof createObservationsSchema>>;
 
 function MatricesSkeleton() {
   return (
@@ -151,7 +166,12 @@ function MatrixContent({ matrixId }: MatrixContentProps) {
           <CardTitle>{t('common.observations')}</CardTitle>
           <CardAction>
             <Can permission="offer_matrices.update">
-              <Button variant="ghost" size="icon-sm" onClick={() => setEditObsOpen(true)}>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                onClick={() => setEditObsOpen(true)}
+                aria-label={t('matrices.editObservations')}
+              >
                 <Pencil />
               </Button>
             </Can>
@@ -217,52 +237,128 @@ function EditObservationsDialog({
   onSuccess,
 }: EditObservationsDialogProps) {
   const { t } = useTranslation();
-  const [obs, setObs] = useState(initialValue);
-  const [saving, setSaving] = useState(false);
+  const observationsSchema = useMemo(() => createObservationsSchema(), []);
+  const form = useForm<ObservationsFormValues>({
+    resolver: zodResolver(observationsSchema),
+    defaultValues: { observations: initialValue },
+    mode: 'onTouched',
+  });
 
-  const handleOpenChange = (value: boolean) => {
-    if (!value) setObs(initialValue);
-    onOpenChange(value);
+  const {
+    handleSubmit,
+    register,
+    reset,
+    setError,
+    formState: { errors, isDirty, isSubmitting, isSubmitted, isValid },
+  } = form;
+
+  const forceClose = useCallback(() => {
+    reset({ observations: initialValue });
+    onOpenChange(false);
+  }, [initialValue, onOpenChange, reset]);
+
+  const { dirtyRef, showDiscard, handleDirtyChange, guardedAction, handleDiscard, cancelDiscard } =
+    useUnsavedGuard({ onClose: forceClose });
+
+  useEffect(() => {
+    handleDirtyChange(isDirty);
+  }, [handleDirtyChange, isDirty]);
+
+  useEffect(() => {
+    if (open) {
+      reset({ observations: initialValue });
+      dirtyRef.current = false;
+    }
+  }, [dirtyRef, initialValue, open, reset]);
+
+  const mutation = useMutation({
+    mutationFn: (values: ObservationsFormValues) =>
+      updateMatrix(matrixId, { observations: values.observations || undefined }),
+    onSuccess: () => {
+      toast.success(t('matrices.observationsSaved'));
+      dirtyRef.current = false;
+      forceClose();
+      onSuccess();
+    },
+    onError: (err) => {
+      if (err instanceof ApiError && err.details?.length) {
+        for (const d of err.details) {
+          setError(d.field as keyof ObservationsFormValues, { type: 'server', message: d.message });
+        }
+        return;
+      }
+      setError('root', { type: 'server', message: getErrorMessage(err) });
+    },
+  });
+
+  const onSubmit = (values: ObservationsFormValues) => {
+    mutation.mutate(values);
   };
 
-  const save = async () => {
-    setSaving(true);
-    try {
-      await updateMatrix(matrixId, { observations: obs || undefined });
-      toast.success(t('matrices.observationsSaved'));
-      onOpenChange(false);
-      onSuccess();
-    } catch (err) {
-      toast.error(getErrorMessage(err));
-    } finally {
-      setSaving(false);
+  const handleOpenChange = (value: boolean) => {
+    if (!value) {
+      guardedAction('close');
+    } else {
+      onOpenChange(true);
     }
   };
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{t('matrices.editObservations')}</DialogTitle>
-        </DialogHeader>
-        <Textarea
-          value={obs}
-          onChange={(e) => setObs(e.target.value)}
-          placeholder={t('matrices.observationsPlaceholder')}
-          maxLength={500}
-          rows={5}
-        />
-        <DialogFooter>
-          <Button variant="outline" onClick={() => handleOpenChange(false)} disabled={saving}>
-            {t('common.cancel')}
-          </Button>
-          <Button onClick={save} disabled={saving || obs === initialValue}>
-            {saving && <Loader2 data-icon="inline-start" className="animate-spin" />}
-            {t('common.save')}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    <>
+      <Dialog open={open} onOpenChange={handleOpenChange}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t('matrices.editObservations')}</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">
+            {errors.root && <FormAlert message={errors.root.message ?? ''} />}
+            <FieldGroup>
+              <Field data-invalid={errors.observations ? true : undefined}>
+                <FieldLabel htmlFor="matrix-observations">{t('common.observations')}</FieldLabel>
+                <Textarea
+                  id="matrix-observations"
+                  {...register('observations')}
+                  placeholder={t('matrices.observationsPlaceholder')}
+                  maxLength={500}
+                  rows={5}
+                  disabled={mutation.isPending || isSubmitting}
+                />
+                <FieldError>{errors.observations?.message}</FieldError>
+              </Field>
+            </FieldGroup>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => guardedAction('close')}
+                disabled={mutation.isPending || isSubmitting}
+              >
+                {t('common.cancel')}
+              </Button>
+              <Button
+                type="submit"
+                disabled={
+                  mutation.isPending || isSubmitting || (isSubmitted && !isValid) || !isDirty
+                }
+              >
+                {mutation.isPending && (
+                  <Loader2 data-icon="inline-start" className="animate-spin" />
+                )}
+                {t('common.save')}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+      <DiscardChangesDialog
+        open={showDiscard}
+        onCancel={cancelDiscard}
+        onDiscard={() => {
+          dirtyRef.current = false;
+          handleDiscard();
+        }}
+      />
+    </>
   );
 }
 

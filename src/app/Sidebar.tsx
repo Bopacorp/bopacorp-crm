@@ -1,4 +1,5 @@
 import {
+  BarChart3,
   BookOpen,
   Briefcase,
   Building2,
@@ -66,6 +67,12 @@ const navigationBottom = [
     href: '/documentacion',
     icon: FileText,
     permission: 'negotiation_documents.read',
+  },
+  {
+    key: 'nav.reports',
+    href: '/reportes',
+    icon: BarChart3,
+    permission: 'report_exports.read',
   },
 ];
 

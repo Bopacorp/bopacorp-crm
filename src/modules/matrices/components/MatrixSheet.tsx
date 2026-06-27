@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Building2, Calendar, FileText, Loader2, Trash2, User, XIcon } from 'lucide-react';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import {
   AlertDialog,
@@ -32,6 +33,7 @@ interface MatrixSheetProps {
 const SKELETON_SECTIONS = [{ rows: ['w-40', 'w-56'] }, { rows: ['w-36', 'w-28', 'w-28'] }];
 
 export function MatrixSheet({ open, onOpenChange, matrixId }: MatrixSheetProps) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { matrix, loading, error, refetch } = useMatrix(matrixId);
   const [showDelete, setShowDelete] = useState(false);
@@ -40,7 +42,7 @@ export function MatrixSheet({ open, onOpenChange, matrixId }: MatrixSheetProps) 
     mutationFn: () => deleteMatrix(matrixId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.matrices.all });
-      toast.success('Matriz eliminada');
+      toast.success(t('matrices.deleted'));
       setShowDelete(false);
       onOpenChange(false);
     },
@@ -58,18 +60,28 @@ export function MatrixSheet({ open, onOpenChange, matrixId }: MatrixSheetProps) 
         <SheetHeader className="flex flex-col gap-3">
           <div className="flex items-center justify-between">
             <div>
-              {loading && <SheetTitle className="sr-only">Matriz</SheetTitle>}
-              {showHeader && <SheetTitle>Matriz de oferta</SheetTitle>}
+              {loading && <SheetTitle className="sr-only">{t('matrices.matrix')}</SheetTitle>}
+              {showHeader && <SheetTitle>{t('matrices.matrix')}</SheetTitle>}
             </div>
             <div className="flex items-center gap-1">
               {showHeader && (
                 <Can permission="offer_matrices.delete">
-                  <Button variant="ghost" size="icon-sm" onClick={() => setShowDelete(true)}>
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    onClick={() => setShowDelete(true)}
+                    aria-label={t('matrices.deleteMatrix')}
+                  >
                     <Trash2 />
                   </Button>
                 </Can>
               )}
-              <Button variant="ghost" size="icon-sm" onClick={() => onOpenChange(false)}>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                onClick={() => onOpenChange(false)}
+                aria-label={t('common.close')}
+              >
                 <XIcon />
               </Button>
             </div>
@@ -84,28 +96,28 @@ export function MatrixSheet({ open, onOpenChange, matrixId }: MatrixSheetProps) 
           <div className="flex-1 overflow-y-auto p-4">
             <div className="flex flex-col gap-5">
               <div className="flex flex-col gap-1">
-                <SectionLabel>Información</SectionLabel>
-                <DetailField icon={Building2} label="Cliente">
+                <SectionLabel>{t('common.information')}</SectionLabel>
+                <DetailField icon={Building2} label={t('matrices.client')}>
                   {matrix.negotiation.client.businessName}
                 </DetailField>
                 {matrix.observations && (
-                  <DetailField icon={FileText} label="Observaciones">
+                  <DetailField icon={FileText} label={t('common.observations')}>
                     {matrix.observations}
                   </DetailField>
                 )}
               </div>
 
               <div className="flex flex-col gap-1">
-                <SectionLabel>Auditoría</SectionLabel>
-                <DetailField icon={User} label="Creador">
+                <SectionLabel>{t('matrices.audit')}</SectionLabel>
+                <DetailField icon={User} label={t('matrices.creator')}>
                   {matrix.creator.profile
                     ? `${matrix.creator.profile.firstName} ${matrix.creator.profile.lastName}`
                     : matrix.creator.username}
                 </DetailField>
-                <DetailField icon={Calendar} label="Creado">
+                <DetailField icon={Calendar} label={t('common.created')}>
                   {formatRelativeTime(matrix.createdAt)}
                 </DetailField>
-                <DetailField icon={Calendar} label="Actualizado">
+                <DetailField icon={Calendar} label={t('common.updated')}>
                   {formatRelativeTime(matrix.updatedAt)}
                 </DetailField>
               </div>
@@ -119,14 +131,13 @@ export function MatrixSheet({ open, onOpenChange, matrixId }: MatrixSheetProps) 
       <AlertDialog open={showDelete} onOpenChange={(v) => !v && setShowDelete(false)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>¿Eliminar matriz?</AlertDialogTitle>
-            <AlertDialogDescription>
-              La matriz y sus adjuntos serán eliminados permanentemente. Esta acción no se puede
-              deshacer.
-            </AlertDialogDescription>
+            <AlertDialogTitle>{t('matrices.deleteMatrix')}</AlertDialogTitle>
+            <AlertDialogDescription>{t('matrices.deleteMatrixDesc')}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleteMutation.isPending}>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel disabled={deleteMutation.isPending}>
+              {t('common.cancel')}
+            </AlertDialogCancel>
             <AlertDialogAction
               variant="destructive"
               onClick={(e) => {
@@ -138,10 +149,10 @@ export function MatrixSheet({ open, onOpenChange, matrixId }: MatrixSheetProps) 
               {deleteMutation.isPending ? (
                 <>
                   <Loader2 className="animate-spin" />
-                  Eliminando…
+                  {t('matrices.deletingMatrix')}
                 </>
               ) : (
-                'Eliminar'
+                t('common.delete')
               )}
             </AlertDialogAction>
           </AlertDialogFooter>

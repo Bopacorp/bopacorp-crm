@@ -2,6 +2,7 @@ import type { AttachmentType, MatrixAttachmentResponse } from '@bopacorp/shared/
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Download, FileIcon, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -19,11 +20,6 @@ import { AddAttachmentDialog } from './AddAttachmentDialog.js';
 interface AttachmentsTabProps {
   matrixId: string;
 }
-
-const ATTACHMENT_TYPE_LABEL: Record<AttachmentType, string> = {
-  OFFER_MATRIX: 'Matriz',
-  EMAIL_TEMPLATE: 'Email',
-};
 
 const ATTACHMENT_TYPE_VARIANT: Record<AttachmentType, 'secondary' | 'outline'> = {
   OFFER_MATRIX: 'secondary',
@@ -49,15 +45,20 @@ function AttachmentsSkeleton() {
 }
 
 export function AttachmentsTab({ matrixId }: AttachmentsTabProps) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { attachments, loading, error, refetch } = useMatrixAttachments(matrixId);
   const [addOpen, setAddOpen] = useState(false);
+  const attachmentTypeLabel: Record<AttachmentType, string> = {
+    OFFER_MATRIX: t('matrices.offerAttachment'),
+    EMAIL_TEMPLATE: t('matrices.responseAttachment'),
+  };
 
   const removeMutation = useMutation({
     mutationFn: (attachmentId: string) => deleteAttachment(matrixId, attachmentId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.matrices.attachments(matrixId) });
-      toast.success('Adjunto eliminado');
+      toast.success(t('matrices.attachmentDeleted'));
     },
     onError: (err) => toast.error(getErrorMessage(err)),
   });
@@ -79,13 +80,16 @@ export function AttachmentsTab({ matrixId }: AttachmentsTabProps) {
         <Can permission="matrix_attachments.create">
           <Button onClick={() => setAddOpen(true)}>
             <Plus data-icon="inline-start" />
-            Agregar adjunto
+            {t('matrices.addAttachment')}
           </Button>
         </Can>
       </div>
 
       {attachments.length === 0 ? (
-        <EmptyState title="Sin adjuntos" description="No hay archivos adjuntos en esta matriz" />
+        <EmptyState
+          title={t('matrices.noAttachments')}
+          description={t('matrices.noAttachmentsDesc')}
+        />
       ) : (
         <div className="flex flex-col gap-3">
           {attachments.map((att: MatrixAttachmentResponse) => (
@@ -99,7 +103,7 @@ export function AttachmentsTab({ matrixId }: AttachmentsTabProps) {
                     {att.filename}.{att.fileExtension}
                   </span>
                   <Badge variant={ATTACHMENT_TYPE_VARIANT[att.attachmentType]}>
-                    {ATTACHMENT_TYPE_LABEL[att.attachmentType]}
+                    {attachmentTypeLabel[att.attachmentType]}
                   </Badge>
                 </div>
                 <span className="text-xs text-muted-foreground">
@@ -115,7 +119,7 @@ export function AttachmentsTab({ matrixId }: AttachmentsTabProps) {
                   variant="ghost"
                   size="icon-sm"
                   onClick={() => handleDownload(att)}
-                  aria-label="Descargar"
+                  aria-label={t('common.download')}
                 >
                   <Download className="size-4" />
                 </Button>
@@ -125,6 +129,7 @@ export function AttachmentsTab({ matrixId }: AttachmentsTabProps) {
                     size="icon-sm"
                     onClick={() => removeMutation.mutate(att.id)}
                     disabled={removeMutation.isPending}
+                    aria-label={t('common.delete')}
                   >
                     <Trash2 className="size-4 text-destructive" />
                   </Button>

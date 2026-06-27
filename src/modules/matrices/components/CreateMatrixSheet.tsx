@@ -1,8 +1,9 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { FileUp, Loader2, X } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
@@ -27,19 +28,18 @@ import { createAttachment, createMatrix } from '../matrices.service.js';
 
 const MAX_FILE_SIZE_MB = 50;
 
-const FormSchema = z.object({
-  attachmentType: z.enum(['OFFER_MATRIX', 'EMAIL_TEMPLATE']),
-  file: z
-    .instanceof(File)
-    .refine(
-      (f) => f.size / (1024 * 1024) <= MAX_FILE_SIZE_MB,
-      `El archivo no puede superar los ${MAX_FILE_SIZE_MB} MB`,
-    ),
-  description: z.string().max(255).optional(),
-  observations: z.string().max(1000).optional(),
-});
+function createMatrixFormSchema(fileTooLargeMessage: string) {
+  return z.object({
+    attachmentType: z.enum(['OFFER_MATRIX', 'EMAIL_TEMPLATE']),
+    file: z
+      .instanceof(File)
+      .refine((f) => f.size / (1024 * 1024) <= MAX_FILE_SIZE_MB, fileTooLargeMessage),
+    description: z.string().max(255).optional(),
+    observations: z.string().max(1000).optional(),
+  });
+}
 
-type FormValues = z.input<typeof FormSchema>;
+type FormValues = z.input<ReturnType<typeof createMatrixFormSchema>>;
 
 interface CreateMatrixSheetProps {
   open: boolean;
@@ -54,9 +54,14 @@ export function CreateMatrixSheet({
   negotiationId,
   onSuccess,
 }: CreateMatrixSheetProps) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [key, setKey] = useState(0);
   const [error, setError] = useState('');
+  const formSchema = useMemo(
+    () => createMatrixFormSchema(t('matrices.fileTooLarge', { max: MAX_FILE_SIZE_MB })),
+    [t],
+  );
 
   const forceClose = useCallback(() => {
     setKey((k) => k + 1);
@@ -97,14 +102,14 @@ export function CreateMatrixSheet({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.matrices.all });
-      toast.success('Matriz creada');
+      toast.success(t('matrices.created'));
       dirtyRef.current = false;
       forceClose();
       onSuccess();
     },
     onError: (err) => {
       if (err instanceof ApiError && err.details?.length) {
-        setError('');
+        setError(err.details[0]?.message ?? getErrorMessage(err));
         return;
       }
       setError(getErrorMessage(err));
@@ -115,10 +120,11 @@ export function CreateMatrixSheet({
     <Sheet open={open} onOpenChange={handleOpenChange}>
       <SheetContent>
         <SheetHeader>
-          <SheetTitle>Nueva matriz de oferta</SheetTitle>
+          <SheetTitle>{t('matrices.newMatrix')}</SheetTitle>
         </SheetHeader>
         <CreateMatrixForm
           key={key}
+          schema={formSchema}
           onSubmit={(data) => mutation.mutate(data)}
           isPending={mutation.isPending}
           error={error}
@@ -132,13 +138,21 @@ export function CreateMatrixSheet({
 }
 
 interface CreateMatrixFormProps {
+  schema: ReturnType<typeof createMatrixFormSchema>;
   onSubmit: (data: FormValues) => void;
   isPending: boolean;
   error: string;
   onDirtyChange: (dirty: boolean) => void;
 }
 
-function CreateMatrixForm({ onSubmit, isPending, error, onDirtyChange }: CreateMatrixFormProps) {
+function CreateMatrixForm({
+  schema,
+  onSubmit,
+  isPending,
+  error,
+  onDirtyChange,
+}: CreateMatrixFormProps) {
+  const { t } = useTranslation();
   const {
     register,
     control,
@@ -146,9 +160,9 @@ function CreateMatrixForm({ onSubmit, isPending, error, onDirtyChange }: CreateM
     setValue,
     watch,
     clearErrors,
-    formState: { errors, isDirty },
+    formState: { errors, isDirty, isSubmitting, isSubmitted, isValid },
   } = useForm<FormValues>({
-    resolver: zodResolver(FormSchema),
+    resolver: zodResolver(schema),
     defaultValues: {
       attachmentType: 'OFFER_MATRIX',
       file: undefined as unknown as File,
@@ -182,18 +196,20 @@ function CreateMatrixForm({ onSubmit, isPending, error, onDirtyChange }: CreateM
 
         <FieldGroup>
           <Field data-invalid={errors.attachmentType ? true : undefined}>
-            <FieldLabel>Tipo</FieldLabel>
+            <FieldLabel>{t('matrices.attachmentType')}</FieldLabel>
             <Controller
               control={control}
               name="attachmentType"
               render={({ field }) => (
                 <Select value={field.value} onValueChange={field.onChange}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Seleccionar tipo" />
+                    <SelectValue placeholder={t('matrices.selectAttachmentType')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="OFFER_MATRIX">Matriz de oferta</SelectItem>
-                    <SelectItem value="EMAIL_TEMPLATE">Plantilla de email</SelectItem>
+                    <SelectItem value="OFFER_MATRIX">{t('matrices.offerAttachment')}</SelectItem>
+                    <SelectItem value="EMAIL_TEMPLATE">
+                      {t('matrices.responseAttachment')}
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               )}
@@ -202,7 +218,7 @@ function CreateMatrixForm({ onSubmit, isPending, error, onDirtyChange }: CreateM
           </Field>
 
           <Field data-invalid={errors.file ? true : undefined}>
-            <FieldLabel>Archivo</FieldLabel>
+            <FieldLabel htmlFor="matrix-file">{t('matrices.file')}</FieldLabel>
             {!file ? (
               <div className="rounded-lg border border-dashed border-border p-6">
                 <label
@@ -210,9 +226,7 @@ function CreateMatrixForm({ onSubmit, isPending, error, onDirtyChange }: CreateM
                   className="flex cursor-pointer flex-col items-center gap-2"
                 >
                   <FileUp className="size-8 text-muted-foreground" />
-                  <span className="text-sm text-muted-foreground">
-                    Haz clic para seleccionar un archivo
-                  </span>
+                  <span className="text-sm text-muted-foreground">{t('matrices.chooseFile')}</span>
                 </label>
                 <Input
                   id="matrix-file"
@@ -229,7 +243,7 @@ function CreateMatrixForm({ onSubmit, isPending, error, onDirtyChange }: CreateM
                   variant="ghost"
                   size="icon"
                   onClick={removeFile}
-                  aria-label="Quitar archivo"
+                  aria-label={t('matrices.removeFile')}
                 >
                   <X className="size-4" />
                 </Button>
@@ -239,20 +253,26 @@ function CreateMatrixForm({ onSubmit, isPending, error, onDirtyChange }: CreateM
           </Field>
 
           <Field data-invalid={errors.description ? true : undefined}>
-            <FieldLabel>Descripción (opcional)</FieldLabel>
+            <FieldLabel htmlFor="matrix-description">
+              {t('common.description')} ({t('common.optional')})
+            </FieldLabel>
             <Textarea
+              id="matrix-description"
               {...register('description')}
-              placeholder="Descripción del adjunto..."
+              placeholder={t('common.descriptionPlaceholder')}
               maxLength={150}
             />
             <FieldError>{errors.description?.message}</FieldError>
           </Field>
 
           <Field data-invalid={errors.observations ? true : undefined}>
-            <FieldLabel>Observaciones (opcional)</FieldLabel>
+            <FieldLabel htmlFor="matrix-observations">
+              {t('common.observations')} ({t('common.optional')})
+            </FieldLabel>
             <Textarea
+              id="matrix-observations"
               {...register('observations')}
-              placeholder="Notas sobre esta matriz..."
+              placeholder={t('matrices.observationsPlaceholder')}
               maxLength={500}
             />
             <FieldError>{errors.observations?.message}</FieldError>
@@ -261,9 +281,9 @@ function CreateMatrixForm({ onSubmit, isPending, error, onDirtyChange }: CreateM
       </div>
 
       <SheetFooter>
-        <Button type="submit" disabled={isPending}>
+        <Button type="submit" disabled={isPending || isSubmitting || (isSubmitted && !isValid)}>
           {isPending && <Loader2 data-icon="inline-start" className="animate-spin" />}
-          Crear
+          {t('common.create')}
         </Button>
       </SheetFooter>
     </form>
