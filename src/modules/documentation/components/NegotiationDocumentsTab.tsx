@@ -1,7 +1,9 @@
 import type { NegotiationDocumentListItemResponse } from '@bopacorp/shared/documents';
 import { FileUp } from 'lucide-react';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button.js';
+import { formatDateTime } from '@/lib/format.js';
 import { cn } from '@/lib/utils';
 import { EmptyState, EntityTable, ErrorState, StateBadge, TableSkeleton } from '@/shared/ui';
 import { useDocuments } from '../hooks/useDocuments.js';
@@ -14,6 +16,7 @@ interface NegotiationDocumentsTabProps {
 }
 
 export function NegotiationDocumentsTab({ negotiationId }: NegotiationDocumentsTabProps) {
+  const { t } = useTranslation();
   const [page, setPage] = useState(1);
   const [uploadOpen, setUploadOpen] = useState(false);
 
@@ -24,25 +27,24 @@ export function NegotiationDocumentsTab({ negotiationId }: NegotiationDocumentsT
   const columns = [
     {
       id: 'type',
-      header: 'Tipo de documento',
+      header: t('documentation.documentType'),
       accessor: (item: NegotiationDocumentListItemResponse) => item.documentType.name,
     },
     {
       id: 'state',
-      header: 'Estado',
+      header: t('common.status'),
       accessor: (item: NegotiationDocumentListItemResponse) => (
         <StateBadge state={item.state} label={documentStateLabel(item.state)} />
       ),
     },
     {
       id: 'uploaded',
-      header: 'Fecha de carga',
-      accessor: (item: NegotiationDocumentListItemResponse) =>
-        new Date(item.uploadedAt).toLocaleString('es-EC'),
+      header: t('documentation.uploadedAt'),
+      accessor: (item: NegotiationDocumentListItemResponse) => formatDateTime(item.uploadedAt),
     },
     {
       id: 'actions',
-      header: 'Acciones',
+      header: t('documentation.actions'),
       accessor: (item: NegotiationDocumentListItemResponse) => (
         <DocumentActions document={item} onSuccess={refetch} />
       ),
@@ -62,12 +64,15 @@ export function NegotiationDocumentsTab({ negotiationId }: NegotiationDocumentsT
       <div className="flex justify-end">
         <Button size="sm" onClick={() => setUploadOpen(true)}>
           <FileUp data-icon="inline-start" className="size-4" />
-          Subir documento
+          {t('documentation.uploadDocument')}
         </Button>
       </div>
 
       {documents.length === 0 ? (
-        <EmptyState title="Sin documentos" description="Aún no se han cargado documentos" />
+        <EmptyState
+          title={t('documentation.noDocuments')}
+          description={t('documentation.noDocumentsDesc')}
+        />
       ) : (
         <>
           <EntityTable data={documents} columns={columns} keyExtractor={(item) => item.id} />
@@ -79,7 +84,7 @@ export function NegotiationDocumentsTab({ negotiationId }: NegotiationDocumentsT
                 disabled={page === 1}
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
               >
-                Anterior
+                {t('common.previous')}
               </Button>
               <Button
                 variant="outline"
@@ -87,7 +92,7 @@ export function NegotiationDocumentsTab({ negotiationId }: NegotiationDocumentsT
                 disabled={page === meta.totalPages}
                 onClick={() => setPage((p) => Math.min(meta.totalPages, p + 1))}
               >
-                Siguiente
+                {t('common.next')}
               </Button>
             </div>
           )}

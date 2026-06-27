@@ -1,9 +1,12 @@
 import type { DocumentState } from '@bopacorp/shared/documents';
+import { ChangeDocumentStateRequestSchema } from '@bopacorp/shared/documents';
+import { V, vk } from '@bopacorp/shared/i18n';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button.js';
@@ -18,17 +21,20 @@ import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field
 import { Textarea } from '@/components/ui/textarea.js';
 import { queryKeys } from '@/lib/query-keys.js';
 import { getErrorMessage } from '@/shared/errors/index.js';
-import { FormAlert } from '@/shared/ui';
+import { useUnsavedGuard } from '@/shared/hooks/useUnsavedGuard.js';
+import { DiscardChangesDialog, FormAlert } from '@/shared/ui';
 import { changeDocumentState } from '../documentation.service.js';
 
-const RejectFormSchema = z.object({
-  coordinatorMessage: z
-    .string()
-    .min(1, 'Las notas son obligatorias')
-    .max(1000, 'Máximo 1000 caracteres'),
-});
+function createRejectFormSchema() {
+  return ChangeDocumentStateRequestSchema.omit({ state: true }).extend({
+    coordinatorMessage: z
+      .string()
+      .min(1, V.REQUIRED)
+      .max(1000, vk(V.MAX_CHARS, { max: 1000 })),
+  });
+}
 
-type RejectFormValues = z.input<typeof RejectFormSchema>;
+type RejectFormValues = z.input<ReturnType<typeof createRejectFormSchema>>;
 
 interface RejectDocumentDialogProps {
   open: boolean;
@@ -45,21 +51,37 @@ export function RejectDocumentDialog({
   currentState,
   onSuccess,
 }: RejectDocumentDialogProps) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [error, setError] = useState('');
+  const rejectFormSchema = useMemo(() => createRejectFormSchema(), []);
 
   const form = useForm<RejectFormValues>({
-    resolver: zodResolver(RejectFormSchema),
+    resolver: zodResolver(rejectFormSchema),
     defaultValues: { coordinatorMessage: '' },
     mode: 'onTouched',
+  });
+
+  const forceClose = useCallback(() => {
+    form.reset({ coordinatorMessage: '' });
+    setError('');
+    onOpenChange(false);
+  }, [form, onOpenChange]);
+
+  const { dirtyRef, showDiscard, guardedAction, handleDiscard, cancelDiscard } = useUnsavedGuard({
+    onClose: forceClose,
   });
 
   useEffect(() => {
     if (open) {
       form.reset({ coordinatorMessage: '' });
       setError('');
+    } else {
+      form.reset({ coordinatorMessage: '' });
+      setError('');
+      dirtyRef.current = false;
     }
-  }, [open, form]);
+  }, [open, form, dirtyRef]);
 
   const mutation = useMutation({
     mutationFn: (data: RejectFormValues) =>
@@ -69,8 +91,8 @@ export function RejectDocumentDialog({
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.documents.all });
-      toast.success('Documento rechazado');
-      onOpenChange(false);
+      toast.success(t('documentation.documentRejected'));
+      forceClose();
       onSuccess?.();
     },
     onError: (err) => setError(getErrorMessage(err)),
@@ -84,43 +106,78 @@ export function RejectDocumentDialog({
   const isRejected = currentState === 'REJECTED';
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>
-            {isRejected ? 'Cambiar estado del documento' : 'Rechazar documento'}
-          </DialogTitle>
-        </DialogHeader>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-4" noValidate>
-          {error && <FormAlert message={error} />}
+    <>
+      <Dialog
+        open={open}
+        onOpenChange={(value) => {
+          if (!value) {
+            guardedAction('close');
+          } else {
+            onOpenChange(true);
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {isRejected
+                ? t('documentation.changeDocumentState')
+                : t('documentation.rejectDocument')}
+            </DialogTitle>
+          </DialogHeader>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-4" noValidate>
+            {error && <FormAlert message={error} />}
 
-          <FieldGroup>
-            <Field data-invalid={form.formState.errors.coordinatorMessage ? true : undefined}>
-              <FieldLabel>Notas del coordinador</FieldLabel>
-              <Textarea
-                placeholder={
-                  isRejected ? 'Motivo del cambio de estado...' : 'Indica el motivo del rechazo...'
+            <FieldGroup>
+              <Field data-invalid={form.formState.errors.coordinatorMessage ? true : undefined}>
+                <FieldLabel htmlFor="coordinatorMessage">
+                  {t('documentation.coordinatorNotes')}
+                </FieldLabel>
+                <Textarea
+                  id="coordinatorMessage"
+                  placeholder={
+                    isRejected
+                      ? t('documentation.changeReasonPlaceholder')
+                      : t('documentation.rejectReasonPlaceholder')
+                  }
+                  disabled={mutation.isPending}
+                  {...form.register('coordinatorMessage')}
+                />
+                {form.formState.errors.coordinatorMessage && (
+                  <FieldError>{form.formState.errors.coordinatorMessage.message}</FieldError>
+                )}
+              </Field>
+            </FieldGroup>
+
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => guardedAction('close')}>
+                {t('common.cancel')}
+              </Button>
+              <Button
+                type="submit"
+                disabled={
+                  mutation.isPending ||
+                  form.formState.isSubmitting ||
+                  (form.formState.isSubmitted && !form.formState.isValid)
                 }
-                disabled={mutation.isPending}
-                {...form.register('coordinatorMessage')}
-              />
-              {form.formState.errors.coordinatorMessage && (
-                <FieldError>{form.formState.errors.coordinatorMessage.message}</FieldError>
-              )}
-            </Field>
-          </FieldGroup>
-
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancelar
-            </Button>
-            <Button type="submit" disabled={mutation.isPending}>
-              {mutation.isPending && <Loader2 data-icon="inline-start" className="animate-spin" />}
-              {isRejected ? 'Guardar' : 'Rechazar'}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+              >
+                {mutation.isPending && (
+                  <Loader2 data-icon="inline-start" className="animate-spin" />
+                )}
+                {isRejected ? t('common.save') : t('common.reject')}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+      <DiscardChangesDialog
+        open={showDiscard}
+        onCancel={cancelDiscard}
+        onDiscard={() => {
+          dirtyRef.current = false;
+          handleDiscard();
+        }}
+      />
+    </>
   );
 }

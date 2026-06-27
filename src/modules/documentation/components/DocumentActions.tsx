@@ -1,6 +1,7 @@
 import type { NegotiationDocumentListItemResponse } from '@bopacorp/shared/documents';
 import { CheckCircle, Download, Loader2, MoreHorizontal, XCircle } from 'lucide-react';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button.js';
 import {
@@ -23,6 +24,7 @@ interface DocumentActionsProps {
 type ApproveState = 'idle' | 'loading' | 'success';
 
 export function DocumentActions({ document, onSuccess }: DocumentActionsProps) {
+  const { t } = useTranslation();
   const { hasPermission } = usePermission();
   const changeState = useChangeDocumentState();
   const [approveState, setApproveState] = useState<ApproveState>('idle');
@@ -73,27 +75,27 @@ export function DocumentActions({ document, onSuccess }: DocumentActionsProps) {
           {approveState === 'success' && (
             <CheckCircle data-icon="inline-start" className="size-4 text-green-600" />
           )}
-          {approveState === 'success' ? 'Aprobado' : 'Aprobando'}
+          {approveState === 'success' ? t('documentation.approved') : t('documentation.approving')}
         </Button>
       ) : (
         <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
           <DropdownMenuTrigger asChild>
             <Button size="sm" variant="outline">
               <MoreHorizontal data-icon="inline-start" className="size-4" />
-              Acciones
+              {t('documentation.actions')}
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuItem onClick={handleDownload}>
               <Download className="size-4" />
-              Descargar
+              {t('documentation.download')}
             </DropdownMenuItem>
 
             {canApproveOrReject && (
               <>
                 <DropdownMenuItem onClick={handleApprove} disabled={isApproveDisabled}>
                   <CheckCircle className="size-4" />
-                  Aprobar
+                  {t('common.approve')}
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={handleRejectClick}
@@ -101,7 +103,7 @@ export function DocumentActions({ document, onSuccess }: DocumentActionsProps) {
                   variant="destructive"
                 >
                   <XCircle className="size-4" />
-                  Rechazar
+                  {t('common.reject')}
                 </DropdownMenuItem>
               </>
             )}
@@ -109,7 +111,7 @@ export function DocumentActions({ document, onSuccess }: DocumentActionsProps) {
             {canChangeState && (
               <DropdownMenuItem onClick={handleRejectClick}>
                 <XCircle className="size-4" />
-                Cambiar estado
+                {t('documentation.changeDocumentState')}
               </DropdownMenuItem>
             )}
           </DropdownMenuContent>
