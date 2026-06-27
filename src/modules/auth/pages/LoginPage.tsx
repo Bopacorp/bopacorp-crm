@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
+import { PasswordInput } from '@/components/ui/password-input';
 import { LOGIN_ERRORS } from '@/shared/errors/auth.js';
 import { getErrorMessage } from '@/shared/errors/index.js';
 import { FormAlert } from '@/shared/ui/FormAlert';
@@ -49,7 +50,7 @@ export default function LoginPage() {
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-bold tracking-tight">BOPACORP</CardTitle>
-          <CardDescription>Iniciar sesión en el CRM</CardDescription>
+          <CardDescription>Iniciar sesión</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-4" noValidate>
@@ -62,6 +63,7 @@ export default function LoginPage() {
                   id="email"
                   type="email"
                   autoComplete="email"
+                  maxLength={150}
                   disabled={form.formState.isSubmitting}
                   {...form.register('email')}
                 />
@@ -72,9 +74,8 @@ export default function LoginPage() {
 
               <Field data-invalid={form.formState.errors.password ? true : undefined}>
                 <FieldLabel htmlFor="password">Contraseña</FieldLabel>
-                <Input
+                <PasswordInput
                   id="password"
-                  type="password"
                   autoComplete="current-password"
                   disabled={form.formState.isSubmitting}
                   {...form.register('password')}
@@ -85,7 +86,14 @@ export default function LoginPage() {
               </Field>
             </FieldGroup>
 
-            <Button type="submit" disabled={form.formState.isSubmitting} className="w-full">
+            <Button
+              type="submit"
+              disabled={
+                form.formState.isSubmitting ||
+                (form.formState.isSubmitted && !form.formState.isValid)
+              }
+              className="w-full"
+            >
               {form.formState.isSubmitting && (
                 <Loader2 data-icon="inline-start" className="animate-spin" />
               )}

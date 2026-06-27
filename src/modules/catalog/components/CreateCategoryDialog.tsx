@@ -112,14 +112,22 @@ function CreateForm({
   }, [isDirty, onDirtyChange]);
 
   const mutation = useMutation({
-    mutationFn: (data: FormValues) =>
-      createCategory({
+    mutationFn: (data: FormValues) => {
+      const slug = data.name
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[̀-ͯ]/g, '')
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-|-$/g, '');
+      return createCategory({
         name: data.name,
+        slug,
         parentId: data.parentId || undefined,
         description: data.description || undefined,
         sortOrder: data.sortOrder ?? 0,
         isActive: data.isActive ?? true,
-      }),
+      });
+    },
     onSuccess: (data: CategoryResponse) => {
       toast.success('Categoría creada');
       onSuccess(data.id);
