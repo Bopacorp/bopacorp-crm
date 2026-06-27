@@ -1,3 +1,4 @@
+import { CreateVisitRequestSchema } from '@bopacorp/shared/crm';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Loader2, MapPin } from 'lucide-react';
@@ -28,16 +29,9 @@ import { DateTimePicker, DiscardChangesDialog, FormAlert, SearchSelect } from '@
 import { useVisitTypes } from '../hooks/useVisitTypes.js';
 import { createVisit } from '../negotiations.service.js';
 
-const CreateVisitSchema = z.object({
-  visitTypeId: z.string().uuid('Selecciona un tipo de visita'),
-  advisorId: z.string().uuid('Selecciona un asesor'),
-  visitDate: z.string().min(1, 'Selecciona fecha y hora'),
-  observations: z.string().min(1, 'Las observaciones son requeridas').max(1000),
-  gpsLatitude: z.coerce.number().min(-90).max(90).optional().or(z.literal('')),
-  gpsLongitude: z.coerce.number().min(-180).max(180).optional().or(z.literal('')),
-});
+type FormValues = z.input<typeof CreateVisitRequestSchema>;
 
-type FormValues = z.input<typeof CreateVisitSchema>;
+type ServerFieldError = { field: string; message: string };
 
 interface CreateVisitSheetProps {
   open: boolean;
@@ -58,11 +52,13 @@ export function CreateVisitSheet({
   const queryClient = useQueryClient();
   const [key, setKey] = useState(0);
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<ServerFieldError[]>([]);
   const gpsAccuracyRef = useRef<number | undefined>(undefined);
 
   const forceClose = useCallback(() => {
     setKey((k) => k + 1);
     setError('');
+    setFieldErrors([]);
     onOpenChange(false);
   }, [onOpenChange]);
 
@@ -90,22 +86,25 @@ export function CreateVisitSheet({
         observations: data.observations,
         gpsLatitude: lat,
         gpsLongitude: lng,
-        gpsAccuracy: lat ? gpsAccuracyRef.current : undefined,
-        gpsTimestamp: lat ? new Date().toISOString() : undefined,
+        gpsAccuracy: lat != null ? gpsAccuracyRef.current : undefined,
+        gpsTimestamp: lat != null ? new Date().toISOString() : undefined,
       });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.visits.all });
       toast.success(t('visits.registered'));
       dirtyRef.current = false;
+      setFieldErrors([]);
       forceClose();
       onSuccess();
     },
     onError: (err) => {
       if (err instanceof ApiError && err.details?.length) {
         setError('');
+        setFieldErrors(err.details.map((d) => ({ field: d.field, message: d.message })));
         return;
       }
+      setFieldErrors([]);
       setError(getErrorMessage(err));
     },
   });
@@ -121,6 +120,7 @@ export function CreateVisitSheet({
           onSubmit={(data) => mutation.mutate(data)}
           isPending={mutation.isPending}
           error={error}
+          fieldErrors={fieldErrors}
           onDirtyChange={handleDirtyChange}
           gpsAccuracyRef={gpsAccuracyRef}
         />
@@ -142,6 +142,7 @@ interface CreateVisitFormProps {
   onSubmit: (data: FormValues) => void;
   isPending: boolean;
   error: string;
+  fieldErrors?: ServerFieldError[];
   onDirtyChange: (dirty: boolean) => void;
   gpsAccuracyRef: React.RefObject<number | undefined>;
 }
@@ -150,6 +151,7 @@ function CreateVisitForm({
   onSubmit,
   isPending,
   error,
+  fieldErrors,
   onDirtyChange,
   gpsAccuracyRef,
 }: CreateVisitFormProps) {
@@ -171,16 +173,17 @@ function CreateVisitForm({
     control,
     handleSubmit,
     setValue,
-    formState: { errors, isDirty },
+    setError,
+    formState: { errors, isDirty, isSubmitted, isValid },
   } = useForm<FormValues>({
-    resolver: zodResolver(CreateVisitSchema),
+    resolver: zodResolver(CreateVisitRequestSchema),
     defaultValues: {
       visitTypeId: '',
       advisorId: user?.id ?? '',
       visitDate: new Date().toISOString(),
-      observations: '',
-      gpsLatitude: '',
-      gpsLongitude: '',
+      observations: undefined,
+      gpsLatitude: undefined,
+      gpsLongitude: undefined,
     },
     mode: 'onTouched',
   });
@@ -188,6 +191,13 @@ function CreateVisitForm({
   useEffect(() => {
     onDirtyChange(isDirty);
   }, [isDirty, onDirtyChange]);
+
+  useEffect(() => {
+    if (!fieldErrors?.length) return;
+    for (const detail of fieldErrors) {
+      setError(detail.field as keyof FormValues, { type: 'server', message: detail.message });
+    }
+  }, [fieldErrors, setError]);
 
   useEffect(() => {
     navigator.geolocation.getCurrentPosition(
@@ -207,13 +217,13 @@ function CreateVisitForm({
 
         <FieldGroup>
           <Field data-invalid={errors.visitTypeId ? true : undefined}>
-            <FieldLabel>{t('visits.visitType')}</FieldLabel>
+            <FieldLabel htmlFor="visit-type">{t('visits.visitType')}</FieldLabel>
             <Controller
               control={control}
               name="visitTypeId"
               render={({ field }) => (
                 <Select value={field.value} onValueChange={field.onChange}>
-                  <SelectTrigger>
+                  <SelectTrigger id="visit-type">
                     <SelectValue placeholder={t('visits.selectType')} />
                   </SelectTrigger>
                   <SelectContent>
@@ -231,12 +241,13 @@ function CreateVisitForm({
 
           {!isAdvisor && (
             <Field data-invalid={errors.advisorId ? true : undefined}>
-              <FieldLabel>{t('common.advisor')}</FieldLabel>
+              <FieldLabel htmlFor="visit-advisor">{t('common.advisor')}</FieldLabel>
               <Controller
                 control={control}
                 name="advisorId"
                 render={({ field }) => (
                   <SearchSelect
+                    id="visit-advisor"
                     options={advisorOptions}
                     value={field.value}
                     onValueChange={field.onChange}
@@ -250,22 +261,27 @@ function CreateVisitForm({
             </Field>
           )}
 
+          {isAdvisor && <input type="hidden" {...register('advisorId')} />}
+
           <Field data-invalid={errors.visitDate ? true : undefined}>
-            <FieldLabel>{t('visits.dateTime')}</FieldLabel>
+            <FieldLabel htmlFor="visit-date">{t('visits.dateTime')}</FieldLabel>
             <Controller
               control={control}
               name="visitDate"
               render={({ field }) => (
-                <DateTimePicker value={field.value} onChange={field.onChange} />
+                <DateTimePicker id="visit-date" value={field.value} onChange={field.onChange} />
               )}
             />
             <FieldError>{errors.visitDate?.message}</FieldError>
           </Field>
 
           <Field data-invalid={errors.observations ? true : undefined}>
-            <FieldLabel>{t('common.observations')}</FieldLabel>
+            <FieldLabel htmlFor="visit-observations">{t('common.observations')}</FieldLabel>
             <Textarea
-              {...register('observations')}
+              id="visit-observations"
+              {...register('observations', {
+                setValueAs: (value) => (value === '' || value == null ? undefined : value),
+              })}
               placeholder={t('visits.visitDescPlaceholder')}
               maxLength={500}
             />
@@ -278,16 +294,29 @@ function CreateVisitForm({
           </div>
           <div className="grid grid-cols-2 gap-3">
             <Field data-invalid={errors.gpsLatitude ? true : undefined}>
-              <FieldLabel>{t('visits.latitude')}</FieldLabel>
-              <Input type="number" step="any" {...register('gpsLatitude')} placeholder="-2.1894" />
+              <FieldLabel htmlFor="visit-latitude">{t('visits.latitude')}</FieldLabel>
+              <Input
+                id="visit-latitude"
+                type="number"
+                step="any"
+                {...register('gpsLatitude', {
+                  setValueAs: (value) =>
+                    value === '' || value == null ? undefined : Number(value),
+                })}
+                placeholder="-2.1894"
+              />
               <FieldError>{errors.gpsLatitude?.message}</FieldError>
             </Field>
             <Field data-invalid={errors.gpsLongitude ? true : undefined}>
-              <FieldLabel>{t('visits.longitude')}</FieldLabel>
+              <FieldLabel htmlFor="visit-longitude">{t('visits.longitude')}</FieldLabel>
               <Input
+                id="visit-longitude"
                 type="number"
                 step="any"
-                {...register('gpsLongitude')}
+                {...register('gpsLongitude', {
+                  setValueAs: (value) =>
+                    value === '' || value == null ? undefined : Number(value),
+                })}
                 placeholder="-79.8891"
               />
               <FieldError>{errors.gpsLongitude?.message}</FieldError>
@@ -297,7 +326,7 @@ function CreateVisitForm({
       </div>
 
       <SheetFooter>
-        <Button type="submit" disabled={isPending}>
+        <Button type="submit" disabled={isPending || (isSubmitted && !isValid)}>
           {isPending && <Loader2 data-icon="inline-start" className="animate-spin" />}
           {t('visits.register')}
         </Button>

@@ -7,6 +7,7 @@ import { formatDateTime } from '@/lib/format.js';
 import { cn } from '@/lib/utils';
 import { Can } from '@/modules/auth/components/Can.js';
 import { useAuth } from '@/modules/auth/context/AuthContext.js';
+import { usePageReset } from '@/shared/hooks/usePageReset.js';
 import {
   EmptyState,
   EntityTable,
@@ -19,8 +20,6 @@ import { useVisits } from '../hooks/useVisits.js';
 import { CreateVisitSheet } from './CreateVisitSheet.js';
 import { VisitActions } from './VisitActions.js';
 import { VisitDetailSheet } from './VisitDetailSheet.js';
-
-const PAGE_SIZE = 10;
 
 function advisorName(advisor: {
   username: string;
@@ -39,6 +38,7 @@ export function VisitsTab({ clientId, negotiationId }: VisitsTabProps) {
   const { t } = useTranslation();
   const { user, hasRole } = useAuth();
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [createOpen, setCreateOpen] = useState(false);
   const [selectedVisitId, setSelectedVisitId] = useState('');
   const [detailOpen, setDetailOpen] = useState(false);
@@ -49,7 +49,12 @@ export function VisitsTab({ clientId, negotiationId }: VisitsTabProps) {
     ...(isAdvisor && user ? { advisorId: user.id } : {}),
   };
 
-  const { visits, meta, loading, fetching, error, refetch } = useVisits(page, filters);
+  usePageReset([clientId, isAdvisor ? user?.id : undefined, pageSize], setPage);
+
+  const { visits, meta, loading, fetching, error, refetch } = useVisits(page, {
+    ...filters,
+    limit: pageSize,
+  });
 
   const columns = [
     {
@@ -121,8 +126,8 @@ export function VisitsTab({ clientId, negotiationId }: VisitsTabProps) {
           <PaginationFooter
             page={page}
             onPageChange={setPage}
-            pageSize={PAGE_SIZE}
-            onPageSizeChange={() => {}}
+            pageSize={pageSize}
+            onPageSizeChange={setPageSize}
             meta={meta}
           />
         </>

@@ -144,6 +144,7 @@ export function LookupTableSheet({
             entity={entity}
             config={config}
             onSaved={() => {
+              dirtyRef.current = false;
               setEditing(false);
               invalidate();
             }}

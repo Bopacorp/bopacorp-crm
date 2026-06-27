@@ -1,3 +1,4 @@
+import { CreateNegotiationRequestSchema } from '@bopacorp/shared/crm';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2, Plus } from 'lucide-react';
 import { useEffect } from 'react';
@@ -20,25 +21,18 @@ import { Textarea } from '@/components/ui/textarea';
 import { Can } from '@/modules/auth/components/Can.js';
 import { DatePicker, FormAlert, SearchSelect } from '@/shared/ui';
 
-const NegotiationFormSchema = z.object({
-  clientId: z.string().min(1, 'Requerido'),
-  stateId: z.string().min(1, 'Requerido'),
-  advisorId: z.string(),
-  startDate: z.string(),
-  estimatedCloseDate: z.string(),
-  observations: z.string(),
-  isActive: z.boolean(),
-});
-
-type FormValues = z.input<typeof NegotiationFormSchema>;
+type FormValues = z.input<typeof CreateNegotiationRequestSchema>;
 
 export type NegotiationFormValues = FormValues;
+
+type ServerFieldError = { field: string; message: string };
 
 interface NegotiationFormProps {
   defaultValues: NegotiationFormValues;
   onSubmit: (values: NegotiationFormValues) => void;
   isPending: boolean;
   error?: string;
+  fieldErrors?: ServerFieldError[];
   submitLabel: string;
   onDirtyChange?: (dirty: boolean) => void;
   clientOptions?: { value: string; label: string }[];
@@ -63,6 +57,7 @@ export function NegotiationForm({
   onSubmit,
   isPending,
   error,
+  fieldErrors,
   submitLabel,
   onDirtyChange,
   clientOptions,
@@ -86,9 +81,10 @@ export function NegotiationForm({
     register,
     control,
     handleSubmit,
-    formState: { errors, isDirty },
+    setError,
+    formState: { errors, isDirty, isSubmitted, isValid },
   } = useForm<FormValues>({
-    resolver: zodResolver(NegotiationFormSchema),
+    resolver: zodResolver(CreateNegotiationRequestSchema),
     defaultValues,
     mode: 'onTouched',
   });
@@ -97,6 +93,13 @@ export function NegotiationForm({
     onDirtyChange?.(isDirty);
   }, [isDirty, onDirtyChange]);
 
+  useEffect(() => {
+    if (!fieldErrors?.length) return;
+    for (const detail of fieldErrors) {
+      setError(detail.field as keyof FormValues, { type: 'server', message: detail.message });
+    }
+  }, [fieldErrors, setError]);
+
   return (
     <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex min-h-0 flex-1 flex-col">
       <div className="flex-1 overflow-y-auto p-4">
@@ -104,9 +107,12 @@ export function NegotiationForm({
 
         <FieldGroup>
           <Field data-invalid={errors.clientId ? true : undefined}>
-            <FieldLabel>{t('negotiations.client')}</FieldLabel>
+            <FieldLabel htmlFor="negotiation-client">{t('negotiations.client')}</FieldLabel>
             {clientReadOnly ? (
-              <Input value={clientName} readOnly className="bg-muted" />
+              <>
+                <Input id="negotiation-client" value={clientName} readOnly className="bg-muted" />
+                <input type="hidden" {...register('clientId')} />
+              </>
             ) : (
               <>
                 <Controller
@@ -114,6 +120,7 @@ export function NegotiationForm({
                   name="clientId"
                   render={({ field }) => (
                     <SearchSelect
+                      id="negotiation-client"
                       options={clientOptions ?? []}
                       value={field.value}
                       onValueChange={field.onChange}
@@ -148,13 +155,15 @@ export function NegotiationForm({
           </Field>
 
           <Field data-invalid={errors.stateId ? true : undefined}>
-            <FieldLabel>{stateLabel ?? t('negotiations.initialState')}</FieldLabel>
+            <FieldLabel htmlFor="negotiation-state">
+              {stateLabel ?? t('negotiations.initialState')}
+            </FieldLabel>
             <Controller
               control={control}
               name="stateId"
               render={({ field }) => (
                 <Select value={field.value} onValueChange={field.onChange}>
-                  <SelectTrigger>
+                  <SelectTrigger id="negotiation-state">
                     <SelectValue placeholder={t('negotiations.selectState')} />
                   </SelectTrigger>
                   <SelectContent>
@@ -171,40 +180,59 @@ export function NegotiationForm({
           </Field>
 
           <Field>
-            <FieldLabel>{t('common.startDate')}</FieldLabel>
+            <FieldLabel htmlFor="negotiation-start-date">{t('common.startDate')}</FieldLabel>
             <Controller
               control={control}
               name="startDate"
-              render={({ field }) => <DatePicker value={field.value} onChange={field.onChange} />}
+              render={({ field }) => (
+                <DatePicker
+                  id="negotiation-start-date"
+                  value={field.value ?? ''}
+                  onChange={(value) => field.onChange(value || undefined)}
+                />
+              )}
             />
           </Field>
 
           <Field>
-            <FieldLabel>{t('common.estimatedClose')}</FieldLabel>
+            <FieldLabel htmlFor="negotiation-estimated-close">
+              {t('common.estimatedClose')}
+            </FieldLabel>
             <Controller
               control={control}
               name="estimatedCloseDate"
-              render={({ field }) => <DatePicker value={field.value} onChange={field.onChange} />}
+              render={({ field }) => (
+                <DatePicker
+                  id="negotiation-estimated-close"
+                  value={field.value ?? ''}
+                  onChange={(value) => field.onChange(value || undefined)}
+                />
+              )}
             />
           </Field>
 
-          <Field>
-            <FieldLabel>{t('common.observations')}</FieldLabel>
+          <Field data-invalid={errors.observations ? true : undefined}>
+            <FieldLabel htmlFor="negotiation-observations">{t('common.observations')}</FieldLabel>
             <Textarea
-              {...register('observations')}
+              id="negotiation-observations"
+              {...register('observations', {
+                setValueAs: (value) => (value === '' ? undefined : value),
+              })}
               placeholder={t('common.additionalNotes')}
               maxLength={500}
             />
+            <FieldError>{errors.observations?.message}</FieldError>
           </Field>
 
           {showAdvisorField && advisorOptions && (
-            <Field>
-              <FieldLabel>{t('common.advisor')}</FieldLabel>
+            <Field data-invalid={errors.advisorId ? true : undefined}>
+              <FieldLabel htmlFor="negotiation-advisor">{t('common.advisor')}</FieldLabel>
               <Controller
                 control={control}
                 name="advisorId"
                 render={({ field }) => (
                   <SearchSelect
+                    id="negotiation-advisor"
                     options={advisorOptions}
                     value={field.value}
                     onValueChange={field.onChange}
@@ -214,18 +242,25 @@ export function NegotiationForm({
                   />
                 )}
               />
+              <FieldError>{errors.advisorId?.message}</FieldError>
             </Field>
           )}
+
+          {!showAdvisorField && <input type="hidden" {...register('advisorId')} />}
 
           {showIsActive && (
             <Field>
               <div className="flex items-center justify-between">
-                <FieldLabel>{t('negotiations.activeNeg')}</FieldLabel>
+                <FieldLabel htmlFor="negotiation-active">{t('negotiations.activeNeg')}</FieldLabel>
                 <Controller
                   control={control}
                   name="isActive"
                   render={({ field }) => (
-                    <Switch checked={field.value} onCheckedChange={field.onChange} />
+                    <Switch
+                      id="negotiation-active"
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
                   )}
                 />
               </div>
@@ -235,7 +270,7 @@ export function NegotiationForm({
       </div>
 
       <SheetFooter>
-        <Button type="submit" disabled={isPending}>
+        <Button type="submit" disabled={isPending || (isSubmitted && !isValid)}>
           {isPending && <Loader2 data-icon="inline-start" className="animate-spin" />}
           {submitLabel}
         </Button>

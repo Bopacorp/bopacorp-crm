@@ -220,7 +220,10 @@ export function BusinessClientSheet({ open, onOpenChange, clientId }: BusinessCl
         ) : editing ? (
           <EditForm
             client={client}
-            onSaved={() => setEditing(false)}
+            onSaved={() => {
+              dirtyRef.current = false;
+              setEditing(false);
+            }}
             onDirtyChange={handleDirtyChange}
           />
         ) : (

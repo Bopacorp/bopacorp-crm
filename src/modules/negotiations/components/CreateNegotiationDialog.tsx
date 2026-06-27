@@ -8,6 +8,7 @@ import { queryKeys } from '@/lib/query-keys.js';
 import { useAuth } from '@/modules/auth/context/AuthContext.js';
 import { CreateBusinessClientDialog } from '@/modules/clients/components/CreateBusinessClientDialog.js';
 import { useBusinessClients } from '@/modules/clients/hooks/useBusinessClients.js';
+import { ApiError } from '@/services/api.js';
 import { getErrorMessage } from '@/shared/errors/index.js';
 import { useUnsavedGuard } from '@/shared/hooks/useUnsavedGuard.js';
 import { DiscardChangesDialog } from '@/shared/ui';
@@ -22,13 +23,15 @@ interface CreateNegotiationDialogProps {
   onSuccess: () => void;
 }
 
+type ServerFieldError = { field: string; message: string };
+
 const EMPTY_VALUES: NegotiationFormValues = {
   clientId: '',
   stateId: '',
   advisorId: '',
-  startDate: '',
-  estimatedCloseDate: '',
-  observations: '',
+  startDate: undefined,
+  estimatedCloseDate: undefined,
+  observations: undefined,
   isActive: true,
 };
 
@@ -53,12 +56,14 @@ export function CreateNegotiationDialog({
 
   const [key, setKey] = useState(0);
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<ServerFieldError[]>([]);
   const [createClientOpen, setCreateClientOpen] = useState(false);
   const [preselectedClientId, setPreselectedClientId] = useState('');
 
   const forceClose = useCallback(() => {
     setKey((k) => k + 1);
     setError('');
+    setFieldErrors([]);
     setPreselectedClientId('');
     setClientSearch('');
     setClientPage(1);
@@ -81,10 +86,20 @@ export function CreateNegotiationDialog({
       queryClient.invalidateQueries({ queryKey: queryKeys.negotiations.all });
       toast.success(t('common.entityCreated', { entity: t('negotiations.title') }));
       dirtyRef.current = false;
+      setFieldErrors([]);
       forceClose();
       onSuccess();
     },
-    onError: (err) => setError(getErrorMessage(err)),
+    onError: (err) => {
+      if (err instanceof ApiError && err.details?.length) {
+        setError('');
+        setFieldErrors(err.details.map((d) => ({ field: d.field, message: d.message })));
+        return;
+      }
+
+      setFieldErrors([]);
+      setError(getErrorMessage(err));
+    },
   });
 
   const handleOpenChange = (value: boolean) => {
@@ -98,6 +113,7 @@ export function CreateNegotiationDialog({
   const handleSubmit = (values: NegotiationFormValues) => {
     if (!user) return;
     setError('');
+    setFieldErrors([]);
 
     mutation.mutate({
       clientId: values.clientId,
@@ -111,8 +127,8 @@ export function CreateNegotiationDialog({
   };
 
   const defaultValues = preselectedClientId
-    ? { ...EMPTY_VALUES, clientId: preselectedClientId }
-    : EMPTY_VALUES;
+    ? { ...EMPTY_VALUES, clientId: preselectedClientId, advisorId: user?.id ?? '' }
+    : { ...EMPTY_VALUES, advisorId: user?.id ?? '' };
 
   return (
     <Sheet open={open} onOpenChange={handleOpenChange}>
@@ -126,6 +142,7 @@ export function CreateNegotiationDialog({
           onSubmit={handleSubmit}
           isPending={mutation.isPending}
           error={error}
+          fieldErrors={fieldErrors}
           submitLabel={t('common.create')}
           onDirtyChange={handleDirtyChange}
           clientOptions={clientOptions}
@@ -150,6 +167,8 @@ export function CreateNegotiationDialog({
         onOpenChange={setCreateClientOpen}
         onSuccess={(client) => {
           setPreselectedClientId(client.id);
+          setKey((k) => k + 1);
+          setCreateClientOpen(false);
         }}
       />
     </Sheet>

@@ -7,6 +7,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import { queryKeys } from '@/lib/query-keys.js';
 import { useAuth } from '@/modules/auth/context/AuthContext.js';
 import { useAdvisors } from '@/modules/org/hooks/useAdvisors.js';
+import { ApiError } from '@/services/api.js';
 import { getErrorMessage } from '@/shared/errors/index.js';
 import { useUnsavedGuard } from '@/shared/hooks/useUnsavedGuard.js';
 import { DiscardChangesDialog } from '@/shared/ui';
@@ -21,6 +22,8 @@ interface EditNegotiationSheetProps {
   negotiation: NegotiationResponse;
   onSuccess: () => void;
 }
+
+type ServerFieldError = { field: string; message: string };
 
 function employeeName(emp: {
   user: { firstName: string | null; lastName: string | null; username: string };
@@ -45,10 +48,12 @@ export function EditNegotiationSheet({
 
   const [key, setKey] = useState(0);
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<ServerFieldError[]>([]);
 
   const forceClose = useCallback(() => {
     setKey((k) => k + 1);
     setError('');
+    setFieldErrors([]);
     onOpenChange(false);
   }, [onOpenChange]);
 
@@ -67,9 +72,9 @@ export function EditNegotiationSheet({
     clientId: negotiation.client.id,
     stateId: negotiation.state.id,
     advisorId: negotiation.advisor.id,
-    startDate: negotiation.startDate ?? '',
-    estimatedCloseDate: negotiation.estimatedCloseDate ?? '',
-    observations: negotiation.observations ?? '',
+    startDate: negotiation.startDate ?? undefined,
+    estimatedCloseDate: negotiation.estimatedCloseDate ?? undefined,
+    observations: negotiation.observations ?? undefined,
     isActive: negotiation.isActive,
   };
 
@@ -79,10 +84,20 @@ export function EditNegotiationSheet({
       queryClient.invalidateQueries({ queryKey: queryKeys.negotiations.all });
       toast.success(t('common.entityUpdated', { entity: t('negotiations.title') }));
       dirtyRef.current = false;
+      setFieldErrors([]);
       forceClose();
       onSuccess();
     },
-    onError: (err) => setError(getErrorMessage(err)),
+    onError: (err) => {
+      if (err instanceof ApiError && err.details?.length) {
+        setError('');
+        setFieldErrors(err.details.map((d) => ({ field: d.field, message: d.message })));
+        return;
+      }
+
+      setFieldErrors([]);
+      setError(getErrorMessage(err));
+    },
   });
 
   const handleOpenChange = (value: boolean) => {
@@ -95,6 +110,7 @@ export function EditNegotiationSheet({
 
   const handleSubmit = (values: NegotiationFormValues) => {
     setError('');
+    setFieldErrors([]);
     mutation.mutate({
       stateId: values.stateId,
       advisorId: values.advisorId || undefined,
@@ -117,6 +133,7 @@ export function EditNegotiationSheet({
           onSubmit={handleSubmit}
           isPending={mutation.isPending}
           error={error}
+          fieldErrors={fieldErrors}
           submitLabel={t('common.save')}
           onDirtyChange={handleDirtyChange}
           stateOptions={states}

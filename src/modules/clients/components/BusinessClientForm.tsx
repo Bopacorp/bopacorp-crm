@@ -180,9 +180,19 @@ export function BusinessClientForm({
               id="contactPhone"
               type="tel"
               autoComplete="tel"
+              inputMode="numeric"
+              pattern="[0-9]*"
               {...register('contactPhone', {
                 setValueAs: (value) => (value === '' ? undefined : value),
               })}
+              onChange={(event) => {
+                const digitsOnly = event.target.value.replace(/\D/g, '').slice(0, 10);
+                setValue('contactPhone', digitsOnly || undefined, {
+                  shouldDirty: true,
+                  shouldTouch: true,
+                  shouldValidate: true,
+                });
+              }}
               maxLength={10}
               disabled={isBusy}
             />

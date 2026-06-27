@@ -137,6 +137,7 @@ export function CategoryDetailPanel({
             if (externalDirtyRef) externalDirtyRef.current = dirty;
           }}
           onSaved={() => {
+            dirtyRef.current = false;
             setEditing(false);
             if (externalDirtyRef) externalDirtyRef.current = false;
             invalidate();

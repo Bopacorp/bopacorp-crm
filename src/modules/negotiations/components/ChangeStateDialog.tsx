@@ -77,7 +77,7 @@ export function ChangeStateDialog({
     handleSubmit,
     reset,
     setError,
-    formState: { errors },
+    formState: { errors, isSubmitted, isValid },
   } = form;
 
   useEffect(() => {
@@ -122,16 +122,21 @@ export function ChangeStateDialog({
 
           <FieldGroup>
             <Field data-invalid={errors.stateId ? true : undefined}>
-              <FieldLabel>{t('negotiations.newState')}</FieldLabel>
+              <FieldLabel htmlFor="change-state-id">{t('negotiations.newState')}</FieldLabel>
               {isLocked ? (
-                <Input value={targetStateName ?? ''} readOnly className="bg-muted" />
+                <Input
+                  id="change-state-id"
+                  value={targetStateName ?? ''}
+                  readOnly
+                  className="bg-muted"
+                />
               ) : (
                 <Controller
                   control={control}
                   name="stateId"
                   render={({ field }) => (
                     <Select value={field.value} onValueChange={field.onChange}>
-                      <SelectTrigger>
+                      <SelectTrigger id="change-state-id">
                         <SelectValue placeholder={t('negotiations.selectState')} />
                       </SelectTrigger>
                       <SelectContent>
@@ -149,9 +154,12 @@ export function ChangeStateDialog({
             </Field>
 
             <Field data-invalid={errors.notes ? true : undefined}>
-              <FieldLabel>{t('negotiations.changeNotes')}</FieldLabel>
+              <FieldLabel htmlFor="change-state-notes">{t('negotiations.changeNotes')}</FieldLabel>
               <Textarea
-                {...register('notes')}
+                id="change-state-notes"
+                {...register('notes', {
+                  setValueAs: (value) => (value === '' || value == null ? undefined : value),
+                })}
                 placeholder={t('negotiations.changeNotesPlaceholder')}
               />
               <FieldError>{errors.notes?.message}</FieldError>
@@ -162,7 +170,7 @@ export function ChangeStateDialog({
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               {t('common.cancel')}
             </Button>
-            <Button type="submit" disabled={mutation.isPending}>
+            <Button type="submit" disabled={mutation.isPending || (isSubmitted && !isValid)}>
               {mutation.isPending && <Loader2 data-icon="inline-start" className="animate-spin" />}
               {isLocked ? t('common.confirm') : t('negotiations.change')}
             </Button>
