@@ -1,5 +1,5 @@
 import { ChevronsUpDown, Loader2 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import {
@@ -19,9 +19,11 @@ export interface SearchSelectOption {
 }
 
 interface SearchSelectProps {
+  id?: string;
   options: SearchSelectOption[];
   value: string;
   onValueChange: (value: string) => void;
+  disabled?: boolean;
   placeholder?: string;
   searchPlaceholder?: string;
   emptyMessage?: string;
@@ -34,9 +36,11 @@ interface SearchSelectProps {
 }
 
 export function SearchSelect({
+  id,
   options,
   value,
   onValueChange,
+  disabled = false,
   placeholder,
   searchPlaceholder,
   emptyMessage,
@@ -52,13 +56,21 @@ export function SearchSelect({
   const selected = options.find((o) => o.value === value);
   const isRemote = typeof onSearchChange === 'function';
 
+  useEffect(() => {
+    if (disabled) {
+      setOpen(false);
+    }
+  }, [disabled]);
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
+          id={id}
           variant="outline"
           role="combobox"
           aria-expanded={open}
+          disabled={disabled}
           className={cn('w-full justify-between font-normal', !value && 'text-muted-foreground')}
         >
           {selected?.label ?? placeholder ?? t('common.select')}

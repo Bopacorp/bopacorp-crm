@@ -187,9 +187,11 @@ export default function App() {
                 path="/reportes"
                 element={
                   <RequireAuth>
-                    <RequirePermission permission="report_exports.read">
-                      <ReportsPage />
-                    </RequirePermission>
+                    <ManagementOnly>
+                      <RequirePermission permission="report_exports.read">
+                        <ReportsPage />
+                      </RequirePermission>
+                    </ManagementOnly>
                   </RequireAuth>
                 }
               />

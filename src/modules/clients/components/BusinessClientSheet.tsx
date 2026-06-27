@@ -37,6 +37,7 @@ import { formatRelativeTime } from '@/lib/format.js';
 import { queryKeys } from '@/lib/query-keys.js';
 import { Can } from '@/modules/auth/components/Can.js';
 
+import { ApiError, type ApiErrorDetail } from '@/services/api.js';
 import { getErrorMessage } from '@/shared/errors/index.js';
 import { useUnsavedGuard } from '@/shared/hooks/useUnsavedGuard.js';
 import { DiscardChangesDialog, ErrorState, SheetDetailSkeleton, StateBadge } from '@/shared/ui';
@@ -317,10 +318,10 @@ function ViewMode({ client }: { client: BusinessClientResponse }) {
 
         <div className="flex flex-col gap-1">
           <SectionLabel>{t('clients.metrics')}</SectionLabel>
-          <DetailField icon={Settings} label={t('clients.services')}>
+          <DetailField icon={Settings} label={t('clients.lines')}>
             {client.activeServicesCount}
           </DetailField>
-          <DetailField icon={DollarSign} label={t('clients.billing')}>
+          <DetailField icon={DollarSign} label={t('clients.monthlyBilling')}>
             {formatCurrency(client.currentMonthlyBilling)}
           </DetailField>
           <DetailField icon={UserCheck} label={t('common.advisor')}>
@@ -344,6 +345,7 @@ function EditForm({
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [formError, setFormError] = useState('');
+  const [serverFieldErrors, setServerFieldErrors] = useState<ApiErrorDetail[]>([]);
 
   const mutation = useMutation({
     mutationFn: (data: UpdateBusinessClientRequest) => updateBusinessClient(client.id, data),
@@ -353,21 +355,37 @@ function EditForm({
       toast.success(t('common.entityUpdated', { entity: t('negotiations.client') }));
       onSaved();
     },
-    onError: (err) => setFormError(getErrorMessage(err)),
+    onError: (err) => {
+      if (err instanceof ApiError && err.details?.length) {
+        setServerFieldErrors(err.details);
+        setFormError('');
+        return;
+      }
+
+      setServerFieldErrors([]);
+      setFormError(getErrorMessage(err));
+    },
   });
 
-  const handleSubmit = (values: BusinessClientFormValues) => {
+  const handleSubmit = async (values: BusinessClientFormValues) => {
     setFormError('');
-    mutation.mutate({
-      ruc: values.ruc,
-      advisorId: values.advisorId || undefined,
-      businessName: values.businessName,
-      contactName: values.contactName,
-      contactPhone: values.contactPhone || undefined,
-      contactEmail: values.contactEmail || undefined,
-      address: values.address || undefined,
-      isActive: values.isActive,
-    });
+    setServerFieldErrors([]);
+    try {
+      await mutation.mutateAsync({
+        ruc: values.ruc,
+        advisorId: values.advisorId || undefined,
+        businessName: values.businessName,
+        contactName: values.contactName,
+        contactPhone: values.contactPhone || undefined,
+        contactEmail: values.contactEmail || undefined,
+        address: values.address || undefined,
+        activeServicesCount: values.activeServicesCount,
+        currentMonthlyBilling: values.currentMonthlyBilling,
+        isActive: values.isActive ?? true,
+      });
+    } catch {
+      // mutation.onError already maps server errors into form state
+    }
   };
 
   return (
@@ -376,15 +394,18 @@ function EditForm({
         ruc: client.ruc,
         businessName: client.businessName,
         contactName: client.contactName,
-        contactPhone: client.contactPhone ?? '',
-        contactEmail: client.contactEmail ?? '',
-        address: client.address ?? '',
-        advisorId: client.advisor?.id ?? '',
+        contactPhone: client.contactPhone ?? undefined,
+        contactEmail: client.contactEmail ?? undefined,
+        address: client.address ?? undefined,
+        activeServicesCount: client.activeServicesCount,
+        currentMonthlyBilling: client.currentMonthlyBilling,
+        advisorId: client.advisor?.id ?? undefined,
         isActive: client.isActive,
       }}
       onSubmit={handleSubmit}
       isPending={mutation.isPending}
       error={formError}
+      serverFieldErrors={serverFieldErrors}
       submitLabel={t('common.save')}
       showIsActive
       onDirtyChange={onDirtyChange}

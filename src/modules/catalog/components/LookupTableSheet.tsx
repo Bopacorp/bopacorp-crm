@@ -296,7 +296,7 @@ function CreateForm({
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder={t('common.namePlaceholder')}
-              maxLength={30}
+              maxLength={100}
             />
           </Field>
           <Field>
@@ -305,7 +305,7 @@ function CreateForm({
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder={t('common.descriptionPlaceholder')}
-              maxLength={150}
+              maxLength={255}
               rows={3}
             />
           </Field>
@@ -384,14 +384,14 @@ function EditForm({
           </Field>
           <Field>
             <FieldLabel>{t('common.name')}</FieldLabel>
-            <Input value={name} onChange={(e) => setName(e.target.value)} maxLength={30} />
+            <Input value={name} onChange={(e) => setName(e.target.value)} maxLength={100} />
           </Field>
           <Field>
             <FieldLabel>{t('common.description')}</FieldLabel>
             <Textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              maxLength={150}
+              maxLength={255}
               rows={3}
             />
           </Field>

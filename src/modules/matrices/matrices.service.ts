@@ -9,6 +9,7 @@ import type {
   OfferMatrixResponse,
   UpdateOfferMatrixRequest,
 } from '@bopacorp/shared/matrices';
+
 import api, { request, requestPaginated } from '@/services/api.js';
 
 // ── Offer Matrices ──
@@ -31,10 +32,6 @@ export function createMatrix(data: CreateOfferMatrixRequest) {
 
 export function updateMatrix(id: string, data: UpdateOfferMatrixRequest) {
   return request<OfferMatrixResponse>({ method: 'PATCH', url: `/matrices/${id}`, data });
-}
-
-export function deleteMatrix(id: string) {
-  return request<void>({ method: 'DELETE', url: `/matrices/${id}` });
 }
 
 // ── Attachments ──
