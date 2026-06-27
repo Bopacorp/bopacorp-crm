@@ -1,5 +1,6 @@
 import type { NegotiationListItemResponse } from '@bopacorp/shared/crm';
 import { CreateNegotiationDocumentRequestSchema } from '@bopacorp/shared/documents';
+import { V } from '@bopacorp/shared/i18n';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { FileUp, Loader2, X } from 'lucide-react';
@@ -35,6 +36,7 @@ import { createDocument, uploadDocument } from '../documentation.service.js';
 import { useActiveDocumentTypes } from '../hooks/useDocumentTypes.js';
 
 const MAX_FILE_SIZE_MB = 50;
+const ACCEPTED_FILE_TYPES = '.pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png';
 
 function createDocumentUploadSchema(fileTooLargeMessage: string) {
   return CreateNegotiationDocumentRequestSchema.pick({
@@ -42,7 +44,7 @@ function createDocumentUploadSchema(fileTooLargeMessage: string) {
     documentTypeId: true,
   }).extend({
     file: z
-      .instanceof(File)
+      .instanceof(File, { message: V.REQUIRED })
       .refine((f) => f.size / (1024 * 1024) <= MAX_FILE_SIZE_MB, fileTooLargeMessage),
   });
 }
@@ -253,13 +255,14 @@ export function DocumentUploadDialog({
                       id="document-file"
                       type="file"
                       className="hidden"
+                      accept={ACCEPTED_FILE_TYPES}
                       disabled={mutation.isPending || form.formState.isSubmitting}
                       onChange={handleFileChange}
                     />
                   </div>
                 ) : (
-                  <div className="flex items-center justify-between rounded-lg border p-3">
-                    <span className="text-sm">{file.name}</span>
+                  <div className="flex items-center justify-between gap-2 rounded-lg border p-3">
+                    <span className="min-w-0 truncate text-sm">{file.name}</span>
                     <Button
                       type="button"
                       variant="ghost"

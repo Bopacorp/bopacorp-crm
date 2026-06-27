@@ -1,8 +1,19 @@
 import type { CatalogItemResponse } from '@bopacorp/shared/catalog';
+import {
+  CreateAgeConditionSchema,
+  CreateCatalogItemRequestSchema,
+  CreateConnectivityDetailSchema,
+  CreateDeviceDetailSchema,
+  CreateDigitalDetailSchema,
+  CreateLegalConditionSchema,
+  CreateRoamingDetailSchema,
+  CreateVoiceDetailSchema,
+} from '@bopacorp/shared/catalog';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2 } from 'lucide-react';
 import { useEffect, useMemo, useRef } from 'react';
-import { Controller, useForm } from 'react-hook-form';
+import type { Resolver, SubmitHandler } from 'react-hook-form';
+import { Controller, useForm, useFormState } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
@@ -71,28 +82,96 @@ export interface CatalogItemFormValues {
   temporalConditions: TemporalConditionFormValues | null;
 }
 
+function toNumberInput(value: unknown): number | undefined {
+  if (value === '' || value == null) return undefined;
+  const parsed = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+function numberInput<T extends z.ZodTypeAny>(schema: T) {
+  return z.preprocess(toNumberInput, schema);
+}
+
 const CatalogItemFormSchema = z.object({
-  name: z.string().min(1, 'Requerido'),
-  description: z.string().min(1, 'Requerido'),
-  price: z.string().min(1, 'Requerido'),
-  activationCode: z.string(),
-  permanenceMonths: z.string(),
-  categoryId: z.string().min(1, 'Requerido'),
-  itemTypeId: z.string().min(1, 'Requerido'),
-  contractTypeId: z.string().min(1, 'Requerido'),
-  segmentId: z.string().min(1, 'Requerido'),
-  tierId: z.string().min(1, 'Requerido'),
+  name: CreateCatalogItemRequestSchema.shape.name,
+  description: CreateCatalogItemRequestSchema.shape.description,
+  price: numberInput(CreateCatalogItemRequestSchema.shape.price),
+  activationCode: CreateCatalogItemRequestSchema.shape.activationCode,
+  permanenceMonths: numberInput(CreateCatalogItemRequestSchema.shape.permanenceMonths),
+  categoryId: CreateCatalogItemRequestSchema.shape.categoryId,
+  itemTypeId: CreateCatalogItemRequestSchema.shape.itemTypeId,
+  contractTypeId: CreateCatalogItemRequestSchema.shape.contractTypeId,
+  segmentId: CreateCatalogItemRequestSchema.shape.segmentId,
+  tierId: CreateCatalogItemRequestSchema.shape.tierId,
   isActive: z.boolean(),
   isPublished: z.boolean(),
-  voiceDetails: z.custom<VoiceDetailFormValues | null>(),
-  connectivityDetails: z.custom<ConnectivityDetailFormValues | null>(),
-  digitalDetails: z.custom<DigitalDetailFormValues | null>(),
-  roamingDetails: z.custom<RoamingDetailFormValues | null>(),
-  deviceDetails: z.custom<DeviceDetailFormValues | null>(),
-  benefits: z.custom<BenefitFormRow[]>(),
-  ageConditions: z.custom<AgeConditionFormValues | null>(),
-  legalConditions: z.custom<LegalConditionFormValues | null>(),
-  temporalConditions: z.custom<TemporalConditionFormValues | null>(),
+  voiceDetails: z
+    .object({
+      gigasStructural: numberInput(CreateVoiceDetailSchema.shape.gigasStructural),
+      gigasLoyalty: numberInput(CreateVoiceDetailSchema.shape.gigasLoyalty),
+      minutesNational: numberInput(CreateVoiceDetailSchema.shape.minutesNational),
+      minutesLdi: numberInput(CreateVoiceDetailSchema.shape.minutesLdi),
+      sms: numberInput(CreateVoiceDetailSchema.shape.sms),
+      hasUnlimitedMinutes: z.boolean(),
+      hasUnlimitedWhatsapp: z.boolean(),
+      hasSocialNetworks: z.boolean(),
+      includedRoamingGb: numberInput(CreateVoiceDetailSchema.shape.includedRoamingGb),
+    })
+    .nullable(),
+  connectivityDetails: z
+    .object({
+      bandwidthMbps: numberInput(CreateConnectivityDetailSchema.shape.bandwidthMbps),
+    })
+    .nullable(),
+  digitalDetails: z
+    .object({
+      provider: CreateDigitalDetailSchema.shape.provider,
+    })
+    .nullable(),
+  roamingDetails: z
+    .object({
+      geoZoneId: CreateRoamingDetailSchema.shape.geoZoneId,
+      dataMb: numberInput(CreateRoamingDetailSchema.shape.dataMb),
+      durationDays: numberInput(CreateRoamingDetailSchema.shape.durationDays),
+      hasThrottle: z.boolean(),
+    })
+    .nullable(),
+  deviceDetails: z
+    .object({
+      brand: CreateDeviceDetailSchema.shape.brand,
+      model: CreateDeviceDetailSchema.shape.model,
+      storageGb: numberInput(CreateDeviceDetailSchema.shape.storageGb),
+      financingMonths: numberInput(CreateDeviceDetailSchema.shape.financingMonths),
+      financingMonthly: numberInput(CreateDeviceDetailSchema.shape.financingMonthly),
+    })
+    .nullable(),
+  benefits: z.array(
+    z.object({
+      _key: z.number(),
+      benefitTypeId: z.string(),
+      name: z.string(),
+      description: z.string(),
+      durationDays: z.string(),
+    }),
+  ),
+  ageConditions: z
+    .object({
+      minAge: numberInput(CreateAgeConditionSchema.shape.minAge),
+      maxAge: numberInput(CreateAgeConditionSchema.shape.maxAge),
+    })
+    .nullable(),
+  legalConditions: z
+    .object({
+      legalRequirement: CreateLegalConditionSchema.shape.legalRequirement,
+      description: CreateLegalConditionSchema.shape.description,
+    })
+    .nullable(),
+  temporalConditions: z
+    .object({
+      effectiveDate: z.string(),
+      expirationDate: z.string(),
+    })
+    .nullable(),
 });
 
 export const EMPTY_FORM_VALUES: CatalogItemFormValues = {
@@ -128,6 +207,14 @@ function toNum(v: string): number | undefined {
 
 function toNumRequired(v: string): number {
   return Number(v) || 0;
+}
+
+function RequiredMark() {
+  return (
+    <span aria-hidden="true" className="text-destructive">
+      *
+    </span>
+  );
 }
 
 const CODE_TO_DETAIL_KEY: Record<string, keyof DetailValues> = {
@@ -371,10 +458,12 @@ export function CatalogItemForm({
     setValue,
     formState: { errors, isDirty },
   } = useForm<CatalogItemFormValues>({
-    resolver: zodResolver(CatalogItemFormSchema),
+    resolver: zodResolver(CatalogItemFormSchema) as unknown as Resolver<CatalogItemFormValues>,
     defaultValues,
     mode: 'onTouched',
   });
+  const { isSubmitting, isSubmitted, isValid } = useFormState({ control });
+  const isBusy = isPending || isSubmitting;
 
   const { options: categoryOptions } = useCategoryOptions();
   const { options: itemTypeOptions } = useItemTypeOptions();
@@ -421,7 +510,7 @@ export function CatalogItemForm({
     onDirtyChange?.(isDirty);
   }, [isDirty, onDirtyChange]);
 
-  const onSubmitHandler = (data: CatalogItemFormValues) => {
+  const onSubmitHandler: SubmitHandler<CatalogItemFormValues> = (data) => {
     onSubmit(data, itemTypeCode);
   };
 
@@ -435,36 +524,68 @@ export function CatalogItemForm({
         <FieldGroup>
           <div className="grid gap-5 md:grid-cols-2">
             <Field data-invalid={errors.name ? true : undefined}>
-              <FieldLabel>{t('common.name')}</FieldLabel>
-              <Input {...register('name')} maxLength={200} />
+              <FieldLabel htmlFor="name">
+                {t('common.name')} <RequiredMark />
+              </FieldLabel>
+              <Input id="name" {...register('name')} maxLength={200} disabled={isBusy} />
               <FieldError>{errors.name?.message}</FieldError>
             </Field>
             <Field data-invalid={errors.price ? true : undefined}>
-              <FieldLabel>{t('common.price')}</FieldLabel>
-              <Input type="number" min={0} step={0.01} {...register('price')} />
+              <FieldLabel htmlFor="price">
+                {t('common.price')} <RequiredMark />
+              </FieldLabel>
+              <Input
+                id="price"
+                type="number"
+                min={0}
+                step={0.01}
+                {...register('price')}
+                disabled={isBusy}
+              />
               <FieldError>{errors.price?.message}</FieldError>
             </Field>
             <Field className="md:col-span-2" data-invalid={errors.description ? true : undefined}>
-              <FieldLabel>{t('common.description')}</FieldLabel>
-              <Textarea {...register('description')} rows={3} maxLength={1000} />
+              <FieldLabel htmlFor="description">
+                {t('common.description')} <RequiredMark />
+              </FieldLabel>
+              <Textarea
+                id="description"
+                {...register('description')}
+                rows={3}
+                maxLength={1000}
+                disabled={isBusy}
+              />
               <FieldError>{errors.description?.message}</FieldError>
             </Field>
             <Field>
-              <FieldLabel>{t('catalog.activationCode')}</FieldLabel>
-              <Input {...register('activationCode')} maxLength={20} />
+              <FieldLabel htmlFor="activationCode">{t('catalog.activationCode')}</FieldLabel>
+              <Input
+                id="activationCode"
+                {...register('activationCode')}
+                maxLength={20}
+                disabled={isBusy}
+              />
             </Field>
             <Field>
-              <FieldLabel>{t('catalog.permanenceMonths')}</FieldLabel>
-              <Input type="number" min={0} {...register('permanenceMonths')} />
+              <FieldLabel htmlFor="permanenceMonths">{t('catalog.permanenceMonths')}</FieldLabel>
+              <Input
+                id="permanenceMonths"
+                type="number"
+                min={0}
+                {...register('permanenceMonths')}
+                disabled={isBusy}
+              />
             </Field>
             <Field data-invalid={errors.categoryId ? true : undefined}>
-              <FieldLabel>{t('common.category')}</FieldLabel>
+              <FieldLabel htmlFor="categoryId">
+                {t('common.category')} <RequiredMark />
+              </FieldLabel>
               <Controller
                 control={control}
                 name="categoryId"
                 render={({ field }) => (
                   <Select value={field.value} onValueChange={field.onChange}>
-                    <SelectTrigger>
+                    <SelectTrigger id="categoryId" disabled={isBusy}>
                       <SelectValue placeholder={t('common.selectCategory')} />
                     </SelectTrigger>
                     <SelectContent>
@@ -480,13 +601,15 @@ export function CatalogItemForm({
               <FieldError>{errors.categoryId?.message}</FieldError>
             </Field>
             <Field data-invalid={errors.itemTypeId ? true : undefined}>
-              <FieldLabel>{t('catalog.itemType')}</FieldLabel>
+              <FieldLabel htmlFor="itemTypeId">
+                {t('catalog.itemType')} <RequiredMark />
+              </FieldLabel>
               <Controller
                 control={control}
                 name="itemTypeId"
                 render={({ field }) => (
                   <Select value={field.value} onValueChange={field.onChange}>
-                    <SelectTrigger>
+                    <SelectTrigger id="itemTypeId" disabled={isBusy}>
                       <SelectValue placeholder={t('common.selectType')} />
                     </SelectTrigger>
                     <SelectContent>
@@ -502,7 +625,9 @@ export function CatalogItemForm({
               <FieldError>{errors.itemTypeId?.message}</FieldError>
             </Field>
             <Field data-invalid={errors.contractTypeId ? true : undefined}>
-              <FieldLabel>{t('catalog.contractType')}</FieldLabel>
+              <FieldLabel htmlFor="contractTypeId">
+                {t('catalog.contractType')} <RequiredMark />
+              </FieldLabel>
               <Controller
                 control={control}
                 name="contractTypeId"
@@ -516,6 +641,7 @@ export function CatalogItemForm({
                       if (v) field.onChange(v);
                     }}
                     className="w-full"
+                    disabled={isBusy}
                   >
                     {contractTypeOptions.map((opt) => (
                       <ToggleGroupItem key={opt.value} value={opt.value} className="flex-1 text-xs">
@@ -528,7 +654,9 @@ export function CatalogItemForm({
               <FieldError>{errors.contractTypeId?.message}</FieldError>
             </Field>
             <Field data-invalid={errors.segmentId ? true : undefined}>
-              <FieldLabel>{t('catalog.segment')}</FieldLabel>
+              <FieldLabel htmlFor="segmentId">
+                {t('catalog.segment')} <RequiredMark />
+              </FieldLabel>
               <Controller
                 control={control}
                 name="segmentId"
@@ -542,6 +670,7 @@ export function CatalogItemForm({
                       if (v) field.onChange(v);
                     }}
                     className="w-full"
+                    disabled={isBusy}
                   >
                     {segmentOptions.map((opt) => (
                       <ToggleGroupItem key={opt.value} value={opt.value} className="flex-1 text-xs">
@@ -554,13 +683,15 @@ export function CatalogItemForm({
               <FieldError>{errors.segmentId?.message}</FieldError>
             </Field>
             <Field data-invalid={errors.tierId ? true : undefined}>
-              <FieldLabel>{t('catalog.level')}</FieldLabel>
+              <FieldLabel htmlFor="tierId">
+                {t('catalog.level')} <RequiredMark />
+              </FieldLabel>
               <Controller
                 control={control}
                 name="tierId"
                 render={({ field }) => (
                   <Select value={field.value} onValueChange={field.onChange}>
-                    <SelectTrigger>
+                    <SelectTrigger id="tierId" disabled={isBusy}>
                       <SelectValue placeholder={t('common.selectLevel')} />
                     </SelectTrigger>
                     <SelectContent>
@@ -579,23 +710,33 @@ export function CatalogItemForm({
           <div className="grid gap-5 md:grid-cols-2">
             {mode === 'edit' && (
               <Field orientation="horizontal">
-                <FieldLabel>{t('common.active')}</FieldLabel>
+                <FieldLabel htmlFor="isActive">{t('common.active')}</FieldLabel>
                 <Controller
                   control={control}
                   name="isActive"
                   render={({ field }) => (
-                    <Switch checked={field.value} onCheckedChange={field.onChange} />
+                    <Switch
+                      id="isActive"
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                      disabled={isBusy}
+                    />
                   )}
                 />
               </Field>
             )}
             <Field orientation="horizontal">
-              <FieldLabel>{t('common.published')}</FieldLabel>
+              <FieldLabel htmlFor="isPublished">{t('common.published')}</FieldLabel>
               <Controller
                 control={control}
                 name="isPublished"
                 render={({ field }) => (
-                  <Switch checked={field.value} onCheckedChange={field.onChange} />
+                  <Switch
+                    id="isPublished"
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                    disabled={isBusy}
+                  />
                 )}
               />
             </Field>
@@ -646,12 +787,12 @@ export function CatalogItemForm({
       {/* Footer */}
       <div className="flex justify-end gap-2 border-t border-border pt-4">
         {onCancel && (
-          <Button type="button" variant="ghost" onClick={onCancel}>
+          <Button type="button" variant="ghost" onClick={onCancel} disabled={isBusy}>
             {t('common.cancel')}
           </Button>
         )}
-        <Button type="submit" disabled={isPending}>
-          {isPending && <Loader2 data-icon="inline-start" className="animate-spin" />}
+        <Button type="submit" disabled={isBusy || (isSubmitted && !isValid)}>
+          {isBusy && <Loader2 data-icon="inline-start" className="animate-spin" />}
           {submitLabel}
         </Button>
       </div>

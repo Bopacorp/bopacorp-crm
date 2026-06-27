@@ -29,7 +29,13 @@ import { DateTimePicker, DiscardChangesDialog, FormAlert, SearchSelect } from '@
 import { useVisitTypes } from '../hooks/useVisitTypes.js';
 import { createVisit } from '../negotiations.service.js';
 
-type FormValues = z.input<typeof CreateVisitRequestSchema>;
+const FormSchema = CreateVisitRequestSchema.omit({
+  clientId: true,
+  negotiationId: true,
+  gpsAccuracy: true,
+  gpsTimestamp: true,
+});
+type FormValues = z.input<typeof FormSchema>;
 
 type ServerFieldError = { field: string; message: string };
 
@@ -176,7 +182,7 @@ function CreateVisitForm({
     setError,
     formState: { errors, isDirty, isSubmitted, isValid },
   } = useForm<FormValues>({
-    resolver: zodResolver(CreateVisitRequestSchema),
+    resolver: zodResolver(FormSchema),
     defaultValues: {
       visitTypeId: '',
       advisorId: user?.id ?? '',
@@ -187,6 +193,12 @@ function CreateVisitForm({
     },
     mode: 'onTouched',
   });
+
+  useEffect(() => {
+    if (isAdvisor && user?.id) {
+      setValue('advisorId', user.id);
+    }
+  }, [isAdvisor, user?.id, setValue]);
 
   useEffect(() => {
     onDirtyChange(isDirty);
@@ -217,7 +229,9 @@ function CreateVisitForm({
 
         <FieldGroup>
           <Field data-invalid={errors.visitTypeId ? true : undefined}>
-            <FieldLabel htmlFor="visit-type">{t('visits.visitType')}</FieldLabel>
+            <FieldLabel htmlFor="visit-type">
+              {t('visits.visitType')} <span className="text-destructive">*</span>
+            </FieldLabel>
             <Controller
               control={control}
               name="visitTypeId"
@@ -241,7 +255,9 @@ function CreateVisitForm({
 
           {!isAdvisor && (
             <Field data-invalid={errors.advisorId ? true : undefined}>
-              <FieldLabel htmlFor="visit-advisor">{t('common.advisor')}</FieldLabel>
+              <FieldLabel htmlFor="visit-advisor">
+                {t('common.advisor')} <span className="text-destructive">*</span>
+              </FieldLabel>
               <Controller
                 control={control}
                 name="advisorId"
@@ -264,7 +280,9 @@ function CreateVisitForm({
           {isAdvisor && <input type="hidden" {...register('advisorId')} />}
 
           <Field data-invalid={errors.visitDate ? true : undefined}>
-            <FieldLabel htmlFor="visit-date">{t('visits.dateTime')}</FieldLabel>
+            <FieldLabel htmlFor="visit-date">
+              {t('visits.dateTime')} <span className="text-destructive">*</span>
+            </FieldLabel>
             <Controller
               control={control}
               name="visitDate"
@@ -276,7 +294,9 @@ function CreateVisitForm({
           </Field>
 
           <Field data-invalid={errors.observations ? true : undefined}>
-            <FieldLabel htmlFor="visit-observations">{t('common.observations')}</FieldLabel>
+            <FieldLabel htmlFor="visit-observations">
+              {t('common.observations')} <span className="text-destructive">*</span>
+            </FieldLabel>
             <Textarea
               id="visit-observations"
               {...register('observations', {

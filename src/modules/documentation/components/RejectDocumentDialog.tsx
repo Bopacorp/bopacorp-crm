@@ -53,35 +53,17 @@ export function RejectDocumentDialog({
 }: RejectDocumentDialogProps) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
+  const [key, setKey] = useState(0);
   const [error, setError] = useState('');
-  const rejectFormSchema = useMemo(() => createRejectFormSchema(), []);
-
-  const form = useForm<RejectFormValues>({
-    resolver: zodResolver(rejectFormSchema),
-    defaultValues: { coordinatorMessage: '' },
-    mode: 'onTouched',
-  });
 
   const forceClose = useCallback(() => {
-    form.reset({ coordinatorMessage: '' });
+    setKey((k) => k + 1);
     setError('');
     onOpenChange(false);
-  }, [form, onOpenChange]);
+  }, [onOpenChange]);
 
-  const { dirtyRef, showDiscard, guardedAction, handleDiscard, cancelDiscard } = useUnsavedGuard({
-    onClose: forceClose,
-  });
-
-  useEffect(() => {
-    if (open) {
-      form.reset({ coordinatorMessage: '' });
-      setError('');
-    } else {
-      form.reset({ coordinatorMessage: '' });
-      setError('');
-      dirtyRef.current = false;
-    }
-  }, [open, form, dirtyRef]);
+  const { dirtyRef, showDiscard, handleDirtyChange, guardedAction, handleDiscard, cancelDiscard } =
+    useUnsavedGuard({ onClose: forceClose });
 
   const mutation = useMutation({
     mutationFn: (data: RejectFormValues) =>
@@ -92,6 +74,7 @@ export function RejectDocumentDialog({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.documents.all });
       toast.success(t('documentation.documentRejected'));
+      dirtyRef.current = false;
       forceClose();
       onSuccess?.();
     },
@@ -125,49 +108,15 @@ export function RejectDocumentDialog({
                 : t('documentation.rejectDocument')}
             </DialogTitle>
           </DialogHeader>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-4" noValidate>
-            {error && <FormAlert message={error} />}
-
-            <FieldGroup>
-              <Field data-invalid={form.formState.errors.coordinatorMessage ? true : undefined}>
-                <FieldLabel htmlFor="coordinatorMessage">
-                  {t('documentation.coordinatorNotes')}
-                </FieldLabel>
-                <Textarea
-                  id="coordinatorMessage"
-                  placeholder={
-                    isRejected
-                      ? t('documentation.changeReasonPlaceholder')
-                      : t('documentation.rejectReasonPlaceholder')
-                  }
-                  disabled={mutation.isPending}
-                  {...form.register('coordinatorMessage')}
-                />
-                {form.formState.errors.coordinatorMessage && (
-                  <FieldError>{form.formState.errors.coordinatorMessage.message}</FieldError>
-                )}
-              </Field>
-            </FieldGroup>
-
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => guardedAction('close')}>
-                {t('common.cancel')}
-              </Button>
-              <Button
-                type="submit"
-                disabled={
-                  mutation.isPending ||
-                  form.formState.isSubmitting ||
-                  (form.formState.isSubmitted && !form.formState.isValid)
-                }
-              >
-                {mutation.isPending && (
-                  <Loader2 data-icon="inline-start" className="animate-spin" />
-                )}
-                {isRejected ? t('common.save') : t('common.reject')}
-              </Button>
-            </DialogFooter>
-          </form>
+          <RejectForm
+            key={key}
+            onSubmit={onSubmit}
+            isPending={mutation.isPending}
+            error={error}
+            isRejected={isRejected}
+            onDirtyChange={handleDirtyChange}
+            onCancel={() => guardedAction('close')}
+          />
         </DialogContent>
       </Dialog>
       <DiscardChangesDialog
@@ -179,5 +128,77 @@ export function RejectDocumentDialog({
         }}
       />
     </>
+  );
+}
+
+interface RejectFormProps {
+  onSubmit: (values: RejectFormValues) => void;
+  isPending: boolean;
+  error: string;
+  isRejected: boolean;
+  onDirtyChange: (dirty: boolean) => void;
+  onCancel: () => void;
+}
+
+function RejectForm({
+  onSubmit,
+  isPending,
+  error,
+  isRejected,
+  onDirtyChange,
+  onCancel,
+}: RejectFormProps) {
+  const { t } = useTranslation();
+  const rejectFormSchema = useMemo(() => createRejectFormSchema(), []);
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isDirty, isSubmitted, isSubmitting, isValid },
+  } = useForm<RejectFormValues>({
+    resolver: zodResolver(rejectFormSchema),
+    defaultValues: { coordinatorMessage: '' },
+    mode: 'onTouched',
+  });
+
+  useEffect(() => {
+    onDirtyChange(isDirty);
+  }, [isDirty, onDirtyChange]);
+
+  return (
+    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4" noValidate>
+      {error && <FormAlert message={error} />}
+
+      <FieldGroup>
+        <Field data-invalid={errors.coordinatorMessage ? true : undefined}>
+          <FieldLabel htmlFor="coordinatorMessage">
+            {t('documentation.coordinatorNotes')}
+          </FieldLabel>
+          <Textarea
+            id="coordinatorMessage"
+            placeholder={
+              isRejected
+                ? t('documentation.changeReasonPlaceholder')
+                : t('documentation.rejectReasonPlaceholder')
+            }
+            disabled={isPending}
+            {...register('coordinatorMessage')}
+          />
+          {errors.coordinatorMessage && (
+            <FieldError>{errors.coordinatorMessage.message}</FieldError>
+          )}
+        </Field>
+      </FieldGroup>
+
+      <DialogFooter>
+        <Button type="button" variant="outline" onClick={onCancel}>
+          {t('common.cancel')}
+        </Button>
+        <Button type="submit" disabled={isPending || isSubmitting || (isSubmitted && !isValid)}>
+          {isPending && <Loader2 data-icon="inline-start" className="animate-spin" />}
+          {isRejected ? t('common.save') : t('common.reject')}
+        </Button>
+      </DialogFooter>
+    </form>
   );
 }

@@ -18,7 +18,7 @@ import type {
   VisitResponse,
   VisitTypeResponse,
 } from '@bopacorp/shared/crm';
-import { request, requestPaginated } from '@/services/api.js';
+import api, { request, requestPaginated } from '@/services/api.js';
 
 // Negotiations
 
@@ -52,6 +52,35 @@ export function changeNegotiationState(id: string, data: ChangeNegotiationStateR
     url: `/crm/negotiations/${id}/state`,
     data,
   });
+}
+
+export async function closeWithDocuments(
+  negotiationId: string,
+  files: Map<string, File>,
+  notes?: string,
+): Promise<NegotiationResponse> {
+  const formData = new FormData();
+
+  for (const [docTypeId, file] of files) {
+    formData.append('files', file);
+    formData.append('documentTypeIds', docTypeId);
+  }
+
+  if (notes) {
+    formData.append('notes', notes);
+  }
+
+  const response = await api.post<{ success: boolean; data: NegotiationResponse }>(
+    `/crm/negotiations/${negotiationId}/close-with-documents`,
+    formData,
+    { headers: { 'Content-Type': 'multipart/form-data' } },
+  );
+
+  if (!response.data.success) {
+    throw new Error('Close with documents failed');
+  }
+
+  return response.data.data;
 }
 
 export function getNegotiationHistory(id: string) {

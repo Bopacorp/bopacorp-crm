@@ -1,3 +1,5 @@
+import { CreateItemTypeRequestSchema } from '@bopacorp/shared/catalog';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   ArrowLeft,
@@ -11,16 +13,19 @@ import {
   XIcon,
 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
+import { Controller, useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
+import type { z } from 'zod';
 import { Button } from '@/components/ui/button';
-import { Field, FieldGroup, FieldLabel } from '@/components/ui/field';
+import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { formatRelativeTime } from '@/lib/format.js';
 import { Can } from '@/modules/auth/components/Can.js';
+import { ApiError } from '@/services/api.js';
 import { getErrorMessage } from '@/shared/errors/index.js';
 import { useUnsavedGuard } from '@/shared/hooks/useUnsavedGuard.js';
 import { DiscardChangesDialog, ErrorState, SheetDetailSkeleton, StateBadge } from '@/shared/ui';
@@ -33,6 +38,8 @@ interface LookupTableSheetProps {
   config: LookupTableConfig;
   mode: 'create' | 'view';
 }
+
+type FormValues = z.input<typeof CreateItemTypeRequestSchema>;
 
 const SKELETON_SECTIONS = [{ rows: ['w-24', 'w-40', 'w-56', 'w-16', 'w-28'] }];
 
@@ -250,79 +257,113 @@ function CreateForm({
   onDirtyChange: (dirty: boolean) => void;
 }) {
   const { t } = useTranslation();
-  const [code, setCode] = useState('');
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const [formError, setFormError] = useState('');
-
-  const isDirty = code !== '' || name !== '' || description !== '';
+  const {
+    register,
+    handleSubmit,
+    setError,
+    formState: { errors, isDirty, isSubmitted, isValid, isSubmitting },
+  } = useForm<FormValues>({
+    resolver: zodResolver(CreateItemTypeRequestSchema),
+    defaultValues: { code: '', name: '', description: '', isActive: true },
+    mode: 'onTouched',
+  });
+  const isBusy = isSubmitting;
 
   useEffect(() => {
     onDirtyChange(isDirty);
   }, [isDirty, onDirtyChange]);
 
   const mutation = useMutation({
-    mutationFn: () =>
-      config.createFn({ code, name, isActive: true, description: description || undefined }),
+    mutationFn: (values: FormValues) =>
+      config.createFn({
+        code: values.code.toUpperCase(),
+        name: values.name,
+        description: values.description || undefined,
+        isActive: values.isActive ?? true,
+      }),
     onSuccess: () => {
       toast.success(t('common.entityCreated', { entity: config.entityName }));
       onSuccess();
     },
-    onError: (err) => setFormError(getErrorMessage(err)),
+    onError: (err) => {
+      if (err instanceof ApiError && err.details?.length) {
+        for (const detail of err.details) {
+          setError(detail.field as keyof FormValues, { type: 'server', message: detail.message });
+        }
+        return;
+      }
+      setError('root', { type: 'server', message: getErrorMessage(err) });
+    },
   });
 
-  const canSubmit = code.trim() !== '' && name.trim() !== '';
-
   return (
-    <>
+    <form
+      onSubmit={handleSubmit((values) => mutation.mutate(values))}
+      noValidate
+      className="flex flex-col gap-4"
+    >
       <div className="flex-1 overflow-y-auto p-4">
         <FieldGroup>
-          {formError && (
+          {errors.root?.message && (
             <div className="rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
-              {formError}
+              {errors.root.message}
             </div>
           )}
-          <Field>
-            <FieldLabel>{t('common.code')}</FieldLabel>
+          <Field data-invalid={errors.code ? true : undefined}>
+            <FieldLabel htmlFor="code">
+              {t('common.code')}{' '}
+              <span aria-hidden="true" className="text-destructive">
+                *
+              </span>
+            </FieldLabel>
             <Input
-              value={code}
-              onChange={(e) => setCode(e.target.value.toUpperCase())}
+              id="code"
+              {...register('code', {
+                setValueAs: (value) => String(value ?? '').toUpperCase(),
+              })}
               placeholder={t('common.codePlaceholder')}
               maxLength={30}
+              disabled={isBusy}
             />
+            <FieldError>{errors.code?.message}</FieldError>
           </Field>
-          <Field>
-            <FieldLabel>{t('common.name')}</FieldLabel>
+          <Field data-invalid={errors.name ? true : undefined}>
+            <FieldLabel htmlFor="name">
+              {t('common.name')}{' '}
+              <span aria-hidden="true" className="text-destructive">
+                *
+              </span>
+            </FieldLabel>
             <Input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
+              id="name"
+              {...register('name')}
               placeholder={t('common.namePlaceholder')}
               maxLength={100}
+              disabled={isBusy}
             />
+            <FieldError>{errors.name?.message}</FieldError>
           </Field>
-          <Field>
-            <FieldLabel>{t('common.description')}</FieldLabel>
+          <Field data-invalid={errors.description ? true : undefined}>
+            <FieldLabel htmlFor="description">{t('common.description')}</FieldLabel>
             <Textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
+              id="description"
+              {...register('description')}
               placeholder={t('common.descriptionPlaceholder')}
               maxLength={255}
               rows={3}
+              disabled={isBusy}
             />
+            <FieldError>{errors.description?.message}</FieldError>
           </Field>
         </FieldGroup>
       </div>
       <SheetFooter>
-        <Button
-          type="button"
-          onClick={() => mutation.mutate()}
-          disabled={!canSubmit || mutation.isPending}
-        >
-          {mutation.isPending && <Loader2 data-icon="inline-start" className="animate-spin" />}
+        <Button type="submit" disabled={isBusy || (isSubmitted && !isValid)}>
+          {isBusy && <Loader2 data-icon="inline-start" className="animate-spin" />}
           {t('common.create')}
         </Button>
       </SheetFooter>
-    </>
+    </form>
   );
 }
 
@@ -340,78 +381,111 @@ function EditForm({
   onDirtyChange: (dirty: boolean) => void;
 }) {
   const { t } = useTranslation();
-  const [name, setName] = useState(entity.name);
-  const [description, setDescription] = useState(entity.description ?? '');
-  const [isActive, setIsActive] = useState(entity.isActive);
-  const [formError, setFormError] = useState('');
-
-  const isDirty =
-    name !== entity.name ||
-    description !== (entity.description ?? '') ||
-    isActive !== entity.isActive;
+  const {
+    register,
+    control,
+    handleSubmit,
+    setError,
+    formState: { errors, isDirty, isSubmitted, isValid, isSubmitting },
+  } = useForm<FormValues>({
+    resolver: zodResolver(CreateItemTypeRequestSchema),
+    defaultValues: {
+      code: entity.code,
+      name: entity.name,
+      description: entity.description ?? '',
+      isActive: entity.isActive,
+    },
+    mode: 'onTouched',
+  });
+  const isBusy = isSubmitting;
 
   useEffect(() => {
     onDirtyChange(isDirty);
   }, [isDirty, onDirtyChange]);
 
   const mutation = useMutation({
-    mutationFn: () =>
+    mutationFn: (values: FormValues) =>
       config.updateFn(entity.id, {
-        name,
-        description: description || undefined,
-        isActive,
+        name: values.name,
+        description: values.description || undefined,
+        isActive: values.isActive,
       }),
     onSuccess: () => {
       toast.success(t('common.entityUpdated', { entity: config.entityName }));
       onSaved();
     },
-    onError: (err) => setFormError(getErrorMessage(err)),
+    onError: (err) => {
+      if (err instanceof ApiError && err.details?.length) {
+        for (const detail of err.details) {
+          setError(detail.field as keyof FormValues, { type: 'server', message: detail.message });
+        }
+        return;
+      }
+      setError('root', { type: 'server', message: getErrorMessage(err) });
+    },
   });
 
-  const canSubmit = name.trim() !== '' && isDirty;
-
   return (
-    <>
+    <form
+      onSubmit={handleSubmit((values) => mutation.mutate(values))}
+      noValidate
+      className="flex flex-col gap-4"
+    >
       <div className="flex-1 overflow-y-auto p-4">
         <FieldGroup>
-          {formError && (
+          {errors.root?.message && (
             <div className="rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
-              {formError}
+              {errors.root.message}
             </div>
           )}
           <Field>
-            <FieldLabel>{t('common.code')}</FieldLabel>
-            <Input value={entity.code} disabled className="font-mono" />
+            <FieldLabel htmlFor="code">{t('common.code')}</FieldLabel>
+            <Input id="code" value={entity.code} disabled className="font-mono" />
           </Field>
-          <Field>
-            <FieldLabel>{t('common.name')}</FieldLabel>
-            <Input value={name} onChange={(e) => setName(e.target.value)} maxLength={100} />
+          <Field data-invalid={errors.name ? true : undefined}>
+            <FieldLabel htmlFor="name">
+              {t('common.name')}{' '}
+              <span aria-hidden="true" className="text-destructive">
+                *
+              </span>
+            </FieldLabel>
+            <Input id="name" {...register('name')} maxLength={100} disabled={isBusy} />
+            <FieldError>{errors.name?.message}</FieldError>
           </Field>
-          <Field>
-            <FieldLabel>{t('common.description')}</FieldLabel>
+          <Field data-invalid={errors.description ? true : undefined}>
+            <FieldLabel htmlFor="description">{t('common.description')}</FieldLabel>
             <Textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
+              id="description"
+              {...register('description')}
               maxLength={255}
               rows={3}
+              disabled={isBusy}
             />
+            <FieldError>{errors.description?.message}</FieldError>
           </Field>
           <Field orientation="horizontal">
-            <FieldLabel>{t('common.active')}</FieldLabel>
-            <Switch checked={isActive} onCheckedChange={setIsActive} />
+            <FieldLabel htmlFor="isActive">{t('common.active')}</FieldLabel>
+            <Controller
+              control={control}
+              name="isActive"
+              render={({ field }) => (
+                <Switch
+                  id="isActive"
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                  disabled={isBusy}
+                />
+              )}
+            />
           </Field>
         </FieldGroup>
       </div>
       <SheetFooter>
-        <Button
-          type="button"
-          onClick={() => mutation.mutate()}
-          disabled={!canSubmit || mutation.isPending}
-        >
-          {mutation.isPending && <Loader2 data-icon="inline-start" className="animate-spin" />}
+        <Button type="submit" disabled={isBusy || (isSubmitted && !isValid)}>
+          {isBusy && <Loader2 data-icon="inline-start" className="animate-spin" />}
           {t('common.save')}
         </Button>
       </SheetFooter>
-    </>
+    </form>
   );
 }

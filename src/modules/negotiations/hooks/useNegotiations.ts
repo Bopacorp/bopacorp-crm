@@ -7,6 +7,7 @@ export interface NegotiationFilters {
   search?: string;
   stateId?: string;
   advisorId?: string;
+  tierCode?: string;
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';
   limit?: number;
@@ -22,6 +23,7 @@ export function useNegotiations(page: number, filters: NegotiationFilters) {
       search: debouncedSearch || undefined,
       stateId: f.stateId,
       advisorId: f.advisorId,
+      tierCode: f.tierCode,
       sortBy: f.sortBy,
       sortOrder: f.sortOrder ?? 'asc',
       limit: f.limit ?? 10,

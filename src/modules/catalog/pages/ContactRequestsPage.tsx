@@ -24,8 +24,6 @@ import { updateContactRequest } from '../catalog.service.js';
 import { ContactRequestDetailSheet } from '../components/ContactRequestDetailSheet.js';
 import { useContactRequests } from '../hooks/useContactRequests.js';
 
-const PAGE_SIZE = 10;
-
 export default function ContactRequestsPage() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -33,16 +31,18 @@ export default function ContactRequestsPage() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [isAttendedFilter, setIsAttendedFilter] = useState('all');
+  const [pageSize, setPageSize] = useState(10);
   const [selectedRequestId, setSelectedRequestId] = useState('');
   const [detailOpen, setDetailOpen] = useState(false);
 
-  usePageReset([search, isAttendedFilter], setPage);
+  usePageReset([search, isAttendedFilter, pageSize], setPage);
 
   const isAttended = isAttendedFilter === 'all' ? undefined : isAttendedFilter === 'true';
 
   const { contactRequests, meta, loading, error, refetch } = useContactRequests(page, {
     search,
     isAttended,
+    limit: pageSize,
   });
 
   const canUpdate = hasPermission('contact_requests.update');
@@ -74,12 +74,31 @@ export default function ContactRequestsPage() {
     {
       id: 'clientEmail',
       header: t('common.email'),
-      accessor: (item: ContactRequestResponse) => item.clientEmail,
+      accessor: (item: ContactRequestResponse) => (
+        <a
+          href={`mailto:${item.clientEmail}`}
+          className="font-medium text-foreground hover:underline"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {item.clientEmail}
+        </a>
+      ),
     },
     {
       id: 'clientPhone',
       header: t('common.phone'),
-      accessor: (item: ContactRequestResponse) => item.clientPhone ?? '—',
+      accessor: (item: ContactRequestResponse) =>
+        item.clientPhone ? (
+          <a
+            href={`tel:${item.clientPhone}`}
+            className="font-medium text-foreground hover:underline"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {item.clientPhone}
+          </a>
+        ) : (
+          '—'
+        ),
     },
     {
       id: 'receivedAt',
@@ -176,10 +195,19 @@ export default function ContactRequestsPage() {
       />
 
       {contactRequests.length === 0 ? (
-        <EmptyState
-          title={t('contactRequests.noRequests')}
-          description={t('contactRequests.noRequestsDesc')}
-        />
+        search || isAttended !== undefined ? (
+          <EmptyState
+            title={t('common.noResults')}
+            description={t('common.noFilterResults', {
+              entities: t('contactRequests.title').toLowerCase(),
+            })}
+          />
+        ) : (
+          <EmptyState
+            title={t('contactRequests.noRequests')}
+            description={t('contactRequests.noRequestsDesc')}
+          />
+        )
       ) : (
         <>
           <EntityTable
@@ -194,8 +222,8 @@ export default function ContactRequestsPage() {
           <PaginationFooter
             page={page}
             onPageChange={setPage}
-            pageSize={PAGE_SIZE}
-            onPageSizeChange={() => {}}
+            pageSize={pageSize}
+            onPageSizeChange={setPageSize}
             meta={meta}
           />
         </>

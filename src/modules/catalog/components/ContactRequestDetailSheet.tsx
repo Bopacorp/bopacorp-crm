@@ -83,13 +83,22 @@ export function ContactRequestDetailSheet({
                 <DetailField icon={Mail} label={t('common.email')}>
                   <a
                     href={`mailto:${contactRequest.clientEmail}`}
-                    className="text-primary hover:underline"
+                    className="font-medium text-foreground hover:underline"
                   >
                     {contactRequest.clientEmail}
                   </a>
                 </DetailField>
                 <DetailField icon={Phone} label={t('common.phone')}>
-                  {contactRequest.clientPhone}
+                  {contactRequest.clientPhone ? (
+                    <a
+                      href={`tel:${contactRequest.clientPhone}`}
+                      className="font-medium text-foreground hover:underline"
+                    >
+                      {contactRequest.clientPhone}
+                    </a>
+                  ) : (
+                    '—'
+                  )}
                 </DetailField>
               </div>
 

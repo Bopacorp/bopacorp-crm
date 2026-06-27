@@ -103,7 +103,7 @@ function CreateForm({
     control,
     handleSubmit,
     setError,
-    formState: { errors, isDirty },
+    formState: { errors, isDirty, isSubmitted, isValid, isSubmitting },
   } = useForm<FormValues>({
     resolver: zodResolver(CreateCategoryRequestSchema),
     defaultValues: { name: '', parentId: undefined, description: '', sortOrder: 0, isActive: true },
@@ -149,6 +149,7 @@ function CreateForm({
   const onSubmit = (data: FormValues) => {
     mutation.mutate(data);
   };
+  const isBusy = mutation.isPending || isSubmitting;
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} noValidate>
@@ -157,13 +158,24 @@ function CreateForm({
           {errors.root && <FormAlert message={errors.root.message ?? ''} />}
 
           <Field data-invalid={errors.name ? true : undefined}>
-            <FieldLabel>{t('common.name')}</FieldLabel>
-            <Input {...register('name')} placeholder={t('catalog.categoryName')} maxLength={100} />
+            <FieldLabel htmlFor="name">
+              {t('common.name')}{' '}
+              <span aria-hidden="true" className="text-destructive">
+                *
+              </span>
+            </FieldLabel>
+            <Input
+              id="name"
+              {...register('name')}
+              placeholder={t('catalog.categoryName')}
+              maxLength={100}
+              disabled={isBusy}
+            />
             <FieldError>{errors.name?.message}</FieldError>
           </Field>
 
           <Field data-invalid={errors.parentId ? true : undefined}>
-            <FieldLabel>{t('catalog.parentCategory')}</FieldLabel>
+            <FieldLabel htmlFor="parentId">{t('catalog.parentCategory')}</FieldLabel>
             <Controller
               control={control}
               name="parentId"
@@ -172,7 +184,7 @@ function CreateForm({
                   value={field.value ?? '__none__'}
                   onValueChange={(v) => field.onChange(v === '__none__' ? undefined : v)}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger id="parentId" disabled={isBusy}>
                     <SelectValue placeholder={t('common.noParent')} />
                   </SelectTrigger>
                   <SelectContent>
@@ -190,37 +202,56 @@ function CreateForm({
           </Field>
 
           <Field data-invalid={errors.description ? true : undefined}>
-            <FieldLabel>{t('common.description')}</FieldLabel>
+            <FieldLabel htmlFor="description">{t('common.description')}</FieldLabel>
             <Textarea
+              id="description"
               {...register('description')}
               placeholder={t('common.descriptionPlaceholder')}
               maxLength={255}
               rows={3}
+              disabled={isBusy}
             />
             <FieldError>{errors.description?.message}</FieldError>
           </Field>
 
           <Field data-invalid={errors.sortOrder ? true : undefined}>
-            <FieldLabel>{t('common.order')}</FieldLabel>
-            <Input type="number" {...register('sortOrder', { valueAsNumber: true })} min={0} />
+            <FieldLabel htmlFor="sortOrder">{t('common.order')}</FieldLabel>
+            <Input
+              id="sortOrder"
+              type="number"
+              {...register('sortOrder', {
+                setValueAs: (value) => {
+                  if (value === '' || value == null) return undefined;
+                  const parsed = Number(value);
+                  return Number.isFinite(parsed) ? parsed : undefined;
+                },
+              })}
+              min={0}
+              disabled={isBusy}
+            />
             <FieldError>{errors.sortOrder?.message}</FieldError>
           </Field>
 
           <Field orientation="horizontal">
-            <FieldLabel>{t('common.active')}</FieldLabel>
+            <FieldLabel htmlFor="isActive">{t('common.active')}</FieldLabel>
             <Controller
               control={control}
               name="isActive"
               render={({ field }) => (
-                <Switch checked={field.value} onCheckedChange={field.onChange} />
+                <Switch
+                  id="isActive"
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                  disabled={isBusy}
+                />
               )}
             />
           </Field>
         </FieldGroup>
       </div>
       <DialogFooter>
-        <Button type="submit" disabled={mutation.isPending}>
-          {mutation.isPending && <Loader2 data-icon="inline-start" className="animate-spin" />}
+        <Button type="submit" disabled={isBusy || (isSubmitted && !isValid)}>
+          {isBusy && <Loader2 data-icon="inline-start" className="animate-spin" />}
           {t('common.create')}
         </Button>
       </DialogFooter>

@@ -1,10 +1,11 @@
 import type { NegotiationDocumentListItemResponse } from '@bopacorp/shared/documents';
-import { FileUp } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button.js';
 import { formatDateTime } from '@/lib/format.js';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/modules/auth/context/AuthContext.js';
 import { EmptyState, EntityTable, ErrorState, StateBadge, TableSkeleton } from '@/shared/ui';
 import { useDocuments } from '../hooks/useDocuments.js';
 import { documentStateLabel } from '../lib/state.js';
@@ -19,6 +20,9 @@ export function NegotiationDocumentsTab({ negotiationId }: NegotiationDocumentsT
   const { t } = useTranslation();
   const [page, setPage] = useState(1);
   const [uploadOpen, setUploadOpen] = useState(false);
+
+  const { hasRole } = useAuth();
+  const isAdvisor = hasRole('advisor') && !hasRole('supervisor') && !hasRole('admin');
 
   const { documents, meta, loading, fetching, error, refetch } = useDocuments(page, {
     negotiationId,
@@ -61,12 +65,14 @@ export function NegotiationDocumentsTab({ negotiationId }: NegotiationDocumentsT
         fetching && 'opacity-60 pointer-events-none transition-opacity',
       )}
     >
-      <div className="flex justify-end">
-        <Button size="sm" onClick={() => setUploadOpen(true)}>
-          <FileUp data-icon="inline-start" className="size-4" />
-          {t('documentation.uploadDocument')}
-        </Button>
-      </div>
+      {!isAdvisor && (
+        <div className="flex justify-end">
+          <Button onClick={() => setUploadOpen(true)}>
+            <Plus data-icon="inline-start" />
+            {t('documentation.uploadDocument')}
+          </Button>
+        </div>
+      )}
 
       {documents.length === 0 ? (
         <EmptyState

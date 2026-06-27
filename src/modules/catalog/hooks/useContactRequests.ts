@@ -7,6 +7,7 @@ export interface ContactRequestFilters {
   search?: string;
   itemId?: string;
   isAttended?: boolean;
+  limit?: number;
 }
 
 export function useContactRequests(page: number, filters: ContactRequestFilters) {
@@ -19,6 +20,7 @@ export function useContactRequests(page: number, filters: ContactRequestFilters)
       search: debouncedSearch || undefined,
       itemId: f.itemId,
       isAttended: f.isAttended,
+      limit: f.limit ?? 10,
     }),
   });
   return { contactRequests: data, ...rest };

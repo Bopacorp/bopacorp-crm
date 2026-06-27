@@ -45,6 +45,7 @@ export default function NegotiationsPage() {
   const [search, setSearch] = useState('');
   const [stateId, setStateId] = useState<string | undefined>();
   const [advisorId, setAdvisorId] = useState<string | undefined>();
+  const [tierCode, setTierCode] = useState<string | undefined>();
   const [sortBy, setSortBy] = useState<string | undefined>();
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [pageSize, setPageSize] = useState(10);
@@ -66,6 +67,7 @@ export default function NegotiationsPage() {
     search,
     stateId,
     advisorId: effectiveAdvisorId,
+    tierCode,
     sortBy,
     sortOrder,
     limit: pageSize,
@@ -78,7 +80,10 @@ export default function NegotiationsPage() {
     [advisors],
   );
 
-  usePageReset([search, stateId, effectiveAdvisorId, sortBy, sortOrder, pageSize], setPage);
+  usePageReset(
+    [search, stateId, effectiveAdvisorId, tierCode, sortBy, sortOrder, pageSize],
+    setPage,
+  );
 
   const columns = [
     {
@@ -207,11 +212,24 @@ export default function NegotiationsPage() {
                 },
               ]
             : []),
+          {
+            id: 'tierCode',
+            label: t('negotiations.clientTier'),
+            placeholder: t('negotiations.selectTier'),
+            options: [
+              { value: 'all', label: t('common.all') },
+              { value: 'ONE_SHOT', label: t('reports.tierOneShot') },
+              { value: 'MEDIANO', label: t('reports.tierMediano') },
+              { value: 'SMALL', label: t('reports.tierSmall') },
+            ],
+            value: tierCode ?? 'all',
+            onChange: (value: string) => setTierCode(value === 'all' ? undefined : value),
+          },
         ]}
       />
 
       {negotiations.length === 0 && view === 'table' ? (
-        search || stateId || advisorId ? (
+        search || stateId || advisorId || tierCode ? (
           <EmptyState
             title={t('common.noResults')}
             description={t('common.noFilterResults', {
@@ -237,7 +255,7 @@ export default function NegotiationsPage() {
       ) : view === 'kanban' ? (
         <NegotiationKanbanBoard
           states={states}
-          filters={{ search, advisorId: effectiveAdvisorId }}
+          filters={{ search, advisorId: effectiveAdvisorId, tierCode }}
           onCardClick={(id) => navigate(`/negociaciones/${id}`)}
           onClientClick={(clientId) => openClientSheet(clientId)}
         />

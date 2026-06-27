@@ -15,6 +15,7 @@ import { ChangeStateDialog } from './ChangeStateDialog.js';
 interface KanbanFilters {
   search?: string;
   advisorId?: string;
+  tierCode?: string;
 }
 
 interface NegotiationKanbanBoardProps {
@@ -111,6 +112,7 @@ function KanbanColumn({ state, filters, onCardClick, onClientClick }: KanbanColu
     stateId: state.id,
     search: filters.search,
     advisorId: filters.advisorId,
+    tierCode: filters.tierCode,
     sortBy: 'updatedAt',
     sortOrder: 'desc',
     limit: COLUMN_PAGE_SIZE,
@@ -119,7 +121,8 @@ function KanbanColumn({ state, filters, onCardClick, onClientClick }: KanbanColu
   useEffect(() => {
     const filtersChanged =
       prevFiltersRef.current.search !== filters.search ||
-      prevFiltersRef.current.advisorId !== filters.advisorId;
+      prevFiltersRef.current.advisorId !== filters.advisorId ||
+      prevFiltersRef.current.tierCode !== filters.tierCode;
 
     if (filtersChanged) {
       setPage(1);

@@ -11,7 +11,6 @@ import { ApiError } from '@/services/api.js';
 import { getErrorMessage } from '@/shared/errors/index.js';
 import { useUnsavedGuard } from '@/shared/hooks/useUnsavedGuard.js';
 import { DiscardChangesDialog } from '@/shared/ui';
-import { useNegotiationStates } from '../hooks/useNegotiationStates.js';
 import { updateNegotiation } from '../negotiations.service.js';
 import type { NegotiationFormValues } from './NegotiationForm.js';
 import { NegotiationForm } from './NegotiationForm.js';
@@ -42,10 +41,8 @@ export function EditNegotiationSheet({
   const { t } = useTranslation();
   const { hasRole } = useAuth();
   const queryClient = useQueryClient();
-  const { states } = useNegotiationStates();
   const { advisors } = useAdvisors();
   const canAssignAdvisor = hasRole('admin') || hasRole('supervisor');
-
   const [key, setKey] = useState(0);
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState<ServerFieldError[]>([]);
@@ -112,12 +109,11 @@ export function EditNegotiationSheet({
     setError('');
     setFieldErrors([]);
     mutation.mutate({
-      stateId: values.stateId,
       advisorId: values.advisorId || undefined,
       startDate: values.startDate || undefined,
       estimatedCloseDate: values.estimatedCloseDate || undefined,
       observations: values.observations || undefined,
-      isActive: values.isActive,
+      ...(canAssignAdvisor ? { isActive: values.isActive } : {}),
     });
   };
 
@@ -136,13 +132,13 @@ export function EditNegotiationSheet({
           fieldErrors={fieldErrors}
           submitLabel={t('common.save')}
           onDirtyChange={handleDirtyChange}
-          stateOptions={states}
-          stateLabel={t('common.status')}
+          stateOptions={[]}
+          hideState
           clientReadOnly
           clientName={negotiation.client.businessName}
           showAdvisorField={canAssignAdvisor}
           advisorOptions={advisorOptions}
-          showIsActive
+          showIsActive={canAssignAdvisor}
         />
       </SheetContent>
 

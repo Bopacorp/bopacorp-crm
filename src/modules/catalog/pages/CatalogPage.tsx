@@ -19,6 +19,7 @@ import {
   StateBadge,
   TableSkeleton,
 } from '@/shared/ui';
+import { CatalogItemCreateSheet } from '../components/CatalogItemCreateSheet.js';
 import { useCatalogItems } from '../hooks/useCatalogItems.js';
 import { useCategoryOptions } from '../hooks/useCategoryOptions.js';
 import { useItemTypes } from '../hooks/useItemTypes.js';
@@ -36,6 +37,7 @@ export default function CatalogPage() {
   const [sortBy, setSortBy] = useState<string | undefined>();
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [pageSize, setPageSize] = useState(10);
+  const [createOpen, setCreateOpen] = useState(false);
 
   usePageReset(
     [
@@ -189,7 +191,7 @@ export default function CatalogPage() {
         description={t('catalog.description')}
         actions={
           <Can permission="catalog_items.create">
-            <Button onClick={() => navigate('/catalogo/nuevo')}>
+            <Button onClick={() => setCreateOpen(true)}>
               <Plus data-icon="inline-start" />
               {t('catalog.newProduct')}
             </Button>
@@ -272,6 +274,8 @@ export default function CatalogPage() {
           />
         </>
       )}
+
+      <CatalogItemCreateSheet open={createOpen} onOpenChange={setCreateOpen} />
     </div>
   );
 }
