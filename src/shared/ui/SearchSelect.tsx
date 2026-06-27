@@ -1,5 +1,6 @@
 import { ChevronsUpDown, Loader2 } from 'lucide-react';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import {
   Command,
@@ -36,16 +37,17 @@ export function SearchSelect({
   options,
   value,
   onValueChange,
-  placeholder = 'Seleccionar...',
-  searchPlaceholder = 'Buscar...',
-  emptyMessage = 'Sin resultados',
+  placeholder,
+  searchPlaceholder,
+  emptyMessage,
   onSearchChange,
   searchValue,
   loading = false,
   hasMore = false,
   onLoadMore,
-  loadMoreLabel = 'Cargar más',
+  loadMoreLabel,
 }: SearchSelectProps) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const selected = options.find((o) => o.value === value);
   const isRemote = typeof onSearchChange === 'function';
@@ -59,14 +61,14 @@ export function SearchSelect({
           aria-expanded={open}
           className={cn('w-full justify-between font-normal', !value && 'text-muted-foreground')}
         >
-          {selected?.label ?? placeholder}
+          {selected?.label ?? placeholder ?? t('common.select')}
           <ChevronsUpDown className="ml-auto size-4 opacity-50" />
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
         <Command shouldFilter={!isRemote}>
           <CommandInput
-            placeholder={searchPlaceholder}
+            placeholder={searchPlaceholder ?? t('common.search')}
             value={isRemote ? searchValue : undefined}
             onValueChange={isRemote ? onSearchChange : undefined}
           />
@@ -74,11 +76,13 @@ export function SearchSelect({
             {loading && options.length === 0 ? (
               <div className="flex items-center justify-center gap-2 py-6 text-sm text-muted-foreground">
                 <Loader2 data-icon="inline-start" className="size-4 animate-spin" />
-                Buscando...
+                {t('common.searching')}
               </div>
             ) : (
               <>
-                <CommandEmpty>{loading ? 'Buscando...' : emptyMessage}</CommandEmpty>
+                <CommandEmpty>
+                  {loading ? t('common.searching') : (emptyMessage ?? t('common.noResults'))}
+                </CommandEmpty>
                 <CommandGroup>
                   {options.map((option) => (
                     <CommandItem
@@ -110,7 +114,7 @@ export function SearchSelect({
                 {loading ? (
                   <Loader2 data-icon="inline-start" className="size-4 animate-spin" />
                 ) : null}
-                {loadMoreLabel}
+                {loadMoreLabel ?? t('common.loadMore')}
               </Button>
             </div>
           )}

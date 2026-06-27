@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import {
   AlertDialog,
   AlertDialogContent,
@@ -15,6 +16,8 @@ interface DiscardChangesDialogProps {
 }
 
 export function DiscardChangesDialog({ open, onDiscard, onCancel }: DiscardChangesDialogProps) {
+  const { t } = useTranslation();
+
   const handleCancel = (e: React.MouseEvent) => {
     e.stopPropagation();
     onCancel();
@@ -29,15 +32,15 @@ export function DiscardChangesDialog({ open, onDiscard, onCancel }: DiscardChang
     <AlertDialog open={open} onOpenChange={() => {}}>
       <AlertDialogContent onEscapeKeyDown={onCancel}>
         <AlertDialogHeader>
-          <AlertDialogTitle>¿Descartar cambios?</AlertDialogTitle>
-          <AlertDialogDescription>Los cambios no guardados se perderán.</AlertDialogDescription>
+          <AlertDialogTitle>{t('common.discardChanges')}</AlertDialogTitle>
+          <AlertDialogDescription>{t('common.discardChangesDesc')}</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <Button type="button" variant="outline" onClick={handleCancel}>
-            Seguir editando
+            {t('common.keepEditing')}
           </Button>
           <Button type="button" variant="destructive" onClick={handleDiscard}>
-            Descartar
+            {t('common.discard')}
           </Button>
         </AlertDialogFooter>
       </AlertDialogContent>
