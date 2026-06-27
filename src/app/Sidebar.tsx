@@ -17,6 +17,7 @@ import {
   Users,
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
+import { useTranslation } from 'react-i18next';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
@@ -50,9 +51,9 @@ import { useAuth } from '@/modules/auth/context/AuthContext.js';
 import { usePermission } from '@/modules/auth/hooks/usePermission.js';
 
 const navigationTop = [
-  { name: 'Clientes', href: '/clientes', icon: Building2, permission: 'business_clients.read' },
+  { key: 'nav.clients', href: '/clientes', icon: Building2, permission: 'business_clients.read' },
   {
-    name: 'Negociaciones',
+    key: 'nav.negotiations',
     href: '/negociaciones',
     icon: HandshakeIcon,
     permission: 'negotiations.read',
@@ -61,7 +62,7 @@ const navigationTop = [
 
 const navigationBottom = [
   {
-    name: 'Documentación',
+    key: 'nav.documentation',
     href: '/documentacion',
     icon: FileText,
     permission: 'negotiation_documents.read',
@@ -69,15 +70,20 @@ const navigationBottom = [
 ];
 
 const catalogChildren = [
-  { name: 'Productos', href: '/catalogo', icon: Package, permission: 'catalog_items.read' },
   {
-    name: 'Configuración',
+    key: 'nav.catalog.products',
+    href: '/catalogo',
+    icon: Package,
+    permission: 'catalog_items.read',
+  },
+  {
+    key: 'nav.catalog.settings',
     href: '/catalogo/configuracion',
     icon: Settings,
     permission: 'categories.read',
   },
   {
-    name: 'Solicitudes',
+    key: 'nav.catalog.requests',
     href: '/catalogo/solicitudes',
     icon: MessageCircle,
     permission: 'contact_requests.read',
@@ -86,13 +92,13 @@ const catalogChildren = [
 
 const employabilityChildren = [
   {
-    name: 'Vacantes',
+    key: 'nav.employability.vacancies',
     href: '/empleabilidad/vacantes',
     icon: Briefcase,
     permission: 'job_vacancies.read',
   },
   {
-    name: 'Aplicantes',
+    key: 'nav.employability.applicants',
     href: '/empleabilidad/aplicantes',
     icon: Users,
     permission: 'job_applications.read',
@@ -100,9 +106,14 @@ const employabilityChildren = [
 ];
 
 const orgChildren = [
-  { name: 'Equipo', href: '/organizacion/equipo', icon: Users, permission: 'employees.read' },
   {
-    name: 'Configuración',
+    key: 'nav.organization.team',
+    href: '/organizacion/equipo',
+    icon: Users,
+    permission: 'employees.read',
+  },
+  {
+    key: 'nav.organization.settings',
     href: '/organizacion/configuracion',
     icon: Settings,
     permission: 'departments.read',
@@ -116,22 +127,23 @@ function getInitials(profile: { firstName: string; lastName: string } | null): s
 
 function ThemeMenuItems() {
   const { theme, setTheme } = useTheme();
+  const { t } = useTranslation();
 
   return (
     <DropdownMenuGroup>
       <DropdownMenuItem onClick={() => setTheme('light')}>
         <Sun />
-        Claro
+        {t('theme.light')}
         {theme === 'light' && <span className="ml-auto text-xs text-muted-foreground">✓</span>}
       </DropdownMenuItem>
       <DropdownMenuItem onClick={() => setTheme('dark')}>
         <Moon />
-        Oscuro
+        {t('theme.dark')}
         {theme === 'dark' && <span className="ml-auto text-xs text-muted-foreground">✓</span>}
       </DropdownMenuItem>
       <DropdownMenuItem onClick={() => setTheme('system')}>
         <Monitor />
-        Sistema
+        {t('theme.system')}
         {theme === 'system' && <span className="ml-auto text-xs text-muted-foreground">✓</span>}
       </DropdownMenuItem>
     </DropdownMenuGroup>
@@ -142,9 +154,16 @@ export function AppSidebar() {
   const location = useLocation();
   const navigate = useNavigate();
   const { state } = useSidebar();
+  const { t, i18n } = useTranslation();
   const { user, logout } = useAuth();
   const { hasPermission } = usePermission();
   const isCollapsed = state === 'collapsed';
+
+  const toggleLang = () => {
+    const next = i18n.language === 'es' ? 'en' : 'es';
+    i18n.changeLanguage(next);
+    localStorage.setItem('lang', next);
+  };
 
   const isActive = (href: string) => {
     if (href === '/overview') {
@@ -185,7 +204,7 @@ export function AppSidebar() {
 
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Menú</SidebarGroupLabel>
+          <SidebarGroupLabel>{t('nav.menu')}</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               <Can roles={MANAGEMENT_ROLES}>
@@ -203,10 +222,10 @@ export function AppSidebar() {
                 .filter((item) => !item.permission || hasPermission(item.permission))
                 .map((item) => (
                   <SidebarMenuItem key={item.href}>
-                    <SidebarMenuButton asChild isActive={isActive(item.href)} tooltip={item.name}>
+                    <SidebarMenuButton asChild isActive={isActive(item.href)} tooltip={t(item.key)}>
                       <Link to={item.href}>
                         <item.icon />
-                        <span>{item.name}</span>
+                        <span>{t(item.key)}</span>
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
@@ -217,10 +236,14 @@ export function AppSidebar() {
                 if (visible.length === 0) return null;
                 return (
                   <SidebarMenuItem>
-                    <SidebarMenuButton asChild isActive={isActive('/catalogo')} tooltip="Catálogo">
+                    <SidebarMenuButton
+                      asChild
+                      isActive={isActive('/catalogo')}
+                      tooltip={t('nav.catalog')}
+                    >
                       <Link to={visible[0].href}>
                         <BookOpen />
-                        <span>Catálogo</span>
+                        <span>{t('nav.catalog')}</span>
                       </Link>
                     </SidebarMenuButton>
                     <SidebarMenuSub>
@@ -236,7 +259,7 @@ export function AppSidebar() {
                           >
                             <Link to={child.href}>
                               <child.icon />
-                              <span>{child.name}</span>
+                              <span>{t(child.key)}</span>
                             </Link>
                           </SidebarMenuSubButton>
                         </SidebarMenuSubItem>
@@ -250,10 +273,10 @@ export function AppSidebar() {
                 .filter((item) => !item.permission || hasPermission(item.permission))
                 .map((item) => (
                   <SidebarMenuItem key={item.href}>
-                    <SidebarMenuButton asChild isActive={isActive(item.href)} tooltip={item.name}>
+                    <SidebarMenuButton asChild isActive={isActive(item.href)} tooltip={t(item.key)}>
                       <Link to={item.href}>
                         <item.icon />
-                        <span>{item.name}</span>
+                        <span>{t(item.key)}</span>
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
@@ -267,11 +290,11 @@ export function AppSidebar() {
                     <SidebarMenuButton
                       asChild
                       isActive={isActive('/empleabilidad')}
-                      tooltip="Empleabilidad"
+                      tooltip={t('nav.employability')}
                     >
                       <Link to={visible[0].href}>
                         <Briefcase />
-                        <span>Empleabilidad</span>
+                        <span>{t('nav.employability')}</span>
                       </Link>
                     </SidebarMenuButton>
                     <SidebarMenuSub>
@@ -280,7 +303,7 @@ export function AppSidebar() {
                           <SidebarMenuSubButton asChild isActive={isActive(child.href)}>
                             <Link to={child.href}>
                               <child.icon />
-                              <span>{child.name}</span>
+                              <span>{t(child.key)}</span>
                             </Link>
                           </SidebarMenuSubButton>
                         </SidebarMenuSubItem>
@@ -296,11 +319,11 @@ export function AppSidebar() {
                     <SidebarMenuButton
                       asChild
                       isActive={isActive('/organizacion')}
-                      tooltip="Organización"
+                      tooltip={t('nav.organization')}
                     >
                       <Link to="/organizacion/equipo">
                         <Network />
-                        <span>Organización</span>
+                        <span>{t('nav.organization')}</span>
                       </Link>
                     </SidebarMenuButton>
                     <SidebarMenuSub>
@@ -311,7 +334,7 @@ export function AppSidebar() {
                             <SidebarMenuSubButton asChild isActive={isActive(child.href)}>
                               <Link to={child.href}>
                                 <child.icon />
-                                <span>{child.name}</span>
+                                <span>{t(child.key)}</span>
                               </Link>
                             </SidebarMenuSubButton>
                           </SidebarMenuSubItem>
@@ -365,9 +388,16 @@ export function AppSidebar() {
                 <DropdownMenuSeparator />
                 <ThemeMenuItems />
                 <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={toggleLang}>
+                  <span className="text-xs font-semibold uppercase">
+                    {i18n.language === 'es' ? 'EN' : 'ES'}
+                  </span>
+                  {i18n.language === 'es' ? 'English' : 'Español'}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleLogout}>
                   <LogOut />
-                  Cerrar sesión
+                  {t('nav.logout')}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

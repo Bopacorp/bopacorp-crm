@@ -5,6 +5,7 @@ import { createRoot } from 'react-dom/client';
 import { Toaster } from '@/components/ui/sonner';
 import { queryClient } from '@/lib/query-client.js';
 import { AuthProvider } from '@/modules/auth/context/AuthContext.js';
+import './i18n/index.js';
 import './index.css';
 import App from './App.tsx';
 

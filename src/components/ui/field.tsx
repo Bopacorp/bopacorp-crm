@@ -1,6 +1,7 @@
 import { useMemo } from "react"
 import { cva, type VariantProps } from "class-variance-authority"
-import { resolveValidationMessage, es } from "@bopacorp/shared/i18n"
+import { resolveValidationMessage, es, en, type LocaleMessages } from "@bopacorp/shared/i18n"
+import { useTranslation } from "react-i18next"
 
 import { cn } from "@/lib/utils"
 import { Label } from "@/components/ui/label"
@@ -180,7 +181,10 @@ function FieldError({
 }: React.ComponentProps<"div"> & {
   errors?: Array<{ message?: string } | undefined>
 }) {
-  const resolve = (msg: string) => resolveValidationMessage(msg, es)
+  const { i18n } = useTranslation()
+  const validationLocales: Record<string, LocaleMessages> = { es, en }
+  const locale = validationLocales[i18n.language] ?? es
+  const resolve = (msg: string) => resolveValidationMessage(msg, locale)
 
   const content = useMemo(() => {
     if (children) {
