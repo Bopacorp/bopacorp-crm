@@ -47,7 +47,7 @@ import {
   useSidebar,
 } from '@/components/ui/sidebar';
 import { Can } from '@/modules/auth/components/Can.js';
-import { MANAGEMENT_ROLES, SALES_MANAGEMENT_ROLES } from '@/modules/auth/constants.js';
+import { DOC_ROLES, ORG_ROLES, SALES_MANAGEMENT_ROLES } from '@/modules/auth/constants.js';
 import { useAuth } from '@/modules/auth/context/AuthContext.js';
 import { usePermission } from '@/modules/auth/hooks/usePermission.js';
 
@@ -61,14 +61,22 @@ const navigationTop = [
   },
 ];
 
-const navigationBottom = [
+const documentationChildren = [
   {
-    key: 'nav.documentation',
+    key: 'nav.documentation.documents',
     href: '/documentacion',
     icon: FileText,
     permission: 'negotiation_documents.read',
-    roles: MANAGEMENT_ROLES,
   },
+  {
+    key: 'nav.documentation.types',
+    href: '/documentacion/tipos',
+    icon: Settings,
+    permission: 'document_types.read',
+  },
+];
+
+const navigationBottom = [
   {
     key: 'nav.reports',
     href: '/reportes',
@@ -246,12 +254,7 @@ export function AppSidebar() {
                 ))}
 
               {(() => {
-                const isCoordinatorOnly =
-                  hasRole('coordinator') &&
-                  !hasRole('admin') &&
-                  !hasRole('manager') &&
-                  !hasRole('supervisor');
-                if (isCoordinatorOnly) return null;
+                if (!ORG_ROLES.some((r) => hasRole(r))) return null;
                 const visible = catalogChildren.filter((c) => hasPermission(c.permission));
                 if (visible.length === 0) return null;
                 return (
@@ -274,6 +277,46 @@ export function AppSidebar() {
                             isActive={
                               child.href === '/catalogo'
                                 ? location.pathname === '/catalogo'
+                                : isActive(child.href)
+                            }
+                          >
+                            <Link to={child.href}>
+                              <child.icon />
+                              <span>{t(child.key)}</span>
+                            </Link>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                      ))}
+                    </SidebarMenuSub>
+                  </SidebarMenuItem>
+                );
+              })()}
+
+              {(() => {
+                const visible = documentationChildren.filter(
+                  (c) => hasPermission(c.permission) && DOC_ROLES.some((r) => hasRole(r)),
+                );
+                if (visible.length === 0) return null;
+                return (
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={isActive('/documentacion')}
+                      tooltip={t('nav.documentation')}
+                    >
+                      <Link to={visible[0].href}>
+                        <FileText />
+                        <span>{t('nav.documentation')}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                    <SidebarMenuSub>
+                      {visible.map((child) => (
+                        <SidebarMenuSubItem key={child.href}>
+                          <SidebarMenuSubButton
+                            asChild
+                            isActive={
+                              child.href === '/documentacion'
+                                ? location.pathname === '/documentacion'
                                 : isActive(child.href)
                             }
                           >
@@ -334,7 +377,7 @@ export function AppSidebar() {
                 );
               })()}
 
-              <Can roles={SALES_MANAGEMENT_ROLES}>
+              <Can roles={ORG_ROLES}>
                 {orgChildren.some((c) => hasPermission(c.permission)) && (
                   <SidebarMenuItem>
                     <SidebarMenuButton

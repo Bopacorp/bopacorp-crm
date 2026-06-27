@@ -20,6 +20,7 @@ import {
 } from '@/shared/ui';
 import { DocumentActions } from '../components/DocumentActions.js';
 import { DocumentUploadDialog } from '../components/DocumentUploadDialog.js';
+import { PendingSummary } from '../components/PendingSummary.js';
 import { useDocuments } from '../hooks/useDocuments.js';
 import { documentStateLabel } from '../lib/state.js';
 
@@ -124,6 +125,18 @@ export default function DocumentationPage() {
           </Button>
         }
       />
+
+      {!isAdvisor && (
+        <PendingSummary
+          onAdvisorClick={(advisorId) =>
+            setFilters((f) => ({
+              ...f,
+              advisorId: f.advisorId === advisorId ? undefined : advisorId,
+            }))
+          }
+          selectedAdvisorId={filters.advisorId}
+        />
+      )}
 
       <FilterBar
         searchValue={filters.search}

@@ -65,6 +65,13 @@ export const queryKeys = {
       ['documents', 'list', page, filters] as const,
     detail: (id: string) => ['documents', 'detail', id] as const,
     history: (id: string) => ['documents', 'history', id] as const,
+    pendingSummary: () => ['documents', 'pending-summary'] as const,
+    types: {
+      all: ['documents', 'types'] as const,
+      list: (page: number, filters: Record<string, unknown>) =>
+        ['documents', 'types', 'list', page, filters] as const,
+      detail: (id: string) => ['documents', 'types', 'detail', id] as const,
+    },
   },
   employability: {
     vacancies: {

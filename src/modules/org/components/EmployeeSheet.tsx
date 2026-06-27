@@ -55,13 +55,7 @@ import {
   StateBadge,
 } from '@/shared/ui';
 import { useOrgRoleOptions } from '../hooks/useOrgRoleOptions.js';
-import {
-  getEmployee,
-  listAdvisors,
-  listSupervisors,
-  removeEmployee,
-  updateEmployee,
-} from '../org.service.js';
+import { getEmployee, removeEmployee, updateEmployee } from '../org.service.js';
 
 interface EmployeeSheetProps {
   open: boolean;
@@ -134,21 +128,6 @@ export function EmployeeSheet({ open, onOpenChange, userId }: EmployeeSheetProps
     queryKey: queryKeys.employees.detail(userId ?? ''),
     queryFn: () => getEmployee(userId as string),
     enabled: !!userId && open,
-  });
-
-  const { data: supervisorsData } = useQuery({
-    queryKey: queryKeys.employees.supervisors(userId ?? ''),
-    queryFn: () => listSupervisors(userId as string, { page: 1, limit: 100, sortOrder: 'asc' }),
-    enabled: !!userId && open && employee?.orgRole.code === 'advisor',
-  });
-
-  const { data: advisorsData } = useQuery({
-    queryKey: queryKeys.employees.advisors(userId ?? ''),
-    queryFn: () => listAdvisors(userId as string, { page: 1, limit: 100, sortOrder: 'asc' }),
-    enabled:
-      !!userId &&
-      open &&
-      (employee?.orgRole.code === 'supervisor' || employee?.orgRole.code === 'manager'),
   });
 
   const deleteMutation = useMutation({
@@ -267,11 +246,7 @@ export function EmployeeSheet({ open, onOpenChange, userId }: EmployeeSheetProps
             onDirtyChange={handleDirtyChange}
           />
         ) : (
-          <ViewMode
-            employee={employee}
-            supervisors={supervisorsData?.data}
-            advisees={advisorsData?.data}
-          />
+          <ViewMode employee={employee} />
         )}
       </SheetContent>
 
@@ -317,31 +292,8 @@ export function EmployeeSheet({ open, onOpenChange, userId }: EmployeeSheetProps
 
 // ─── View Mode ───────────────────────────────────────────────────────────────
 
-interface RelatedPerson {
-  id: string;
-  username: string;
-  email: string;
-  profile: { firstName: string; lastName: string } | null;
-  orgRole: { id: string; name: string };
-}
-
-interface AdvisorSupervisorItem {
-  advisor: RelatedPerson;
-  supervisor: RelatedPerson;
-}
-
-function ViewMode({
-  employee,
-  supervisors,
-  advisees,
-}: {
-  employee: EmployeeResponse;
-  supervisors?: AdvisorSupervisorItem[];
-  advisees?: AdvisorSupervisorItem[];
-}) {
+function ViewMode({ employee }: { employee: EmployeeResponse }) {
   const { t } = useTranslation();
-  const personName = (u: RelatedPerson) =>
-    u.profile ? `${u.profile.firstName} ${u.profile.lastName}` : u.username;
 
   return (
     <div className="flex-1 overflow-y-auto p-4">
@@ -380,26 +332,26 @@ function ViewMode({
           </DetailField>
         </div>
 
-        {supervisors && supervisors.length > 0 && (
+        {employee.supervisors.length > 0 && (
           <div className="flex flex-col gap-2">
             <SectionLabel>{t('org.supervisorsSection')}</SectionLabel>
             <div className="flex flex-wrap gap-1.5 px-2">
-              {supervisors.map((s) => (
-                <Badge key={s.supervisor.id} variant="secondary">
-                  {personName(s.supervisor)}
+              {employee.supervisors.map((s) => (
+                <Badge key={s.userId} variant="secondary">
+                  {s.firstName} {s.lastName}
                 </Badge>
               ))}
             </div>
           </div>
         )}
 
-        {advisees && advisees.length > 0 && (
+        {employee.advisors.length > 0 && (
           <div className="flex flex-col gap-2">
             <SectionLabel>{t('org.advisorsInCharge')}</SectionLabel>
             <div className="flex flex-wrap gap-1.5 px-2">
-              {advisees.map((a) => (
-                <Badge key={a.advisor.id} variant="secondary">
-                  {personName(a.advisor)}
+              {employee.advisors.map((a) => (
+                <Badge key={a.userId} variant="secondary">
+                  {a.firstName} {a.lastName}
                 </Badge>
               ))}
             </div>

@@ -1,10 +1,9 @@
-import type { NegotiationListItemResponse } from '@bopacorp/shared/crm';
 import { CreateNegotiationDocumentRequestSchema } from '@bopacorp/shared/documents';
 import { V } from '@bopacorp/shared/i18n';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { FileUp, Loader2, X } from 'lucide-react';
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
@@ -27,11 +26,11 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { queryKeys } from '@/lib/query-keys.js';
-import { listNegotiations } from '@/modules/negotiations/negotiations.service.js';
+import { useNegotiations } from '@/modules/negotiations/hooks/useNegotiations.js';
 import { ApiError } from '@/services/api.js';
 import { getErrorMessage } from '@/shared/errors/index.js';
 import { useUnsavedGuard } from '@/shared/hooks/useUnsavedGuard.js';
-import { DiscardChangesDialog, FormAlert } from '@/shared/ui';
+import { DiscardChangesDialog, FormAlert, SearchSelect } from '@/shared/ui';
 import { createDocument, uploadDocument } from '../documentation.service.js';
 import { useActiveDocumentTypes } from '../hooks/useDocumentTypes.js';
 
@@ -93,12 +92,24 @@ export function DocumentUploadDialog({
   const file = watch('file');
 
   const documentTypes = useActiveDocumentTypes();
-  const { data: negotiationsData } = useQuery({
-    queryKey: ['negotiations', 'select'],
-    queryFn: () => listNegotiations({ page: 1, limit: 100, sortOrder: 'asc' }),
-    enabled: !preselectedNegotiationId,
+
+  const [negSearch, setNegSearch] = useState('');
+  const [negPage, setNegPage] = useState(1);
+  const {
+    negotiations,
+    meta: negMeta,
+    fetching: negFetching,
+  } = useNegotiations(negPage, {
+    search: negSearch,
+    sortBy: 'createdAt',
+    sortOrder: 'desc',
+    limit: 10,
   });
-  const negotiations = (negotiationsData?.data ?? []) as NegotiationListItemResponse[];
+  const negotiationOptions = useMemo(
+    () => negotiations.map((n) => ({ value: n.id, label: n.client.businessName })),
+    [negotiations],
+  );
+  const negHasMore = negMeta ? negMeta.page < negMeta.totalPages : false;
 
   const forceClose = useCallback(() => {
     form.reset({
@@ -121,6 +132,8 @@ export function DocumentUploadDialog({
         documentTypeId: '',
         file: undefined as unknown as File,
       });
+      setNegSearch('');
+      setNegPage(1);
     }
   }, [open, dirtyRef, form, preselectedNegotiationId]);
 
@@ -197,18 +210,23 @@ export function DocumentUploadDialog({
                     control={control}
                     name="negotiationId"
                     render={({ field }) => (
-                      <Select value={field.value} onValueChange={field.onChange}>
-                        <SelectTrigger id="negotiationId">
-                          <SelectValue placeholder={t('documentation.selectNegotiation')} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {negotiations.map((n) => (
-                            <SelectItem key={n.id} value={n.id}>
-                              {n.client.businessName}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <SearchSelect
+                        id="negotiationId"
+                        options={negotiationOptions}
+                        value={field.value}
+                        onValueChange={field.onChange}
+                        placeholder={t('documentation.selectNegotiation')}
+                        searchPlaceholder={t('common.search')}
+                        emptyMessage={t('common.noResults')}
+                        searchValue={negSearch}
+                        onSearchChange={(v) => {
+                          setNegSearch(v);
+                          setNegPage(1);
+                        }}
+                        loading={negFetching}
+                        hasMore={negHasMore}
+                        onLoadMore={() => setNegPage((p) => p + 1)}
+                      />
                     )}
                   />
                   <FieldError>{errors.negotiationId?.message}</FieldError>

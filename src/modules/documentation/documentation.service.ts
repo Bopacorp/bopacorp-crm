@@ -2,6 +2,7 @@ import type { PaginationMeta } from '@bopacorp/shared/common';
 import type { UploadDocumentResponse } from '@bopacorp/shared/document-uploads';
 import type {
   ChangeDocumentStateRequest,
+  CreateDocumentTypeRequest,
   CreateNegotiationDocumentRequest,
   DocumentStateHistoryResponse,
   DocumentTypeResponse,
@@ -9,8 +10,16 @@ import type {
   ListNegotiationDocumentsQuery,
   NegotiationDocumentListItemResponse,
   NegotiationDocumentResponse,
+  UpdateDocumentTypeRequest,
 } from '@bopacorp/shared/documents';
 import api, { request, requestPaginated } from '@/services/api.js';
+
+export interface PendingSummaryItem {
+  advisor: { id: string; firstName: string; lastName: string };
+  pendingUpload: number;
+  pendingReview: number;
+  totalPending: number;
+}
 
 export function listDocumentTypes(
   query: ListDocumentTypesQuery = { page: 1, limit: 100, sortOrder: 'asc' },
@@ -19,6 +28,26 @@ export function listDocumentTypes(
     method: 'GET',
     url: '/documents/types',
     params: query,
+  });
+}
+
+export function getDocumentType(id: string) {
+  return request<DocumentTypeResponse>({ method: 'GET', url: `/documents/types/${id}` });
+}
+
+export function createDocumentType(data: CreateDocumentTypeRequest) {
+  return request<DocumentTypeResponse>({ method: 'POST', url: '/documents/types', data });
+}
+
+export function updateDocumentType(id: string, data: UpdateDocumentTypeRequest) {
+  return request<DocumentTypeResponse>({ method: 'PATCH', url: `/documents/types/${id}`, data });
+}
+
+export function disableDocumentType(id: string) {
+  return request<DocumentTypeResponse>({
+    method: 'PATCH',
+    url: `/documents/types/${id}`,
+    data: { isActive: false },
   });
 }
 
@@ -70,6 +99,10 @@ export async function uploadDocument(file: File): Promise<UploadDocumentResponse
   }
 
   return response.data.data;
+}
+
+export function getPendingSummary() {
+  return request<PendingSummaryItem[]>({ method: 'GET', url: '/documents/pending-summary' });
 }
 
 export async function downloadNegotiationDocuments(negotiationId: string) {

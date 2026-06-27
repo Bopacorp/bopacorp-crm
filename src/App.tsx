@@ -4,7 +4,7 @@ import MainLayout from '@/app/MainLayout.js';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import RequireAuth from '@/modules/auth/components/RequireAuth.js';
 import { RequirePermission } from '@/modules/auth/components/RequirePermission.js';
-import { MANAGEMENT_ROLES, SALES_MANAGEMENT_ROLES } from '@/modules/auth/constants.js';
+import { DOC_ROLES, ORG_ROLES, SALES_MANAGEMENT_ROLES } from '@/modules/auth/constants.js';
 import { useAuth } from '@/modules/auth/context/AuthContext.js';
 import LoginPage from '@/modules/auth/pages/LoginPage';
 import CatalogItemCreatePage from '@/modules/catalog/pages/CatalogItemCreatePage';
@@ -15,6 +15,7 @@ import ContactRequestsPage from '@/modules/catalog/pages/ContactRequestsPage';
 import { ClientSheetProvider } from '@/modules/clients/context/ClientSheetContext';
 import ClientsPage from '@/modules/clients/pages/ClientsPage';
 import DocumentationPage from '@/modules/documentation/pages/DocumentationPage';
+import DocumentTypesPage from '@/modules/documentation/pages/DocumentTypesPage';
 import ApplicantsPage from '@/modules/employability/pages/ApplicantsPage';
 import VacanciesPage from '@/modules/employability/pages/VacanciesPage';
 import NegotiationDetailPage from '@/modules/negotiations/pages/NegotiationDetailPage';
@@ -106,11 +107,18 @@ export default function App() {
                 path="/documentacion"
                 element={
                   <RequireAuth>
-                    <RequirePermission
-                      permission="negotiation_documents.read"
-                      roles={MANAGEMENT_ROLES}
-                    >
+                    <RequirePermission permission="negotiation_documents.read" roles={DOC_ROLES}>
                       <DocumentationPage />
+                    </RequirePermission>
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/documentacion/tipos"
+                element={
+                  <RequireAuth>
+                    <RequirePermission permission="document_types.read" roles={DOC_ROLES}>
+                      <DocumentTypesPage />
                     </RequirePermission>
                   </RequireAuth>
                 }
@@ -121,7 +129,7 @@ export default function App() {
                 path="/catalogo"
                 element={
                   <RequireAuth>
-                    <RequirePermission permission="catalog_items.read">
+                    <RequirePermission permission="catalog_items.read" roles={ORG_ROLES}>
                       <CatalogPage />
                     </RequirePermission>
                   </RequireAuth>
@@ -131,7 +139,7 @@ export default function App() {
                 path="/catalogo/configuracion"
                 element={
                   <RequireAuth>
-                    <RequirePermission permission="categories.read">
+                    <RequirePermission permission="categories.read" roles={ORG_ROLES}>
                       <CatalogSettingsPage />
                     </RequirePermission>
                   </RequireAuth>
@@ -141,7 +149,7 @@ export default function App() {
                 path="/catalogo/solicitudes"
                 element={
                   <RequireAuth>
-                    <RequirePermission permission="contact_requests.read">
+                    <RequirePermission permission="contact_requests.read" roles={ORG_ROLES}>
                       <ContactRequestsPage />
                     </RequirePermission>
                   </RequireAuth>
@@ -151,7 +159,7 @@ export default function App() {
                 path="/catalogo/nuevo"
                 element={
                   <RequireAuth>
-                    <RequirePermission permission="catalog_items.read">
+                    <RequirePermission permission="catalog_items.read" roles={ORG_ROLES}>
                       <CatalogItemCreatePage />
                     </RequirePermission>
                   </RequireAuth>
@@ -161,7 +169,7 @@ export default function App() {
                 path="/catalogo/:id"
                 element={
                   <RequireAuth>
-                    <RequirePermission permission="catalog_items.read">
+                    <RequirePermission permission="catalog_items.read" roles={ORG_ROLES}>
                       <CatalogItemDetailPage />
                     </RequirePermission>
                   </RequireAuth>
@@ -173,9 +181,9 @@ export default function App() {
                 path="/organizacion/equipo"
                 element={
                   <RequireAuth>
-                    <SalesOnly>
+                    <RequirePermission permission="employees.read" roles={ORG_ROLES}>
                       <TeamPage />
-                    </SalesOnly>
+                    </RequirePermission>
                   </RequireAuth>
                 }
               />
@@ -183,11 +191,9 @@ export default function App() {
                 path="/organizacion/configuracion"
                 element={
                   <RequireAuth>
-                    <SalesOnly>
-                      <RequirePermission permission="departments.read">
-                        <OrgSettingsPage />
-                      </RequirePermission>
-                    </SalesOnly>
+                    <RequirePermission permission="departments.read" roles={ORG_ROLES}>
+                      <OrgSettingsPage />
+                    </RequirePermission>
                   </RequireAuth>
                 }
               />
@@ -197,11 +203,12 @@ export default function App() {
                 path="/reportes"
                 element={
                   <RequireAuth>
-                    <SalesOnly>
-                      <RequirePermission permission="report_exports.read">
-                        <ReportsPage />
-                      </RequirePermission>
-                    </SalesOnly>
+                    <RequirePermission
+                      permission="report_exports.read"
+                      roles={SALES_MANAGEMENT_ROLES}
+                    >
+                      <ReportsPage />
+                    </RequirePermission>
                   </RequireAuth>
                 }
               />
