@@ -2,6 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2, Plus } from 'lucide-react';
 import { useEffect } from 'react';
 import { Controller, useForm } from 'react-hook-form';
+import { useTranslation } from 'react-i18next';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field';
@@ -80,6 +81,7 @@ export function NegotiationForm({
   showIsActive,
   stateLabel,
 }: NegotiationFormProps) {
+  const { t } = useTranslation();
   const {
     register,
     control,
@@ -102,7 +104,7 @@ export function NegotiationForm({
 
         <FieldGroup>
           <Field data-invalid={errors.clientId ? true : undefined}>
-            <FieldLabel>Cliente</FieldLabel>
+            <FieldLabel>{t('negotiations.client')}</FieldLabel>
             {clientReadOnly ? (
               <Input value={clientName} readOnly className="bg-muted" />
             ) : (
@@ -115,9 +117,9 @@ export function NegotiationForm({
                       options={clientOptions ?? []}
                       value={field.value}
                       onValueChange={field.onChange}
-                      placeholder="Seleccionar cliente"
-                      searchPlaceholder="Buscar cliente..."
-                      emptyMessage="Sin clientes"
+                      placeholder={t('negotiations.selectClient')}
+                      searchPlaceholder={t('negotiations.searchClient')}
+                      emptyMessage={t('negotiations.noClients')}
                       searchValue={clientSearchValue}
                       onSearchChange={onClientSearchChange}
                       loading={clientLoading}
@@ -136,7 +138,7 @@ export function NegotiationForm({
                       onClick={onCreateClient}
                     >
                       <Plus data-icon="inline-start" />
-                      Nuevo cliente
+                      {t('negotiations.newClientInline')}
                     </Button>
                   </Can>
                 )}
@@ -146,14 +148,14 @@ export function NegotiationForm({
           </Field>
 
           <Field data-invalid={errors.stateId ? true : undefined}>
-            <FieldLabel>{stateLabel ?? 'Estado inicial'}</FieldLabel>
+            <FieldLabel>{stateLabel ?? t('negotiations.initialState')}</FieldLabel>
             <Controller
               control={control}
               name="stateId"
               render={({ field }) => (
                 <Select value={field.value} onValueChange={field.onChange}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Seleccionar estado" />
+                    <SelectValue placeholder={t('negotiations.selectState')} />
                   </SelectTrigger>
                   <SelectContent>
                     {stateOptions.map((state) => (
@@ -169,7 +171,7 @@ export function NegotiationForm({
           </Field>
 
           <Field>
-            <FieldLabel>Fecha de inicio</FieldLabel>
+            <FieldLabel>{t('common.startDate')}</FieldLabel>
             <Controller
               control={control}
               name="startDate"
@@ -178,7 +180,7 @@ export function NegotiationForm({
           </Field>
 
           <Field>
-            <FieldLabel>Cierre estimado</FieldLabel>
+            <FieldLabel>{t('common.estimatedClose')}</FieldLabel>
             <Controller
               control={control}
               name="estimatedCloseDate"
@@ -187,17 +189,17 @@ export function NegotiationForm({
           </Field>
 
           <Field>
-            <FieldLabel>Observaciones</FieldLabel>
+            <FieldLabel>{t('common.observations')}</FieldLabel>
             <Textarea
               {...register('observations')}
-              placeholder="Notas adicionales..."
+              placeholder={t('common.additionalNotes')}
               maxLength={500}
             />
           </Field>
 
           {showAdvisorField && advisorOptions && (
             <Field>
-              <FieldLabel>Asesor</FieldLabel>
+              <FieldLabel>{t('common.advisor')}</FieldLabel>
               <Controller
                 control={control}
                 name="advisorId"
@@ -206,9 +208,9 @@ export function NegotiationForm({
                     options={advisorOptions}
                     value={field.value}
                     onValueChange={field.onChange}
-                    placeholder="Seleccionar asesor"
-                    searchPlaceholder="Buscar asesor..."
-                    emptyMessage="Sin asesores"
+                    placeholder={t('common.selectAdvisor')}
+                    searchPlaceholder={t('common.searchAdvisor')}
+                    emptyMessage={t('common.noAdvisors')}
                   />
                 )}
               />
@@ -218,7 +220,7 @@ export function NegotiationForm({
           {showIsActive && (
             <Field>
               <div className="flex items-center justify-between">
-                <FieldLabel>Activa</FieldLabel>
+                <FieldLabel>{t('negotiations.activeNeg')}</FieldLabel>
                 <Controller
                   control={control}
                   name="isActive"

@@ -4,6 +4,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
 import { useEffect, useMemo } from 'react';
 import { Controller, useForm } from 'react-hook-form';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import type { z } from 'zod';
 import { Button } from '@/components/ui/button';
@@ -50,6 +51,7 @@ export function ChangeStateDialog({
   targetStateId,
   onSuccess,
 }: ChangeStateDialogProps) {
+  const { t } = useTranslation();
   const { states } = useNegotiationStates();
   const queryClient = useQueryClient();
   const availableStates = states.filter((s) => s.id !== currentStateId);
@@ -88,7 +90,7 @@ export function ChangeStateDialog({
     mutationFn: (data: FormValues) => changeNegotiationState(negotiationId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.negotiations.all });
-      toast.success('Estado actualizado');
+      toast.success(t('negotiations.stateUpdated'));
       onOpenChange(false);
       onSuccess();
     },
@@ -111,14 +113,16 @@ export function ChangeStateDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{isLocked ? 'Confirmar cambio de estado' : 'Cambiar estado'}</DialogTitle>
+          <DialogTitle>
+            {isLocked ? t('negotiations.confirmStateChange') : t('negotiations.changeState')}
+          </DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">
           {errors.root && <FormAlert message={errors.root.message ?? ''} />}
 
           <FieldGroup>
             <Field data-invalid={errors.stateId ? true : undefined}>
-              <FieldLabel>Nuevo estado</FieldLabel>
+              <FieldLabel>{t('negotiations.newState')}</FieldLabel>
               {isLocked ? (
                 <Input value={targetStateName ?? ''} readOnly className="bg-muted" />
               ) : (
@@ -128,7 +132,7 @@ export function ChangeStateDialog({
                   render={({ field }) => (
                     <Select value={field.value} onValueChange={field.onChange}>
                       <SelectTrigger>
-                        <SelectValue placeholder="Seleccionar estado" />
+                        <SelectValue placeholder={t('negotiations.selectState')} />
                       </SelectTrigger>
                       <SelectContent>
                         {availableStates.map((state) => (
@@ -145,19 +149,22 @@ export function ChangeStateDialog({
             </Field>
 
             <Field data-invalid={errors.notes ? true : undefined}>
-              <FieldLabel>Notas (opcional)</FieldLabel>
-              <Textarea {...register('notes')} placeholder="Motivo del cambio..." />
+              <FieldLabel>{t('negotiations.changeNotes')}</FieldLabel>
+              <Textarea
+                {...register('notes')}
+                placeholder={t('negotiations.changeNotesPlaceholder')}
+              />
               <FieldError>{errors.notes?.message}</FieldError>
             </Field>
           </FieldGroup>
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancelar
+              {t('common.cancel')}
             </Button>
             <Button type="submit" disabled={mutation.isPending}>
               {mutation.isPending && <Loader2 data-icon="inline-start" className="animate-spin" />}
-              {isLocked ? 'Confirmar' : 'Cambiar'}
+              {isLocked ? t('common.confirm') : t('negotiations.change')}
             </Button>
           </DialogFooter>
         </form>

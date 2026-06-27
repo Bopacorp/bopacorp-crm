@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Loader2, MapPin } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
@@ -53,6 +54,7 @@ export function CreateVisitSheet({
   clientId,
   onSuccess,
 }: CreateVisitSheetProps) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [key, setKey] = useState(0);
   const [error, setError] = useState('');
@@ -94,7 +96,7 @@ export function CreateVisitSheet({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.visits.all });
-      toast.success('Visita registrada');
+      toast.success(t('visits.registered'));
       dirtyRef.current = false;
       forceClose();
       onSuccess();
@@ -112,7 +114,7 @@ export function CreateVisitSheet({
     <Sheet open={open} onOpenChange={handleOpenChange}>
       <SheetContent>
         <SheetHeader>
-          <SheetTitle>Registrar visita</SheetTitle>
+          <SheetTitle>{t('visits.register')}</SheetTitle>
         </SheetHeader>
         <CreateVisitForm
           key={key}
@@ -151,6 +153,7 @@ function CreateVisitForm({
   onDirtyChange,
   gpsAccuracyRef,
 }: CreateVisitFormProps) {
+  const { t } = useTranslation();
   const { user, hasRole } = useAuth();
   const { visitTypes } = useVisitTypes();
   const { advisors } = useAdvisors();
@@ -204,14 +207,14 @@ function CreateVisitForm({
 
         <FieldGroup>
           <Field data-invalid={errors.visitTypeId ? true : undefined}>
-            <FieldLabel>Tipo de visita</FieldLabel>
+            <FieldLabel>{t('visits.visitType')}</FieldLabel>
             <Controller
               control={control}
               name="visitTypeId"
               render={({ field }) => (
                 <Select value={field.value} onValueChange={field.onChange}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Seleccionar tipo" />
+                    <SelectValue placeholder={t('visits.selectType')} />
                   </SelectTrigger>
                   <SelectContent>
                     {visitTypes.map((vt) => (
@@ -228,7 +231,7 @@ function CreateVisitForm({
 
           {!isAdvisor && (
             <Field data-invalid={errors.advisorId ? true : undefined}>
-              <FieldLabel>Asesor</FieldLabel>
+              <FieldLabel>{t('common.advisor')}</FieldLabel>
               <Controller
                 control={control}
                 name="advisorId"
@@ -237,9 +240,9 @@ function CreateVisitForm({
                     options={advisorOptions}
                     value={field.value}
                     onValueChange={field.onChange}
-                    placeholder="Seleccionar asesor"
-                    searchPlaceholder="Buscar asesor..."
-                    emptyMessage="Sin asesores"
+                    placeholder={t('common.selectAdvisor')}
+                    searchPlaceholder={t('common.searchAdvisor')}
+                    emptyMessage={t('common.noAdvisors')}
                   />
                 )}
               />
@@ -248,7 +251,7 @@ function CreateVisitForm({
           )}
 
           <Field data-invalid={errors.visitDate ? true : undefined}>
-            <FieldLabel>Fecha y hora</FieldLabel>
+            <FieldLabel>{t('visits.dateTime')}</FieldLabel>
             <Controller
               control={control}
               name="visitDate"
@@ -260,10 +263,10 @@ function CreateVisitForm({
           </Field>
 
           <Field data-invalid={errors.observations ? true : undefined}>
-            <FieldLabel>Observaciones</FieldLabel>
+            <FieldLabel>{t('common.observations')}</FieldLabel>
             <Textarea
               {...register('observations')}
-              placeholder="Descripción de la visita..."
+              placeholder={t('visits.visitDescPlaceholder')}
               maxLength={500}
             />
             <FieldError>{errors.observations?.message}</FieldError>
@@ -271,16 +274,16 @@ function CreateVisitForm({
 
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <MapPin className="size-4" />
-            <span>Ubicación GPS</span>
+            <span>{t('visits.location')}</span>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <Field data-invalid={errors.gpsLatitude ? true : undefined}>
-              <FieldLabel>Latitud</FieldLabel>
+              <FieldLabel>{t('visits.latitude')}</FieldLabel>
               <Input type="number" step="any" {...register('gpsLatitude')} placeholder="-2.1894" />
               <FieldError>{errors.gpsLatitude?.message}</FieldError>
             </Field>
             <Field data-invalid={errors.gpsLongitude ? true : undefined}>
-              <FieldLabel>Longitud</FieldLabel>
+              <FieldLabel>{t('visits.longitude')}</FieldLabel>
               <Input
                 type="number"
                 step="any"
@@ -296,7 +299,7 @@ function CreateVisitForm({
       <SheetFooter>
         <Button type="submit" disabled={isPending}>
           {isPending && <Loader2 data-icon="inline-start" className="animate-spin" />}
-          Registrar
+          {t('visits.register')}
         </Button>
       </SheetFooter>
     </form>

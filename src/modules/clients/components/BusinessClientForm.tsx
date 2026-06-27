@@ -2,6 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2 } from 'lucide-react';
 import { useEffect, useMemo } from 'react';
 import { Controller, useForm } from 'react-hook-form';
+import { useTranslation } from 'react-i18next';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field';
@@ -57,6 +58,7 @@ export function BusinessClientForm({
   showIsActive,
   onDirtyChange,
 }: BusinessClientFormProps) {
+  const { t } = useTranslation();
   const { hasRole } = useAuth();
   const canAssignAdvisor = !hasRole('advisor');
   const { advisors } = useAdvisors();
@@ -96,7 +98,7 @@ export function BusinessClientForm({
 
         <FieldGroup>
           <Field data-invalid={errors.ruc ? true : undefined}>
-            <FieldLabel>RUC</FieldLabel>
+            <FieldLabel>{t('clients.ruc')}</FieldLabel>
             {rucReadOnly ? (
               <Input value={watch('ruc')} readOnly className="bg-muted" />
             ) : (
@@ -106,36 +108,36 @@ export function BusinessClientForm({
           </Field>
 
           <Field data-invalid={errors.businessName ? true : undefined}>
-            <FieldLabel>Nombre comercial</FieldLabel>
+            <FieldLabel>{t('clients.commercialName')}</FieldLabel>
             <Input {...register('businessName')} maxLength={50} />
             <FieldError>{errors.businessName?.message}</FieldError>
           </Field>
 
           <Field data-invalid={errors.contactName ? true : undefined}>
-            <FieldLabel>Contacto</FieldLabel>
+            <FieldLabel>{t('common.contact')}</FieldLabel>
             <Input {...register('contactName')} maxLength={50} />
             <FieldError>{errors.contactName?.message}</FieldError>
           </Field>
 
           <Field>
-            <FieldLabel>Teléfono</FieldLabel>
+            <FieldLabel>{t('common.phone')}</FieldLabel>
             <Input {...register('contactPhone')} maxLength={10} />
           </Field>
 
           <Field data-invalid={errors.contactEmail ? true : undefined}>
-            <FieldLabel>Email</FieldLabel>
+            <FieldLabel>{t('common.email')}</FieldLabel>
             <Input type="email" {...register('contactEmail')} maxLength={80} />
             <FieldError>{errors.contactEmail?.message}</FieldError>
           </Field>
 
           <Field>
-            <FieldLabel>Dirección</FieldLabel>
+            <FieldLabel>{t('common.address')}</FieldLabel>
             <Textarea {...register('address')} maxLength={150} />
           </Field>
 
           {canAssignAdvisor && (
             <Field>
-              <FieldLabel>Asesor</FieldLabel>
+              <FieldLabel>{t('common.advisor')}</FieldLabel>
               <Controller
                 control={control}
                 name="advisorId"
@@ -144,9 +146,9 @@ export function BusinessClientForm({
                     options={advisorOptions}
                     value={field.value}
                     onValueChange={field.onChange}
-                    placeholder="Seleccionar asesor"
-                    searchPlaceholder="Buscar asesor..."
-                    emptyMessage="Sin asesores"
+                    placeholder={t('common.selectAdvisor')}
+                    searchPlaceholder={t('common.searchAdvisor')}
+                    emptyMessage={t('common.noAdvisors')}
                   />
                 )}
               />
@@ -156,7 +158,7 @@ export function BusinessClientForm({
           {showIsActive && (
             <Field>
               <div className="flex items-center justify-between">
-                <FieldLabel>Activo</FieldLabel>
+                <FieldLabel>{t('common.active')}</FieldLabel>
                 <Controller
                   control={control}
                   name="isActive"

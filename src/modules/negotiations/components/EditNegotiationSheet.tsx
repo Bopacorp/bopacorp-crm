@@ -1,6 +1,7 @@
 import type { NegotiationResponse, UpdateNegotiationRequest } from '@bopacorp/shared/crm';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { queryKeys } from '@/lib/query-keys.js';
@@ -35,6 +36,7 @@ export function EditNegotiationSheet({
   negotiation,
   onSuccess,
 }: EditNegotiationSheetProps) {
+  const { t } = useTranslation();
   const { hasRole } = useAuth();
   const queryClient = useQueryClient();
   const { states } = useNegotiationStates();
@@ -75,7 +77,7 @@ export function EditNegotiationSheet({
     mutationFn: (data: UpdateNegotiationRequest) => updateNegotiation(negotiation.id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.negotiations.all });
-      toast.success('Negociación actualizada');
+      toast.success(t('common.entityUpdated', { entity: t('negotiations.title') }));
       dirtyRef.current = false;
       forceClose();
       onSuccess();
@@ -107,7 +109,7 @@ export function EditNegotiationSheet({
     <Sheet open={open} onOpenChange={handleOpenChange}>
       <SheetContent>
         <SheetHeader>
-          <SheetTitle>Editar negociación</SheetTitle>
+          <SheetTitle>{t('negotiations.editNegotiation')}</SheetTitle>
         </SheetHeader>
         <NegotiationForm
           key={key}
@@ -115,10 +117,10 @@ export function EditNegotiationSheet({
           onSubmit={handleSubmit}
           isPending={mutation.isPending}
           error={error}
-          submitLabel="Guardar"
+          submitLabel={t('common.save')}
           onDirtyChange={handleDirtyChange}
           stateOptions={states}
-          stateLabel="Estado"
+          stateLabel={t('common.status')}
           clientReadOnly
           clientName={negotiation.client.businessName}
           showAdvisorField={canAssignAdvisor}

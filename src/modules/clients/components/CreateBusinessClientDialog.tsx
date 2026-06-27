@@ -1,6 +1,7 @@
 import type { BusinessClientResponse, CreateBusinessClientRequest } from '@bopacorp/shared/crm';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { queryKeys } from '@/lib/query-keys.js';
@@ -33,6 +34,7 @@ export function CreateBusinessClientDialog({
   onOpenChange,
   onSuccess,
 }: CreateBusinessClientSheetProps) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [error, setError] = useState('');
   const [key, setKey] = useState(0);
@@ -50,7 +52,7 @@ export function CreateBusinessClientDialog({
     mutationFn: (data: CreateBusinessClientRequest) => createBusinessClient(data),
     onSuccess: (client) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.businessClients.all });
-      toast.success('Cliente creado');
+      toast.success(t('common.entityCreated', { entity: t('negotiations.client') }));
       dirtyRef.current = false;
       forceClose();
       onSuccess(client);
@@ -86,7 +88,7 @@ export function CreateBusinessClientDialog({
     <Sheet open={open} onOpenChange={handleOpenChange}>
       <SheetContent>
         <SheetHeader>
-          <SheetTitle>Nuevo cliente</SheetTitle>
+          <SheetTitle>{t('clients.newClient')}</SheetTitle>
         </SheetHeader>
         <BusinessClientForm
           key={key}
@@ -94,7 +96,7 @@ export function CreateBusinessClientDialog({
           onSubmit={handleSubmit}
           isPending={mutation.isPending}
           error={error}
-          submitLabel="Crear"
+          submitLabel={t('common.create')}
           onDirtyChange={handleDirtyChange}
         />
       </SheetContent>

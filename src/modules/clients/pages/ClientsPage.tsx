@@ -1,6 +1,7 @@
 import type { BusinessClientListItemResponse } from '@bopacorp/shared/crm';
 import { Plus } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { formatDate } from '@/lib/format.js';
 import { cn } from '@/lib/utils';
@@ -32,6 +33,7 @@ function employeeName(emp: {
 }
 
 export default function ClientsPage() {
+  const { t } = useTranslation();
   const { openClientSheet } = useClientSheet();
   const { user, hasRole } = useAuth();
   const isAdvisor = hasRole('advisor');
@@ -67,7 +69,7 @@ export default function ClientsPage() {
   const columns = [
     {
       id: 'businessName',
-      header: 'Empresa',
+      header: t('common.company'),
       accessor: (item: BusinessClientListItemResponse) => (
         <span className="font-medium">{item.businessName}</span>
       ),
@@ -75,12 +77,12 @@ export default function ClientsPage() {
     },
     {
       id: 'ruc',
-      header: 'RUC',
+      header: t('clients.ruc'),
       accessor: (item: BusinessClientListItemResponse) => item.ruc,
     },
     {
       id: 'contactName',
-      header: 'Contacto',
+      header: t('common.contact'),
       accessor: (item: BusinessClientListItemResponse) => item.contactName,
       sortable: true,
     },
@@ -88,7 +90,7 @@ export default function ClientsPage() {
       ? [
           {
             id: 'advisor',
-            header: 'Asesor',
+            header: t('common.advisor'),
             accessor: (item: BusinessClientListItemResponse) => {
               const a = item.advisor;
               if (!a) return '—';
@@ -99,26 +101,26 @@ export default function ClientsPage() {
       : []),
     {
       id: 'status',
-      header: 'Estado',
+      header: t('common.status'),
       accessor: (item: BusinessClientListItemResponse) => (
         <StateBadge
           state={item.isActive ? 'active' : 'inactive'}
-          label={item.isActive ? 'Activo' : 'Inactivo'}
+          label={item.isActive ? t('common.active') : t('common.inactive')}
         />
       ),
     },
     {
       id: 'createdAt',
-      header: 'Creado',
+      header: t('common.created'),
       accessor: (item: BusinessClientListItemResponse) => formatDate(item.createdAt),
       sortable: true,
     },
   ];
 
   const activeOptions = [
-    { value: 'all', label: 'Todos' },
-    { value: 'true', label: 'Activo' },
-    { value: 'false', label: 'Inactivo' },
+    { value: 'all', label: t('common.all') },
+    { value: 'true', label: t('common.active') },
+    { value: 'false', label: t('common.inactive') },
   ];
 
   if (loading) return <TableSkeleton columns={isAdvisor ? 5 : 6} />;
@@ -132,13 +134,13 @@ export default function ClientsPage() {
       )}
     >
       <SectionHeader
-        title="Clientes"
-        description="Gestión de empresas y contactos comerciales"
+        title={t('clients.title')}
+        description={t('clients.description')}
         actions={
           <Can permission="business_clients.create">
             <Button onClick={() => setCreateOpen(true)}>
               <Plus data-icon="inline-start" />
-              Nuevo cliente
+              {t('clients.newClient')}
             </Button>
           </Can>
         }
@@ -147,12 +149,12 @@ export default function ClientsPage() {
       <FilterBar
         searchValue={search}
         onSearchChange={setSearch}
-        searchPlaceholder="Buscar por empresa o RUC..."
+        searchPlaceholder={t('clients.searchPlaceholder')}
         filters={[
           {
             id: 'active',
-            label: 'Estado',
-            placeholder: 'Estado',
+            label: t('common.status'),
+            placeholder: t('common.status'),
             options: activeOptions,
             value: isActive === undefined ? 'all' : String(isActive),
             onChange: (value) => setIsActive(value === 'all' ? undefined : value === 'true'),
@@ -161,10 +163,10 @@ export default function ClientsPage() {
             ? [
                 {
                   id: 'advisor',
-                  label: 'Asesor',
-                  placeholder: 'Seleccionar asesor',
+                  label: t('common.advisor'),
+                  placeholder: t('common.selectAdvisor'),
                   searchable: true,
-                  options: [{ value: 'all', label: 'Todos' }, ...advisorOptions],
+                  options: [{ value: 'all', label: t('common.all') }, ...advisorOptions],
                   value: advisorId ?? 'all',
                   onChange: (value: string) => setAdvisorId(value === 'all' ? undefined : value),
                 },
@@ -176,16 +178,20 @@ export default function ClientsPage() {
       {clients.length === 0 ? (
         search || isActive !== undefined || (!isAdvisor && advisorId) ? (
           <EmptyState
-            title="Sin resultados"
-            description="No se encontraron clientes con los filtros aplicados"
+            title={t('common.noResults')}
+            description={t('common.noFilterResults', {
+              entities: t('clients.title').toLowerCase(),
+            })}
           />
         ) : (
           <EmptyState
-            title="No hay clientes"
-            description="Crea tu primer cliente para comenzar"
+            title={t('common.noEntities', { entities: t('clients.title').toLowerCase() })}
+            description={t('common.createFirstEntity', {
+              entity: t('clients.title').toLowerCase(),
+            })}
             action={
               hasPermission('business_clients.create')
-                ? { label: '+ Nuevo cliente', onClick: () => setCreateOpen(true) }
+                ? { label: `+ ${t('clients.newClient')}`, onClick: () => setCreateOpen(true) }
                 : undefined
             }
           />

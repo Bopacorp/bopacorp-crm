@@ -1,6 +1,7 @@
 import type { NegotiationListItemResponse } from '@bopacorp/shared/crm';
 import { Columns3, List, Plus } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { formatDate } from '@/lib/format.js';
@@ -35,6 +36,7 @@ function employeeName(emp: {
 }
 
 export default function NegotiationsPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { openClientSheet } = useClientSheet();
   const { user, hasRole } = useAuth();
@@ -81,7 +83,7 @@ export default function NegotiationsPage() {
   const columns = [
     {
       id: 'company',
-      header: 'Empresa',
+      header: t('common.company'),
       accessor: (item: NegotiationListItemResponse) => (
         <button
           type="button"
@@ -98,7 +100,7 @@ export default function NegotiationsPage() {
     },
     {
       id: 'state',
-      header: 'Estado',
+      header: t('common.status'),
       accessor: (item: NegotiationListItemResponse) => (
         <StateBadge state={item.state.code} label={item.state.name} />
       ),
@@ -107,7 +109,7 @@ export default function NegotiationsPage() {
       ? [
           {
             id: 'advisor',
-            header: 'Asesor',
+            header: t('common.advisor'),
             accessor: (item: NegotiationListItemResponse) => {
               const a = item.advisor;
               return a.profile ? `${a.profile.firstName} ${a.profile.lastName}` : a.username;
@@ -117,20 +119,20 @@ export default function NegotiationsPage() {
       : []),
     {
       id: 'startDate',
-      header: 'Fecha inicio',
+      header: t('common.startDate'),
       accessor: (item: NegotiationListItemResponse) => formatDate(item.startDate),
       sortable: true,
     },
     {
       id: 'estimatedCloseDate',
-      header: 'Cierre estimado',
+      header: t('common.estimatedClose'),
       accessor: (item: NegotiationListItemResponse) => formatDate(item.estimatedCloseDate),
       sortable: true,
     },
   ];
 
   const stateOptions = [
-    { value: 'all', label: 'Todos' },
+    { value: 'all', label: t('common.all') },
     ...states.map((s) => ({ value: s.id, label: s.name })),
   ];
 
@@ -145,8 +147,8 @@ export default function NegotiationsPage() {
       )}
     >
       <SectionHeader
-        title="Negociaciones"
-        description="Gestión de cuentas, contratos y visitas comerciales"
+        title={t('negotiations.title')}
+        description={t('negotiations.description')}
         actions={
           <div className="flex items-center gap-2">
             <div className="flex rounded-md border">
@@ -168,7 +170,7 @@ export default function NegotiationsPage() {
             <Can permission="negotiations.create">
               <Button onClick={() => setCreateOpen(true)}>
                 <Plus data-icon="inline-start" />
-                Nueva negociación
+                {t('negotiations.newNegotiation')}
               </Button>
             </Can>
           </div>
@@ -178,14 +180,14 @@ export default function NegotiationsPage() {
       <FilterBar
         searchValue={search}
         onSearchChange={setSearch}
-        searchPlaceholder="Buscar por empresa..."
+        searchPlaceholder={t('negotiations.searchPlaceholder')}
         filters={[
           ...(view === 'table'
             ? [
                 {
                   id: 'state',
-                  label: 'Estado',
-                  placeholder: 'Estado',
+                  label: t('common.status'),
+                  placeholder: t('common.status'),
                   options: stateOptions,
                   value: stateId ?? 'all',
                   onChange: (value: string) => setStateId(value === 'all' ? undefined : value),
@@ -196,10 +198,10 @@ export default function NegotiationsPage() {
             ? [
                 {
                   id: 'advisor',
-                  label: 'Asesor',
-                  placeholder: 'Seleccionar asesor',
+                  label: t('common.advisor'),
+                  placeholder: t('common.selectAdvisor'),
                   searchable: true,
-                  options: [{ value: 'all', label: 'Todos' }, ...advisorOptions],
+                  options: [{ value: 'all', label: t('common.all') }, ...advisorOptions],
                   value: advisorId ?? 'all',
                   onChange: (value: string) => setAdvisorId(value === 'all' ? undefined : value),
                 },
@@ -211,16 +213,23 @@ export default function NegotiationsPage() {
       {negotiations.length === 0 && view === 'table' ? (
         search || stateId || advisorId ? (
           <EmptyState
-            title="Sin resultados"
-            description="No se encontraron negociaciones con los filtros aplicados"
+            title={t('common.noResults')}
+            description={t('common.noFilterResults', {
+              entities: t('negotiations.title').toLowerCase(),
+            })}
           />
         ) : (
           <EmptyState
-            title="No hay negociaciones"
-            description="Crea tu primera negociación para comenzar"
+            title={t('common.noEntities', { entities: t('negotiations.title').toLowerCase() })}
+            description={t('common.createFirstEntity', {
+              entity: t('negotiations.title').toLowerCase(),
+            })}
             action={
               hasPermission('negotiations.create')
-                ? { label: '+ Nueva negociación', onClick: () => setCreateOpen(true) }
+                ? {
+                    label: `+ ${t('negotiations.newNegotiation')}`,
+                    onClick: () => setCreateOpen(true),
+                  }
                 : undefined
             }
           />
