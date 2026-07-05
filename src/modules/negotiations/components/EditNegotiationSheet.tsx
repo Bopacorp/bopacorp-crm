@@ -42,7 +42,7 @@ export function EditNegotiationSheet({
   const { hasRole } = useAuth();
   const queryClient = useQueryClient();
   const { advisors } = useAdvisors();
-  const canAssignAdvisor = hasRole('admin') || hasRole('supervisor');
+  const canAssignAdvisor = hasRole('admin') || hasRole('manager') || hasRole('supervisor');
   const [key, setKey] = useState(0);
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState<ServerFieldError[]>([]);

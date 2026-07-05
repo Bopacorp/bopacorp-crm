@@ -8,6 +8,7 @@ import { queryKeys } from '@/lib/query-keys.js';
 import { useAuth } from '@/modules/auth/context/AuthContext.js';
 import { CreateBusinessClientDialog } from '@/modules/clients/components/CreateBusinessClientDialog.js';
 import { useBusinessClients } from '@/modules/clients/hooks/useBusinessClients.js';
+import { useAdvisors } from '@/modules/org/hooks/useAdvisors.js';
 import { ApiError } from '@/services/api.js';
 import { getErrorMessage } from '@/shared/errors/index.js';
 import { useUnsavedGuard } from '@/shared/hooks/useUnsavedGuard.js';
@@ -24,6 +25,14 @@ interface CreateNegotiationDialogProps {
 
 type ServerFieldError = { field: string; message: string };
 
+function employeeName(emp: {
+  user: { firstName: string | null; lastName: string | null; username: string };
+}) {
+  return emp.user.firstName && emp.user.lastName
+    ? `${emp.user.firstName} ${emp.user.lastName}`
+    : emp.user.username;
+}
+
 const EMPTY_VALUES: NegotiationFormValues = {
   clientId: '',
   advisorId: '',
@@ -39,8 +48,10 @@ export function CreateNegotiationDialog({
   onSuccess,
 }: CreateNegotiationDialogProps) {
   const { t } = useTranslation();
-  const { user } = useAuth();
+  const { user, hasRole } = useAuth();
   const queryClient = useQueryClient();
+  const canAssignAdvisor = hasRole('admin') || hasRole('manager') || hasRole('supervisor');
+  const { advisors } = useAdvisors();
 
   const [clientSearch, setClientSearch] = useState('');
   const [clientPage, setClientPage] = useState(1);
@@ -73,6 +84,14 @@ export function CreateNegotiationDialog({
   const clientOptions = useMemo(
     () => clients.map((c) => ({ value: c.id, label: c.businessName })),
     [clients],
+  );
+
+  const advisorOptions = useMemo(
+    () =>
+      advisors
+        .map((emp) => ({ value: emp.userId, label: employeeName(emp) }))
+        .sort((a, b) => a.label.localeCompare(b.label)),
+    [advisors],
   );
 
   const hasMore = meta ? meta.page < meta.totalPages : false;
@@ -114,7 +133,7 @@ export function CreateNegotiationDialog({
 
     mutation.mutate({
       clientId: values.clientId,
-      advisorId: user.id,
+      advisorId: canAssignAdvisor ? values.advisorId : user.id,
       startDate: values.startDate || undefined,
       estimatedCloseDate: values.estimatedCloseDate || undefined,
       observations: values.observations || undefined,
@@ -154,6 +173,8 @@ export function CreateNegotiationDialog({
           hideState
           showCreateClient
           onCreateClient={() => setCreateClientOpen(true)}
+          showAdvisorField={canAssignAdvisor}
+          advisorOptions={advisorOptions}
         />
       </SheetContent>
 
