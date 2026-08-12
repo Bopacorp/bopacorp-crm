@@ -12,6 +12,7 @@ export interface EmployeeFilters {
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';
   limit?: number;
+  includeLockStatus?: boolean;
 }
 
 export function useEmployees(page: number, filters: EmployeeFilters) {
@@ -29,6 +30,7 @@ export function useEmployees(page: number, filters: EmployeeFilters) {
       sortBy: f.sortBy,
       sortOrder: f.sortOrder ?? 'asc',
       limit: f.limit ?? 10,
+      includeLockStatus: f.includeLockStatus || undefined,
     }),
   });
 

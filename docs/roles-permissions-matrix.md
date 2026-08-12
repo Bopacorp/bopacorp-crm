@@ -123,6 +123,9 @@ C = Create, R = Read, U = Update, D = Delete, X = Special action
 |--------|-----------|---------|------------|---------|-------------|
 | employees | R | Y | Y | Y | Y |
 | users | R | Y | Y | — | — |
+| | unlock | Y | — | — | — |
+
+`users.unlock` is granted to managers; admins inherit it through their system-wide permission set.
 | departments | R | Y | — | — | — |
 | org_roles | R | Y | — | — | — |
 | contact_requests | R | Y | Y | — | Y |

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { formatDate } from '@/lib/format.js';
 import { cn } from '@/lib/utils';
 import { Can } from '@/modules/auth/components/Can.js';
+import { useAuth } from '@/modules/auth/context/AuthContext.js';
 import { usePageReset } from '@/shared/hooks/usePageReset.js';
 import {
   EmptyState,
@@ -29,6 +30,7 @@ function fullName(emp: EmployeeListItemResponse) {
 
 export default function TeamPage() {
   const { t } = useTranslation();
+  const { hasPermission } = useAuth();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [isActiveFilter, setIsActiveFilter] = useState<string>('all');
@@ -38,6 +40,7 @@ export default function TeamPage() {
   const [pageSize, setPageSize] = useState(10);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
+  const canUnlockUsers = hasPermission('users.unlock');
 
   const isActive = isActiveFilter === 'all' ? undefined : isActiveFilter === 'true';
   const orgRoleId = orgRoleFilter === 'all' ? undefined : orgRoleFilter;
@@ -49,6 +52,7 @@ export default function TeamPage() {
     sortBy,
     sortOrder,
     limit: pageSize,
+    includeLockStatus: canUnlockUsers,
   });
 
   const { orgRoleOptions } = useOrgRoleOptions();
@@ -103,6 +107,39 @@ export default function TeamPage() {
         />
       ),
     },
+    ...(canUnlockUsers
+      ? [
+          {
+            id: 'lockStatus',
+            header: t('org.accountLockStatus'),
+            accessor: (item: EmployeeListItemResponse) => (
+              <StateBadge
+                state={
+                  item.isLocked === true
+                    ? 'locked'
+                    : item.isLocked === false
+                      ? 'unlocked'
+                      : 'unknown'
+                }
+                variant={
+                  item.isLocked === true
+                    ? 'destructive'
+                    : item.isLocked === false
+                      ? 'secondary'
+                      : 'outline'
+                }
+                label={
+                  item.isLocked === true
+                    ? t('org.accountLocked')
+                    : item.isLocked === false
+                      ? t('org.accountNotLocked')
+                      : t('org.lockStatusUnavailable')
+                }
+              />
+            ),
+          },
+        ]
+      : []),
     {
       id: 'createdAt',
       header: t('common.created'),
@@ -111,7 +148,7 @@ export default function TeamPage() {
     },
   ];
 
-  if (loading) return <TableSkeleton columns={6} />;
+  if (loading) return <TableSkeleton columns={canUnlockUsers ? 7 : 6} />;
   if (error) return <ErrorState error={error} onRetry={refetch} />;
 
   return (

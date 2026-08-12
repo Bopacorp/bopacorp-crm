@@ -2,6 +2,9 @@ import type {
   AssignUserRolesRequest,
   CreateUserRequest,
   ListUsersQuery,
+  LockStatusResponse,
+  UnlockUserRequest,
+  UnlockUserResponse,
   UpdateUserRequest,
   UserListItemResponse,
   UserResponse,
@@ -35,4 +38,12 @@ export function removeUser(id: string) {
 
 export function assignUserRoles(id: string, data: AssignUserRolesRequest) {
   return request<void>({ method: 'PUT', url: `/users/${id}/roles`, data });
+}
+
+export function getUserLockStatus(id: string) {
+  return request<LockStatusResponse>({ method: 'GET', url: `/users/${id}/lock-status` });
+}
+
+export function unlockUser(id: string, data: UnlockUserRequest) {
+  return request<UnlockUserResponse>({ method: 'POST', url: `/users/${id}/unlock`, data });
 }

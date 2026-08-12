@@ -48,6 +48,7 @@ export const queryKeys = {
     list: (page: number, filters: Record<string, unknown>) =>
       ['users', 'list', page, filters] as const,
     detail: (id: string) => ['users', 'detail', id] as const,
+    lockStatus: (id: string) => ['users', 'lock-status', id] as const,
   },
   reports: {
     advisorMetrics: (filters: Record<string, unknown>) =>

@@ -1,3 +1,4 @@
+import type { LockStatusResponse } from '@bopacorp/shared/auth';
 import type { EmployeeResponse } from '@bopacorp/shared/core';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -6,6 +7,7 @@ import {
   Building2,
   Calendar,
   Loader2,
+  LockKeyhole,
   Mail,
   MapPin,
   Pencil,
@@ -42,9 +44,10 @@ import {
 import { Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
-import { formatDate, formatRelativeTime } from '@/lib/format.js';
+import { formatDate, formatDateTime, formatRelativeTime } from '@/lib/format.js';
 import { queryKeys } from '@/lib/query-keys.js';
 import { Can } from '@/modules/auth/components/Can.js';
+import { useAuth } from '@/modules/auth/context/AuthContext.js';
 import { getErrorMessage } from '@/shared/errors/index.js';
 import { useUnsavedGuard } from '@/shared/hooks/useUnsavedGuard.js';
 import {
@@ -56,6 +59,8 @@ import {
 } from '@/shared/ui';
 import { useOrgRoleOptions } from '../hooks/useOrgRoleOptions.js';
 import { getEmployee, removeEmployee, updateEmployee } from '../org.service.js';
+import { getUserLockStatus } from '../users.service.js';
+import { UnlockAccountDialog } from './UnlockAccountDialog.js';
 
 interface EmployeeSheetProps {
   open: boolean;
@@ -109,9 +114,12 @@ const SKELETON_SECTIONS = [
 
 export function EmployeeSheet({ open, onOpenChange, userId }: EmployeeSheetProps) {
   const { t } = useTranslation();
+  const { hasPermission } = useAuth();
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
+  const [unlockOpen, setUnlockOpen] = useState(false);
+  const canUnlockUsers = hasPermission('users.unlock');
 
   const onClose = useCallback(() => onOpenChange(false), [onOpenChange]);
   const onBack = useCallback(() => setEditing(false), []);
@@ -128,6 +136,16 @@ export function EmployeeSheet({ open, onOpenChange, userId }: EmployeeSheetProps
     queryKey: queryKeys.employees.detail(userId ?? ''),
     queryFn: () => getEmployee(userId as string),
     enabled: !!userId && open,
+  });
+
+  const {
+    data: lockStatus,
+    isError: lockStatusError,
+    isLoading: lockStatusLoading,
+  } = useQuery({
+    queryKey: queryKeys.users.lockStatus(userId ?? ''),
+    queryFn: () => getUserLockStatus(userId as string),
+    enabled: canUnlockUsers && !!userId && open,
   });
 
   const deleteMutation = useMutation({
@@ -147,6 +165,7 @@ export function EmployeeSheet({ open, onOpenChange, userId }: EmployeeSheetProps
   useEffect(() => {
     if (!open) {
       setEditing(false);
+      setUnlockOpen(false);
       dirtyRef.current = false;
     }
   }, [open, dirtyRef]);
@@ -163,6 +182,7 @@ export function EmployeeSheet({ open, onOpenChange, userId }: EmployeeSheetProps
     queryClient.invalidateQueries({ queryKey: queryKeys.employees.all });
     if (userId) {
       queryClient.invalidateQueries({ queryKey: queryKeys.employees.detail(userId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.users.lockStatus(userId) });
     }
   };
 
@@ -246,7 +266,13 @@ export function EmployeeSheet({ open, onOpenChange, userId }: EmployeeSheetProps
             onDirtyChange={handleDirtyChange}
           />
         ) : (
-          <ViewMode employee={employee} />
+          <ViewMode
+            employee={employee}
+            lockStatus={lockStatus}
+            lockStatusError={lockStatusError}
+            lockStatusLoading={lockStatusLoading}
+            onUnlock={() => setUnlockOpen(true)}
+          />
         )}
       </SheetContent>
 
@@ -286,13 +312,34 @@ export function EmployeeSheet({ open, onOpenChange, userId }: EmployeeSheetProps
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {userId && (
+        <UnlockAccountDialog
+          open={unlockOpen}
+          onOpenChange={setUnlockOpen}
+          userId={userId}
+          onSuccess={invalidate}
+        />
+      )}
     </Sheet>
   );
 }
 
 // ─── View Mode ───────────────────────────────────────────────────────────────
 
-function ViewMode({ employee }: { employee: EmployeeResponse }) {
+function ViewMode({
+  employee,
+  lockStatus,
+  lockStatusError,
+  lockStatusLoading,
+  onUnlock,
+}: {
+  employee: EmployeeResponse;
+  lockStatus: LockStatusResponse | undefined;
+  lockStatusError: boolean;
+  lockStatusLoading: boolean;
+  onUnlock: () => void;
+}) {
   const { t } = useTranslation();
 
   return (
@@ -315,6 +362,46 @@ function ViewMode({ employee }: { employee: EmployeeResponse }) {
             />
           </DetailField>
         </div>
+
+        <Can permission="users.unlock">
+          <div className="flex flex-col gap-1">
+            <SectionLabel>{t('org.accountLockSection')}</SectionLabel>
+            <DetailField icon={LockKeyhole} label={t('org.accountLockStatus')}>
+              {lockStatusLoading ? (
+                t('common.loading')
+              ) : lockStatusError ? (
+                <span className="text-destructive">{t('org.lockStatusUnavailable')}</span>
+              ) : lockStatus && !lockStatus.isActive ? (
+                <StateBadge state="inactive" label={t('org.accountInactive')} />
+              ) : lockStatus?.isLocked ? (
+                <div className="flex flex-wrap items-center gap-2">
+                  <StateBadge state="locked" variant="destructive" label={t('org.accountLocked')} />
+                  {lockStatus.lockedUntil && (
+                    <span className="text-muted-foreground">
+                      {t('org.lockedUntil', { date: formatDateTime(lockStatus.lockedUntil) })}
+                    </span>
+                  )}
+                </div>
+              ) : lockStatus ? (
+                <StateBadge
+                  state="unlocked"
+                  variant="secondary"
+                  label={t('org.accountNotLocked')}
+                />
+              ) : (
+                <span className="text-muted-foreground">{t('org.lockStatusUnavailable')}</span>
+              )}
+            </DetailField>
+            {lockStatus?.isActive && lockStatus.isLocked && (
+              <div className="px-2 pt-1">
+                <Button size="sm" onClick={onUnlock}>
+                  <LockKeyhole data-icon="inline-start" />
+                  {t('org.unlockAccount')}
+                </Button>
+              </div>
+            )}
+          </div>
+        </Can>
 
         <div className="flex flex-col gap-1">
           <SectionLabel>{t('org.orgSection')}</SectionLabel>
