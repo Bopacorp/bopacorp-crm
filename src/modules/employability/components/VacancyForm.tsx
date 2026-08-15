@@ -2,9 +2,10 @@ import { CreateJobVacancyRequestSchema } from '@bopacorp/shared/employability';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2 } from 'lucide-react';
 import { useEffect } from 'react';
+import type { Resolver } from 'react-hook-form';
 import { Controller, useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
-import type { z } from 'zod';
+import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
@@ -43,7 +44,14 @@ export function VacancyForm({
   onDirtyChange,
 }: VacancyFormProps) {
   const { t } = useTranslation();
-  const VacancyFormSchema = CreateJobVacancyRequestSchema.refine(
+  const optionalDate = z.preprocess(
+    (value) => (value === '' ? undefined : value),
+    CreateJobVacancyRequestSchema.shape.publicationDate,
+  );
+  const VacancyFormSchema = CreateJobVacancyRequestSchema.extend({
+    publicationDate: optionalDate,
+    closingDate: optionalDate,
+  }).refine(
     (data) => {
       if (data.publicationDate && data.closingDate) {
         return new Date(data.closingDate) >= new Date(data.publicationDate);
@@ -62,7 +70,7 @@ export function VacancyForm({
     handleSubmit,
     formState: { errors, isDirty },
   } = useForm<InternalFormValues>({
-    resolver: zodResolver(VacancyFormSchema),
+    resolver: zodResolver(VacancyFormSchema) as unknown as Resolver<InternalFormValues>,
     defaultValues: {
       title: defaultValues.title,
       description: defaultValues.description,
