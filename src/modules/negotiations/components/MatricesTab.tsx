@@ -62,6 +62,8 @@ const SLOT_CONFIG: Record<
   },
 };
 
+const MAX_ATTACHMENT_SIZE_MB = 50;
+
 function createObservationsSchema() {
   return z.object({
     observations: z.string().max(500, vk(V.MAX_CHARS, { max: 500 })),
@@ -412,6 +414,11 @@ function AttachmentSlot({ matrixId, type, attachment }: AttachmentSlotProps) {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (file.size / (1024 * 1024) > MAX_ATTACHMENT_SIZE_MB) {
+      toast.error(t('documentation.fileTooLarge', { max: MAX_ATTACHMENT_SIZE_MB }));
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
     const ext = file.name.split('.').pop()?.toLowerCase() ?? '';
     if (!config.extensions.includes(ext)) {
       toast.error(t('matrices.invalidFormat', { formats: config.extensions.join(', ') }));

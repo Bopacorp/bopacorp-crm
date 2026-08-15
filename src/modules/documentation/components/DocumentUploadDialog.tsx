@@ -36,6 +36,7 @@ import { useActiveDocumentTypes } from '../hooks/useDocumentTypes.js';
 
 const MAX_FILE_SIZE_MB = 50;
 const ACCEPTED_FILE_TYPES = '.pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png';
+const ACCEPTED_FILE_EXTENSIONS = new Set(['pdf', 'jpg', 'jpeg', 'png']);
 
 function createDocumentUploadSchema(fileTooLargeMessage: string) {
   return CreateNegotiationDocumentRequestSchema.pick({
@@ -171,6 +172,13 @@ export function DocumentUploadDialog({
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = e.target.files?.[0];
     if (!selected) return;
+    const extension = selected.name.split('.').pop()?.toLowerCase();
+    if (!extension || !ACCEPTED_FILE_EXTENSIONS.has(extension)) {
+      setError('file', { type: 'validate', message: t('documentation.invalidFileType') });
+      e.target.value = '';
+      return;
+    }
+    form.clearErrors('file');
     setValue('file', selected, { shouldValidate: true, shouldDirty: true });
   };
 

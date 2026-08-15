@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
@@ -9,6 +9,7 @@ import {
   pageMeta,
   prospectState,
 } from '@/test/crm-fixtures.js';
+import { mandatoryDocumentType } from '@/test/crm-phase4-fixtures.js';
 
 const mocks = vi.hoisted(() => ({
   useNegotiationStates: vi.fn(),
@@ -142,5 +143,51 @@ describe('ChangeStateDialog', () => {
 
     await user.click(screen.getByRole('button', { name: 'common.confirm' }));
     expect(mocks.closeWithDocuments).not.toHaveBeenCalled();
+  });
+
+  it('uploads missing mandatory documents and closes the negotiation once', async () => {
+    mocks.useActiveDocumentTypes.mockReturnValue([mandatoryDocumentType]);
+    const user = userEvent.setup();
+    const { onSuccess } = renderDialog(closingState.id);
+    const file = new File(['signed contract'], 'signed-contract.pdf', {
+      type: 'application/pdf',
+    });
+
+    fireEvent.change(document.getElementById('doc-file-signed-contract') as HTMLInputElement, {
+      target: { files: [file] },
+    });
+    await user.type(
+      document.getElementById('change-state-notes') as HTMLTextAreaElement,
+      'Closing package submitted.',
+    );
+    await user.click(screen.getByRole('button', { name: 'common.confirm' }));
+
+    await waitFor(() => expect(mocks.closeWithDocuments).toHaveBeenCalledTimes(1));
+    const [negotiationId, files, notes] = mocks.closeWithDocuments.mock.calls[0];
+    expect(negotiationId).toBe(negotiationA.id);
+    expect(files).toBeInstanceOf(Map);
+    expect(files.get(mandatoryDocumentType.id)).toBe(file);
+    expect(notes).toBe('Closing package submitted.');
+    expect(onSuccess).toHaveBeenCalledTimes(1);
+    expect(mocks.changeNegotiationState).not.toHaveBeenCalled();
+  });
+
+  it('keeps the closing dialog open when the backend rejects the document package', async () => {
+    mocks.useActiveDocumentTypes.mockReturnValue([mandatoryDocumentType]);
+    mocks.closeWithDocuments.mockRejectedValue(new Error('Missing document type'));
+    const user = userEvent.setup();
+    const { onOpenChange, onSuccess } = renderDialog(closingState.id);
+    const file = new File(['signed contract'], 'signed-contract.pdf', {
+      type: 'application/pdf',
+    });
+
+    fireEvent.change(document.getElementById('doc-file-signed-contract') as HTMLInputElement, {
+      target: { files: [file] },
+    });
+    await user.click(screen.getByRole('button', { name: 'common.confirm' }));
+
+    expect(await screen.findByText('Missing document type')).toBeInTheDocument();
+    expect(onOpenChange).not.toHaveBeenCalledWith(false);
+    expect(onSuccess).not.toHaveBeenCalled();
   });
 });

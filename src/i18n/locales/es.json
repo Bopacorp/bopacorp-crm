@@ -274,6 +274,7 @@
   "documentation.file": "Archivo",
   "documentation.fileSelect": "Haz clic para seleccionar un archivo",
   "documentation.removeFile": "Quitar archivo",
+  "documentation.invalidFileType": "Tipo de archivo no permitido",
   "documentation.fileTooLarge": "El archivo no puede superar los {{max}}MB",
   "documentation.approved": "Aprobado",
   "documentation.approving": "Aprobando",
