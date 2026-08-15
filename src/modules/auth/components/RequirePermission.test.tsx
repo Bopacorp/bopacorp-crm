@@ -14,7 +14,7 @@ describe('RequirePermission', () => {
     useAuth.mockReturnValue({ hasRole: (role: string) => role === 'manager' });
   });
 
-  it('renderiza el contenido con permiso y rol autorizados', () => {
+  it('renders content with an authorized permission and role', () => {
     usePermission.mockReturnValue({ hasPermission: () => true });
 
     render(
@@ -24,7 +24,7 @@ describe('RequirePermission', () => {
             path="/equipo"
             element={
               <RequirePermission permission="employees.read" roles={['manager']}>
-                <p>Equipo autorizado</p>
+                <p>Authorized team</p>
               </RequirePermission>
             }
           />
@@ -32,10 +32,10 @@ describe('RequirePermission', () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByText('Equipo autorizado')).toBeInTheDocument();
+    expect(screen.getByText('Authorized team')).toBeInTheDocument();
   });
 
-  it('redirige al inicio cuando falta el permiso', () => {
+  it('redirects home when the permission is missing', () => {
     usePermission.mockReturnValue({ hasPermission: () => false });
 
     render(
@@ -45,16 +45,40 @@ describe('RequirePermission', () => {
             path="/equipo"
             element={
               <RequirePermission permission="employees.read">
-                <p>Equipo autorizado</p>
+                <p>Authorized team</p>
               </RequirePermission>
             }
           />
-          <Route path="/" element={<p>Inicio</p>} />
+          <Route path="/" element={<p>Home</p>} />
         </Routes>
       </MemoryRouter>,
     );
 
-    expect(screen.getByText('Inicio')).toBeInTheDocument();
-    expect(screen.queryByText('Equipo autorizado')).not.toBeInTheDocument();
+    expect(screen.getByText('Home')).toBeInTheDocument();
+    expect(screen.queryByText('Authorized team')).not.toBeInTheDocument();
+  });
+
+  it('redirects to the home page when the permission exists but the role is missing', () => {
+    usePermission.mockReturnValue({ hasPermission: () => true });
+    useAuth.mockReturnValue({ hasRole: () => false });
+
+    render(
+      <MemoryRouter initialEntries={['/team']}>
+        <Routes>
+          <Route
+            path="/team"
+            element={
+              <RequirePermission permission="employees.read" roles={['manager']}>
+                <p>Authorized team</p>
+              </RequirePermission>
+            }
+          />
+          <Route path="/" element={<p>Home</p>} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText('Home')).toBeInTheDocument();
+    expect(screen.queryByText('Authorized team')).not.toBeInTheDocument();
   });
 });

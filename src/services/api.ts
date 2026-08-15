@@ -172,6 +172,7 @@ async function refreshWithRetry(request: RetryConfig) {
     notifySubscribers(accessToken);
     dispatchTokenRefreshed();
 
+    request.headers.Authorization = `Bearer ${accessToken}`;
     return api(request);
   } catch (err) {
     return handleRefreshError(err as AxiosError);
