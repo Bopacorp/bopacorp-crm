@@ -23,6 +23,11 @@ function downloadCsv(filename: string, content: string) {
   URL.revokeObjectURL(url);
 }
 
+function escapeCsvCell(value: string | number): string {
+  const text = String(value);
+  return /[",\n\r]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
+}
+
 function buildMetricsCsv(data: AdvisorMetricResponse[]): string {
   const stateColumns = new Map<string, string>();
   for (const m of data) {
@@ -60,7 +65,7 @@ function buildMetricsCsv(data: AdvisorMetricResponse[]): string {
     ];
   });
 
-  return [headers, ...rows].map((r) => r.join(',')).join('\n');
+  return [headers, ...rows].map((row) => row.map(escapeCsvCell).join(',')).join('\n');
 }
 
 export function ExportButton() {
