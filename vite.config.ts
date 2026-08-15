@@ -18,6 +18,13 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
+    exclude: [
+      '**/node_modules/**',
+      '.opencode/**',
+      'dist/**',
+      'coverage/**',
+      'src/integration/**/*.test.ts',
+    ],
     testTimeout: 15000,
     env: {
       VITE_API_URL: 'http://test.local/api/v1',
