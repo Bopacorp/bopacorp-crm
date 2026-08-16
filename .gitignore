@@ -11,6 +11,8 @@ node_modules
 dist
 dist-ssr
 coverage
+playwright-report
+test-results
 *.local
 
 # Editor directories and files
@@ -29,6 +31,7 @@ coverage
 
 # Environment variables
 .env
+.env.e2e
 
 # Agents
 .opencode

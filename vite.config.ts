@@ -23,6 +23,7 @@ export default defineConfig({
       '.opencode/**',
       'dist/**',
       'coverage/**',
+      'e2e/**',
       'src/integration/**/*.test.ts',
     ],
     testTimeout: 15000,
