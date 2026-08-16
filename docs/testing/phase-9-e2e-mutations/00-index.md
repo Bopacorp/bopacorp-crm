@@ -33,6 +33,7 @@ coverage of every CRM screen or permission combination.
 - [Fixtures and data-safety rules](./03-fixtures-and-data-safety.md)
 - [Evidence and execution runbook](./04-evidence-and-runbook.md)
 - [Execution record for 2026-08-15](./05-execution-2026-08-15.md)
+- [Quality-gate execution for 2026-08-15](./06-quality-gate-execution-2026-08-15.md)
 
 ## Relationship with Phase 8
 

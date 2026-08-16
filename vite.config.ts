@@ -18,13 +18,14 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
+    include: ['src/**/*.{test,spec}.{ts,tsx}'],
     exclude: [
       '**/node_modules/**',
       '.opencode/**',
       'dist/**',
       'coverage/**',
       'e2e/**',
-      'src/integration/**/*.test.ts',
+      'src/integration/**',
     ],
     testTimeout: 15000,
     env: {
@@ -100,6 +101,17 @@ export default defineConfig({
         'src/services/auth.service.ts',
         'src/services/jwt.ts',
       ],
+      exclude: [
+        'src/test/**',
+        '**/*.test.*',
+        '**/*.spec.*',
+        'src/components/ui/**',
+        'src/assets/**',
+        'src/**/*.d.ts',
+      ],
+      thresholds: {
+        lines: 80,
+      },
     },
   },
 });
