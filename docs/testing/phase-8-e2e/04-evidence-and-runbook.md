@@ -22,9 +22,10 @@ npm run test:e2e
 npm run test:e2e:report
 ```
 
-The initial run does not require a seed reset because its journeys are
-read-only. Mutation journeys must not be enabled until the reset/cleanup
-procedure is documented and verified.
+The initial Phase 8 run does not require a seed reset because its journeys are
+read-only. The separately scoped mutation run requires the marker-based cleanup
+and test-only storage rules documented in
+[Phase 9](../phase-9-e2e-mutations/04-evidence-and-runbook.md).
 
 Interactive debugging may use the Playwright UI mode, but CI must use a
 headless command with deterministic timeouts.
@@ -91,7 +92,9 @@ it to Bopadigital or the final report.
 ```
 
 The first local execution is recorded in
-[05-execution-2026-08-15.md](./05-execution-2026-08-15.md).
+[05-execution-2026-08-15.md](./05-execution-2026-08-15.md). The mutable
+execution is recorded in
+[Phase 9's execution record](../phase-9-e2e-mutations/05-execution-2026-08-15.md).
 
 ## CI handoff requirements
 

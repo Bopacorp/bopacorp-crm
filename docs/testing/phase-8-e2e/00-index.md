@@ -1,7 +1,9 @@
 # Phase 8 — CRM End-to-End Testing
 
-Status: initial implementation complete locally. The Chromium read-only suite
-passed 11 of 11 tests; artifact anonymization and CI integration remain open.
+Status: read-only baseline complete locally. The Chromium suite passed 11 of 11
+tests in the initial execution; mutable journeys are implemented and tracked in
+[Phase 9](../phase-9-e2e-mutations/00-index.md). Artifact anonymization and CI
+integration remain open.
 
 ## Purpose
 
@@ -31,9 +33,10 @@ illustrative screenshots or traces for the relevant user action.
 - Execution: local/manual while the API and CRM are already running.
 - Authentication: UI login for the role smoke test; API login plus in-memory
   browser storage for the remaining read-only journeys.
-- Data: inspect deterministic seeded records only. Create, upload, approve,
-  reject, export, and delete flows are deferred until reset/cleanup ownership
-  is available.
+- Data: this phase remains read-only and inspects deterministic seeded records.
+  Mutable create/upload/approve/reject/publish/delete journeys are owned by
+  [Phase 9](../phase-9-e2e-mutations/00-index.md), which adds marker-based
+  cleanup and role-aware API support.
 
 ## Documents in this folder
 
@@ -42,6 +45,7 @@ illustrative screenshots or traces for the relevant user action.
 - [Fixtures and data-safety rules](./03-fixtures-and-safety.md)
 - [Evidence and execution runbook](./04-evidence-and-runbook.md)
 - [Initial execution record](./05-execution-2026-08-15.md)
+- [Phase 9 mutable E2E extension](../phase-9-e2e-mutations/00-index.md)
 
 ## Scope boundaries
 
@@ -60,7 +64,8 @@ illustrative screenshots or traces for the relevant user action.
 - Load, performance, accessibility certification, or mobile-device testing.
 - Public web/CMS journeys owned by `bopacorp-web`.
 - Production data or production credentials.
-- Mutation journeys until resettable test data and storage are available.
+- Mutable journeys; see [Phase 9](../phase-9-e2e-mutations/00-index.md) for the
+  separate cleanup-controlled implementation.
 
 ## Contract decisions that must be resolved during implementation
 
