@@ -185,12 +185,15 @@ export function VacancySheet({ open, onOpenChange, vacancyId, onSuccess }: Vacan
     if (!vacancy) return;
     setFormError('');
 
-    const data: UpdateJobVacancyRequest = {};
+    const data: UpdateJobVacancyRequest = {
+      // Keep the current boolean values in the PATCH payload because the API
+      // applies the create-schema defaults when these fields are omitted.
+      isActive: values.isActive,
+      isPublished: values.isPublished,
+    };
     if (values.title !== vacancy.title) data.title = values.title;
     if (values.description !== vacancy.description) data.description = values.description;
     if (values.requirements !== vacancy.requirements) data.requirements = values.requirements;
-    if (values.isActive !== vacancy.isActive) data.isActive = values.isActive;
-    if (values.isPublished !== vacancy.isPublished) data.isPublished = values.isPublished;
 
     const defaultPublication = vacancy.publicationDate ?? '';
     const defaultClosing = vacancy.closingDate ?? '';
